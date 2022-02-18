@@ -2,19 +2,18 @@
 #include <iostream>
 #include <SFML/Network.hpp>
 //#include <vector>
-//#include <thread>
+#include <thread>
 //#include <chrono>
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
-int main() {
-	sf::TcpSocket sock;
-	sf::Socket::Status status = sock.connect("127.0.0.1", 50000);
-	bool end = false;
 
+
+void Recepcion(sf::TcpSocket* _sock, bool* _end) {
+	sf::Socket::Status status;
 	do {
 		sf::Packet pack;
-		status = sock.receive(pack);
+		status = _sock->receive(pack);
 		std::string str;
 
 		switch (status)
@@ -27,7 +26,7 @@ int main() {
 
 
 		case sf::Socket::Disconnected:
-			end = true;
+			*_end = true;
 
 			break;
 
@@ -36,8 +35,31 @@ int main() {
 			break;
 		}
 
-	} while (!end);
+	} while (!*_end);
 
+}
+
+
+int main() {
+	sf::TcpSocket sock;
+	sf::Socket::Status status = sock.connect("127.0.0.1", 50000);
+	bool end = false;
+
+	std::thread tReceive(Recepcion, &sock, &end);
+	tReceive.detach();
+
+	std::string str;
+	do {
+		std::cin >> str;
+		sf::Packet pack;
+		pack << str;
+		sock.send(pack);
+
+	} while (str != "e");
+
+	end = true;
+
+	sock.disconnect();
 
 	return 0;
 }

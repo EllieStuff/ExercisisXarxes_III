@@ -4,7 +4,40 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
+
+std::mutex mtxConexiones;
+
+
+void Recepcion(sf::TcpSocket* _sock) {
+	sf::Socket::Status status;
+	do {
+		sf::Packet pack;
+		status = _sock->receive(pack);
+		std::string str;
+
+		switch (status)
+		{
+		case sf::Socket::Done:
+			pack >> str;
+			std::cout << str;
+
+			break;
+
+
+		case sf::Socket::Disconnected:
+
+			break;
+
+
+		default:
+			break;
+		}
+
+	} while (true);
+
+}
 
 void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 	sf::TcpListener listener;
@@ -24,7 +57,11 @@ void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 		}
 
 		//Guardar en clients
+		std::thread tReceive(Recepcion, sock);
+		tReceive.detach();
+		mtxConexiones.lock();
 		_clientes->push_back(sock);
+		mtxConexiones.unlock();
 
 	}
 
@@ -37,6 +74,7 @@ void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 
 	while (!(*_end)) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
+		mtxConexiones.lock();
 		for (size_t i = 0; i < _clientes->size(); i++) {
 			sf::Socket::Status status = _clientes->at(i)->send(pack);
 			switch (status)
@@ -60,6 +98,7 @@ void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 			}
 
 		}
+		mtxConexiones.unlock();
 
 	}
 }
