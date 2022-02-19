@@ -7,6 +7,7 @@
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
+char state = NULL;
 
 
 void Recepcion(sf::TcpSocket* _sock, bool* _end) {
@@ -20,7 +21,38 @@ void Recepcion(sf::TcpSocket* _sock, bool* _end) {
 		{
 		case sf::Socket::Done:
 			pack >> str;
-			std::cout << str;
+			pack.clear();
+
+			switch (state)
+			{
+			case NULL:
+				if (str == "H") {
+
+				}
+				else if (str == "J") {
+
+				}
+				else {
+					std::cout << str;
+					str = "";
+					std::cin >> str;
+					pack << str;
+					_sock->send(pack);
+				}
+
+				break;
+
+			case 'H':
+
+				break;
+
+			case 'J':
+
+				break;
+
+			default:
+				break;
+			}
 
 			break;
 
