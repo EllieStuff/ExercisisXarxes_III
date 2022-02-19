@@ -66,7 +66,7 @@ void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 		sock->send(pack);
 		_clientes->push_back(sock);
 		clientStates.push_back(NULL);
-		//Codigo para recivir respuesta de cliente
+		//Codigo para recivir respuesta de clientes
 
 		mtxConexiones.unlock();
 
