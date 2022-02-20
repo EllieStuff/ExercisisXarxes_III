@@ -66,8 +66,23 @@ void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 		sock->send(pack);
 		_clientes->push_back(sock);
 		clientStates.push_back(NULL);
+		int idx = _clientes->size() - 1;
 		//Codigo para recivir respuesta de clientes
+		while (clientStates[idx] == NULL) {
+			pack.clear();
+			sock->receive(pack);
+			std::string ans1 = "";
+			pack >> ans1;
+			pack.clear();
+			str = "What port do you want to use?\n";
+			sock->send(pack);
+			pack.clear();
+			sock->receive(pack);
+			std::string ans2 = "";
+			pack >> ans2;
+			//Como verga cambio el puerto ahora que ya lo asigne???
 
+		}
 		mtxConexiones.unlock();
 
 	}
