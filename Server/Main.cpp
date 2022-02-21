@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <SFML/Network.hpp>
 #include <vector>
@@ -7,176 +6,123 @@
 #include <mutex>
 
 
-std::mutex mtxConexiones;
-std::vector<char> clientStates;
+std::mutex mtx;
 
-void Recepcion(sf::TcpSocket* _sock) {
+
+sf::Socket::Status Sendpartial(sf::Packet& _pack, sf::TcpSocket* _sock) {
 	sf::Socket::Status status;
 	do {
-		sf::Packet pack;
-		status = _sock->receive(pack);
-		std::string str;
+		status = _sock->send(_pack);
+	} while (status == sf::Socket::Partial);
 
-		switch (status)
-		{
-		case sf::Socket::Done:
-			pack >> str;
-			std::cout << str;
-
-			break;
-
-
-		case sf::Socket::Disconnected:
-
-			break;
-
-
-		default:
-			break;
-		}
-
-	} while (true);
-
+	return status;
 }
 
-void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
-	sf::TcpListener listener;
-	sf::Socket::Status status = listener.listen(50000);
-	if (status != sf::Socket::Status::Done) {
-		return;
-	}
-
-
-	while (!(*_end)) {
-		//Accept
-		sf::TcpSocket* sock = new sf::TcpSocket();
-		status = listener.accept(*sock);
-		if (status != sf::Socket::Status::Done) {
-			delete sock;
-			continue;
-		}
-
-		//Guardar en clients
-		std::thread tReceive(Recepcion, sock);
-		tReceive.detach();
-		mtxConexiones.lock();
-		sf::Packet pack;
-		std::string str = "Do you want to Host or to Join a chat? H/J\n";
-		pack << str;
-		sock->send(pack);
-		_clientes->push_back(sock);
-		clientStates.push_back(NULL);
-		int idx = _clientes->size() - 1;
-		//Codigo para recivir respuesta de clientes
-		while (clientStates[idx] == NULL) {
-			pack.clear();
-			sock->receive(pack);
-			std::string ans1 = "";
-			pack >> ans1;
-			pack.clear();
-			str = "What port do you want to use?\n";
-			sock->send(pack);
-			pack.clear();
-			sock->receive(pack);
-			std::string ans2 = "";
-			pack >> ans2;
-			//Como verga cambio el puerto ahora que ya lo asigne???
-
-		}
-		mtxConexiones.unlock();
-
-	}
-
+void Reception(sf::TcpSocket* socket) {
+    sf::Socket::Status status;
+    do
+    {
+        sf::Packet pack;
+        status = socket->receive(pack);
+        std::string str;
+        switch (status)
+        {
+        case sf::Socket::Done:
+            pack >> str;
+            std::cout << str;
+            break;
+        case sf::Socket::Disconnected:
+            return;
+        default:
+            continue;
+        }
+    } while (true);
 }
 
-void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
-	sf::Packet pack;
-	//std::string str = "Mensaje desde el servidor\n";
-	//pack << str;
-
-	while (!(*_end)) {
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		mtxConexiones.lock();
-		for (size_t i = 0; i < _clientes->size(); i++) {
-			sf::Socket::Status status = _clientes->at(i)->send(pack);
-			switch (status)
-			{
-			case sf::Socket::Done:
-				continue;
-
-
-			case sf::Socket::Disconnected:
-				_clientes->at(i)->disconnect();
-				delete _clientes->at(i);
-				_clientes->erase(_clientes->begin() + i);
-				i--;
-
-				break;
-
-
-			default:
-				break;
-
-			}
-
-		}
-		mtxConexiones.unlock();
-
-	}
-}
-
-//void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
-//	sf::Packet pack;
-//	//std::string str = "Mensaje desde el servidor\n";
-//	//pack << str;
-//
-//	while (!(*_end)) {
-//		std::this_thread::sleep_for(std::chrono::seconds(1));
-//		mtxConexiones.lock();
-//		for (size_t i = 0; i < _clientes->size(); i++) {
-//			sf::Socket::Status status = _clientes->at(i)->send(pack);
-//			switch (status)
-//			{
-//			case sf::Socket::Done:
-//				continue;
-//
-//
-//			case sf::Socket::Disconnected:
-//				_clientes->at(i)->disconnect();
-//				delete _clientes->at(i);
-//				_clientes->erase(_clientes->begin() + i);
-//				i--;
-//
-//				break;
-//
-//
-//			default:
-//				break;
-//
-//			}
-//
-//		}
-//		mtxConexiones.unlock();
-//
-//	}
-//}
 
 
 int main() {
-	std::vector<sf::TcpSocket*> clientes;
-	char opc;
-	bool end = false;
-	std::thread tAccepts(AceptarConexiones, &clientes, &end);
-	tAccepts.detach();
-	std::thread tSends(EnvioPeriodico, &clientes, &end);
-	tSends.detach();
 
-	do {
-		std::cin >> opc;
-	} while (opc != 'e');
+    // New chat or existing chat ?
+    bool existingChat = false;
+    bool endProgram = false;
 
-	end = true;
+    char answer;
+    std::cout << "Quieres abrir un chat(1) o unirte a uno existente(2)? (Responde con 1 o 2)" << std::endl;
+    std::cin >> answer;
+    sf::TcpSocket sock;
+    sf::Socket::Status status;
+    if (answer == '1') {
+        // SERVER 
+
+        std::cout << "Tu Ip Adress es:" << sf::IpAddress::getLocalAddress() << std::endl;
+        std::cout << "A que puerto quieres conectarte? Ex: 50000" << std::endl;
+        int port;
+        std::cin >> port;
+        system("CLS");
+        std::cout << "Chat abierto. Tu ip es: " << sf::IpAddress::getLocalAddress() << "y el puerto: " << port << std::endl;
 
 
-	return 0;
+        char opc;
+        sf::TcpListener listener;
+        status = listener.listen(port);
+        if (status != sf::Socket::Status::Done)
+        {
+            return -1;
+        }
+        status = listener.accept(sock);
+        if (status != sf::Socket::Status::Done)
+        {
+            listener.close();
+            return -1;
+        }
+        listener.close();
+    }
+    else if (answer == '2')
+    {
+        // CLIENT 
+
+
+        std::string serverIP;
+        int serverPort;
+
+        std::cout << "A que IP quieres conectarte? Ex: 127.0.0.1" << std::endl;
+        std::cin >> serverIP;
+        std::cout << "A que PUERTO quieres conectarte? Ex: 50000" << std::endl;
+        std::cin >> serverPort;
+
+        status = sock.connect(serverIP, serverPort);
+        //Controlar el error
+        if (status != sf::Socket::Status::Done)
+        {
+            std::cout << "OJO! ERROR EN LA CONXION." << std::endl;
+        }
+        else
+        {
+            system("CLS");
+            std::cout << "Has entrado en el servidor con ip: " << serverIP << " y puerto: " << serverPort << std::endl;
+        }
+
+    }
+    else
+    {
+        std::cout << "UPS! No has escrito lo que se te pedia:(" << std::endl;
+    }
+
+    //Este punto es común para cliente y servidor
+    sock.setBlocking(false);
+    std::thread tReceive(Reception, &sock);
+    tReceive.detach();
+    std::string str;
+    do
+    {
+        std::getline(std::cin, str);
+        sf::Packet pack;
+        pack << str;
+        status = Sendpartial(pack, &sock);
+        if (status == sf::Socket::Disconnected)
+            break;
+    } while (str != "e");
+    sock.disconnect();
+    return 0;
 }
