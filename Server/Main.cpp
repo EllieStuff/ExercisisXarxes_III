@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <SFML/Network.hpp>
 #include <vector>
@@ -6,177 +5,133 @@
 #include <chrono>
 #include <mutex>
 
+std::mutex mtxConnections;
 
-std::mutex mtxConexiones;
-std::vector<char> clientStates;
-
-void Recepcion(sf::TcpSocket* _sock) {
-	sf::Socket::Status status;
-	do {
-		sf::Packet pack;
-		status = _sock->receive(pack);
-		std::string str;
-
-		switch (status)
-		{
-		case sf::Socket::Done:
-			pack >> str;
-			std::cout << str;
-
-			break;
-
-
-		case sf::Socket::Disconnected:
-
-			break;
-
-
-		default:
-			break;
-		}
-
-	} while (true);
+void RecieveMessage(sf::TcpSocket* sock)
+{
 
 }
 
-void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
+void AcceptConnextions(std::vector<sf::TcpSocket*>* _clients, bool* _end)
+{
 	sf::TcpListener listener;
+	sf::SocketSelector selector;
+
 	sf::Socket::Status status = listener.listen(50000);
-	if (status != sf::Socket::Status::Done) {
+
+	if (status != sf::Socket::Done)
 		return;
-	}
 
+	selector.add(listener);
 
-	while (!(*_end)) {
-		//Accept
-		sf::TcpSocket* sock = new sf::TcpSocket();
-		status = listener.accept(*sock);
-		if (status != sf::Socket::Status::Done) {
-			delete sock;
-			continue;
+	while (!(*_end))
+	{
+		if (selector.wait())
+		{
+			if (selector.isReady(listener))
+			{
+				sf::TcpSocket* sock = new sf::TcpSocket();
+
+				//Accept
+				status = listener.accept(*sock);
+
+				if (status != sf::Socket::Status::Done)
+				{
+					delete sock;
+					continue;
+				}
+
+				_clients->push_back(sock);
+
+				selector.add(*sock);
+
+				std::cout << "client connected" << std::endl;
+			}
+			else
+			{
+				for (size_t i = 0; i < _clients->size(); i++)
+				{
+					sf::TcpSocket* sock = _clients->at(i);
+					if (selector.isReady(*sock))
+					{
+						do
+						{
+							sf::Packet pack;
+							status = sock->receive(pack);
+
+							std::string str;
+
+							switch (status)
+							{
+							case sf::Socket::Done:
+								pack >> str;
+								std::cout << str << std::endl;
+								break;
+							case sf::Socket::Disconnected:
+								selector.remove(*sock);
+								break;
+							default:
+								break;
+							}
+						} while (true);
+					}
+				}
+			}
 		}
-
-		//Guardar en clients
-		std::thread tReceive(Recepcion, sock);
-		tReceive.detach();
-		mtxConexiones.lock();
-		sf::Packet pack;
-		std::string str = "Do you want to Host or to Join a chat? H/J\n";
-		pack << str;
-		sock->send(pack);
-		_clientes->push_back(sock);
-		clientStates.push_back(NULL);
-		int idx = _clientes->size() - 1;
-		//Codigo para recivir respuesta de clientes
-		while (clientStates[idx] == NULL) {
-			pack.clear();
-			sock->receive(pack);
-			std::string ans1 = "";
-			pack >> ans1;
-			pack.clear();
-			str = "What port do you want to use?\n";
-			sock->send(pack);
-			pack.clear();
-			sock->receive(pack);
-			std::string ans2 = "";
-			pack >> ans2;
-			//Como verga cambio el puerto ahora que ya lo asigne???
-
-		}
-		mtxConexiones.unlock();
-
 	}
-
 }
 
-void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
+void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clients, bool* _end)
+{
 	sf::Packet pack;
-	//std::string str = "Mensaje desde el servidor\n";
-	//pack << str;
+	std::string str = "Mensaje desde servidor";
 
-	while (!(*_end)) {
+	pack << str;
+
+	while (!(*_end))
+	{
 		std::this_thread::sleep_for(std::chrono::seconds(1));
-		mtxConexiones.lock();
-		for (size_t i = 0; i < _clientes->size(); i++) {
-			sf::Socket::Status status = _clientes->at(i)->send(pack);
+
+		mtxConnections.lock();
+		for (size_t i = 0; i < _clients->size(); i++)
+		{
+			sf::Socket::Status status = _clients->at(i)->send(pack);
 			switch (status)
 			{
 			case sf::Socket::Done:
 				continue;
-
-
 			case sf::Socket::Disconnected:
-				_clientes->at(i)->disconnect();
-				delete _clientes->at(i);
-				_clientes->erase(_clientes->begin() + i);
+				_clients->at(i)->disconnect();
+				delete _clients->at(i);
+				_clients->erase(_clients->begin() + i);
 				i--;
-
-				break;
-
-
+				std::cout << "Client disconnected" << std::endl;
+				continue;
 			default:
 				break;
-
 			}
-
 		}
-		mtxConexiones.unlock();
-
+		mtxConnections.unlock();
 	}
 }
 
-//void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
-//	sf::Packet pack;
-//	//std::string str = "Mensaje desde el servidor\n";
-//	//pack << str;
-//
-//	while (!(*_end)) {
-//		std::this_thread::sleep_for(std::chrono::seconds(1));
-//		mtxConexiones.lock();
-//		for (size_t i = 0; i < _clientes->size(); i++) {
-//			sf::Socket::Status status = _clientes->at(i)->send(pack);
-//			switch (status)
-//			{
-//			case sf::Socket::Done:
-//				continue;
-//
-//
-//			case sf::Socket::Disconnected:
-//				_clientes->at(i)->disconnect();
-//				delete _clientes->at(i);
-//				_clientes->erase(_clientes->begin() + i);
-//				i--;
-//
-//				break;
-//
-//
-//			default:
-//				break;
-//
-//			}
-//
-//		}
-//		mtxConexiones.unlock();
-//
-//	}
-//}
-
-
-int main() {
-	std::vector<sf::TcpSocket*> clientes;
+int main()
+{
+	std::vector<sf::TcpSocket*> clients;
 	char opc;
 	bool end = false;
-	std::thread tAccepts(AceptarConexiones, &clientes, &end);
+
+	std::thread tAccepts(AcceptConnextions, &clients, &end);
 	tAccepts.detach();
-	std::thread tSends(EnvioPeriodico, &clientes, &end);
+
+	std::thread tSends(EnvioPeriodico, &clients, &end);
 	tSends.detach();
 
-	do {
+	do
+	{
 		std::cin >> opc;
 	} while (opc != 'e');
-
 	end = true;
-
 
 	return 0;
 }
