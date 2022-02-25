@@ -7,91 +7,69 @@
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
-char state = NULL;
+struct PeerAddress {
+	std::string ip;
+	unsigned short port;
+};
+unsigned short localPort;
 
 
-void Recepcion(sf::TcpSocket* _sock, bool* _end) {
-	sf::Socket::Status status;
-	do {
-		sf::Packet pack;
-		status = _sock->receive(pack);
-		std::string str;
 
-		switch (status)
-		{
-		case sf::Socket::Done:
-			pack >> str;
-			pack.clear();
+void AcceptPeers(std::vector<sf::TcpSocket>* _socks) {
+	sf::TcpListener listener;
+	listener.listen(localPort);
 
-			switch (state)
-			{
-			case NULL:
-				if (str == "H") {
-
-				}
-				else if (str == "J") {
-
-				}
-				else {
-					std::cout << str;
-					str = "";
-					std::cin >> str;
-					pack << str;
-					_sock->send(pack);
-				}
-
-				break;
-
-			case 'H':
-
-				break;
-
-			case 'J':
-
-				break;
-
-			default:
-				break;
-			}
-
-			break;
-
-
-		case sf::Socket::Disconnected:
-			*_end = true;
-
-			break;
-
-
-		default:
-			break;
+	while (_socks->size() < 3)
+	{
+		sf::TcpSocket *sock;
+		sf::Socket::Status status = listener.accept(*sock);
+		if (status == sf::Socket::Status::Done) {
+			_socks->push_back(*sock);
 		}
+	}
 
-	} while (!*_end);
+	listener.close();
+
+}
+
+
+void ConnectPeer2Peer(std::vector<sf::TcpSocket>* _socks) {
+	sf::TcpSocket serverSock;
+	sf::Socket::Status status = serverSock.connect("127.0.0.1", 50000);
+	if (status != sf::Socket::Status::Done) {
+		return;
+	}
+	localPort = serverSock.getLocalPort();
+
+	sf::Packet pack;
+	serverSock.receive(pack);
+	serverSock.disconnect();
+	int socketNum;
+	pack >> socketNum;
+	for (int i = 0; i < socketNum; i++) {
+		PeerAddress address;
+		sf::TcpSocket* sock = new sf::TcpSocket();
+		pack >> address.ip >> address.port;
+		status = sock->connect(address.ip, address.port);
+		if (status == sf::Socket::Status::Done) {
+			_socks->push_back(*sock);
+		}
+	}
+
+
+	AcceptPeers(_socks);
+	//std::thread tAccept(AcceptPeers, _socks);
+	//tAccept.detach();
 
 }
 
 
 int main() {
-	sf::TcpSocket sock;
-	sf::Socket::Status status = sock.connect("127.0.0.1", 50000);
-	bool end = false;
+	std::vector<sf::TcpSocket> socks;
+	std::thread tConnect(ConnectPeer2Peer, &socks);
+	tConnect.detach();
 
-	std::thread tReceive(Recepcion, &sock, &end);
-	tReceive.detach();
-
-	std::string str;
-	do {
-		std::cin >> str;
-		sf::Packet pack;
-		pack << str;
-		sock.send(pack);
-
-	} while (str != "e");
-
-	end = true;
-
-	sock.disconnect();
+	while(true){}
 
 	return 0;
 }

@@ -8,38 +8,15 @@
 
 
 std::mutex mtxConexiones;
-std::vector<char> clientStates;
 
-void Recepcion(sf::TcpSocket* _sock) {
-	sf::Socket::Status status;
-	do {
-		sf::Packet pack;
-		status = _sock->receive(pack);
-		std::string str;
-
-		switch (status)
-		{
-		case sf::Socket::Done:
-			pack >> str;
-			std::cout << str;
-
-			break;
+struct PeerAddress {
+	std::string ip;
+	unsigned short port;
+};
+std::vector<PeerAddress> peerAddresses;
 
 
-		case sf::Socket::Disconnected:
-
-			break;
-
-
-		default:
-			break;
-		}
-
-	} while (true);
-
-}
-
-void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
+void AcceptConnections() {
 	sf::TcpListener listener;
 	sf::Socket::Status status = listener.listen(50000);
 	if (status != sf::Socket::Status::Done) {
@@ -47,7 +24,7 @@ void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 	}
 
 
-	while (!(*_end)) {
+	while (peerAddresses.size() < 4) {
 		//Accept
 		sf::TcpSocket* sock = new sf::TcpSocket();
 		status = listener.accept(*sock);
@@ -56,126 +33,33 @@ void AceptarConexiones(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
 			continue;
 		}
 
-		//Guardar en clients
-		std::thread tReceive(Recepcion, sock);
-		tReceive.detach();
 		mtxConexiones.lock();
 		sf::Packet pack;
-		std::string str = "Do you want to Host or to Join a chat? H/J\n";
-		pack << str;
+		pack << peerAddresses.size();
+		for (int i = 0; i < peerAddresses.size(); i++) {
+			pack << peerAddresses[i].ip << peerAddresses[i].port;
+		}
 		sock->send(pack);
-		_clientes->push_back(sock);
-		clientStates.push_back(NULL);
-		int idx = _clientes->size() - 1;
-		//Codigo para recivir respuesta de clientes
-		while (clientStates[idx] == NULL) {
-			pack.clear();
-			sock->receive(pack);
-			std::string ans1 = "";
-			pack >> ans1;
-			pack.clear();
-			str = "What port do you want to use?\n";
-			sock->send(pack);
-			pack.clear();
-			sock->receive(pack);
-			std::string ans2 = "";
-			pack >> ans2;
-			//Como verga cambio el puerto ahora que ya lo asigne???
 
-		}
+		PeerAddress address;
+		address.ip = sock->getRemoteAddress().toString();
+		address.port = sock->getRemotePort();
+		peerAddresses.push_back(address);
+
 		mtxConexiones.unlock();
+
+		sock->disconnect();
 
 	}
 
+	listener.close();
+
 }
-
-void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
-	sf::Packet pack;
-	//std::string str = "Mensaje desde el servidor\n";
-	//pack << str;
-
-	while (!(*_end)) {
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		mtxConexiones.lock();
-		for (size_t i = 0; i < _clientes->size(); i++) {
-			sf::Socket::Status status = _clientes->at(i)->send(pack);
-			switch (status)
-			{
-			case sf::Socket::Done:
-				continue;
-
-
-			case sf::Socket::Disconnected:
-				_clientes->at(i)->disconnect();
-				delete _clientes->at(i);
-				_clientes->erase(_clientes->begin() + i);
-				i--;
-
-				break;
-
-
-			default:
-				break;
-
-			}
-
-		}
-		mtxConexiones.unlock();
-
-	}
-}
-
-//void EnvioPeriodico(std::vector<sf::TcpSocket*>* _clientes, bool* _end) {
-//	sf::Packet pack;
-//	//std::string str = "Mensaje desde el servidor\n";
-//	//pack << str;
-//
-//	while (!(*_end)) {
-//		std::this_thread::sleep_for(std::chrono::seconds(1));
-//		mtxConexiones.lock();
-//		for (size_t i = 0; i < _clientes->size(); i++) {
-//			sf::Socket::Status status = _clientes->at(i)->send(pack);
-//			switch (status)
-//			{
-//			case sf::Socket::Done:
-//				continue;
-//
-//
-//			case sf::Socket::Disconnected:
-//				_clientes->at(i)->disconnect();
-//				delete _clientes->at(i);
-//				_clientes->erase(_clientes->begin() + i);
-//				i--;
-//
-//				break;
-//
-//
-//			default:
-//				break;
-//
-//			}
-//
-//		}
-//		mtxConexiones.unlock();
-//
-//	}
-//}
 
 
 int main() {
-	std::vector<sf::TcpSocket*> clientes;
-	char opc;
-	bool end = false;
-	std::thread tAccepts(AceptarConexiones, &clientes, &end);
-	tAccepts.detach();
-	std::thread tSends(EnvioPeriodico, &clientes, &end);
-	tSends.detach();
 
-	do {
-		std::cin >> opc;
-	} while (opc != 'e');
-
-	end = true;
+	AcceptConnections();
 
 
 	return 0;
