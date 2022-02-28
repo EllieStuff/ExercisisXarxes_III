@@ -34,8 +34,9 @@ void AcceptConnections() {
 		}
 
 		mtxConexiones.lock();
+		std::cout << "Connected with " << sock->getRemoteAddress() << ". Curr Size = " << peerAddresses.size() << std::endl;
 		sf::Packet pack;
-		pack << peerAddresses.size();
+		pack << (sf::Uint64)peerAddresses.size();
 		for (int i = 0; i < peerAddresses.size(); i++) {
 			pack << peerAddresses[i].ip << peerAddresses[i].port;
 		}
