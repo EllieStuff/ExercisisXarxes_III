@@ -1,9 +1,8 @@
 
 #include <iostream>
 #include <SFML/Network.hpp>
-//#include <vector>
+#include <vector>
 #include <thread>
-//#include <chrono>
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
@@ -15,16 +14,16 @@ unsigned short localPort;
 
 
 
-void AcceptPeers(std::vector<sf::TcpSocket>* _socks) {
+void AcceptPeers(std::vector<sf::TcpSocket*>* _socks) {
 	sf::TcpListener listener;
 	listener.listen(localPort);
 
 	while (_socks->size() < 3)
 	{
-		sf::TcpSocket *sock;
+		sf::TcpSocket *sock = new sf::TcpSocket();
 		sf::Socket::Status status = listener.accept(*sock);
 		if (status == sf::Socket::Status::Done) {
-			_socks->push_back(*sock);
+			_socks->push_back(sock);
 		}
 	}
 
@@ -33,7 +32,7 @@ void AcceptPeers(std::vector<sf::TcpSocket>* _socks) {
 }
 
 
-void ConnectPeer2Peer(std::vector<sf::TcpSocket>* _socks) {
+void ConnectPeer2Peer(std::vector<sf::TcpSocket*>* _socks) {
 	sf::TcpSocket serverSock;
 	sf::Socket::Status status = serverSock.connect("127.0.0.1", 50000);
 	if (status != sf::Socket::Status::Done) {
@@ -43,29 +42,30 @@ void ConnectPeer2Peer(std::vector<sf::TcpSocket>* _socks) {
 
 	sf::Packet pack;
 	serverSock.receive(pack);
-	serverSock.disconnect();
 	int socketNum;
 	pack >> socketNum;
+	serverSock.disconnect();
 	for (int i = 0; i < socketNum; i++) {
 		PeerAddress address;
-		sf::TcpSocket* sock = new sf::TcpSocket();
+		sf::TcpSocket *sock = new sf::TcpSocket();
 		pack >> address.ip >> address.port;
 		status = sock->connect(address.ip, address.port);
 		if (status == sf::Socket::Status::Done) {
-			_socks->push_back(*sock);
+			_socks->push_back(sock);
 		}
 	}
 
 
-	AcceptPeers(_socks);
-	//std::thread tAccept(AcceptPeers, _socks);
-	//tAccept.detach();
+	//AcceptPeers(_socks);
+	std::thread tAccept(AcceptPeers, _socks);
+	tAccept.detach();
 
 }
 
 
 int main() {
-	std::vector<sf::TcpSocket> socks;
+	std::vector<sf::TcpSocket*> socks;
+	//ConnectPeer2Peer(&socks);
 	std::thread tConnect(ConnectPeer2Peer, &socks);
 	tConnect.detach();
 
