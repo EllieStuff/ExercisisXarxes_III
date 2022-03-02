@@ -42,13 +42,11 @@ void ReceiveMessages(std::vector<sf::TcpSocket*>* _socks, sf::TcpSocket* _sock) 
 	while (!end) {
 		sf::Packet pack;
 		sf::Socket::Status status = _sock->receive(pack);
-		if (status != sf::Socket::Done)
-			return;
-		
+
 		mtx.lock();
 		std::string msg;
 		pack >> msg;
-		if (msg == "e") {
+		if (msg == "e" || status != sf::Socket::Done) {
 			std::cout << "Socket with ip: " << _sock->getRemoteAddress() << " and port: " << _sock->getLocalPort() << " was disconnected" << std::endl;
 			for (auto it = _socks->begin(); it != _socks->end(); it++) {
 				if (*it == _sock) {
@@ -61,6 +59,7 @@ void ReceiveMessages(std::vector<sf::TcpSocket*>* _socks, sf::TcpSocket* _sock) 
 			
 			}
 		}
+
 		std::cout << msg << std::endl;
 		mtx.unlock();
 	}
