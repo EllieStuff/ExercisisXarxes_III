@@ -24,6 +24,9 @@
     <ClCompile Include="OutputMemoryStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TcpSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="InputMemoryStream.h">
