@@ -17,12 +17,24 @@ Status TcpSocket::Connect(std::string _ip, unsigned short _port)
 
 InputMemoryStream* TcpSocket::Receive(Status& _status)
 {
-	InputMemoryStream* packet;
-	//sf::Socket::Status status = socket.receive();
+	InputMemoryStream* input;
+	sf::Packet packet;
+	std::string charArray;
+	sf::Socket::Status status = socket.receive(packet);
 
-	return nullptr;
+	_status = (Status)(int)status;
+
+	if(_status != Status::DONE)
+		return nullptr;
+
+	packet >> charArray;
+	input->Read(charArray.c_str());
+
+	return input;
 }
 
 void TcpSocket::Send(OutputMemoryStream* _info, Status& _status)
 {
+	sf::Socket::Status status = socket.send(_info->GetBufferPtr(), _info->GetLength());
+	_status = (Status)(int)status;
 }
