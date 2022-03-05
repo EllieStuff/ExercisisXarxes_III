@@ -9,7 +9,6 @@ private:
 	char* mBuffer;
 	uint32_t mHead;
 	uint32_t mCapacity;
-	//sf::TcpListener listener;
 
 	struct PeerAddress {
 		std::string ip;
@@ -17,6 +16,7 @@ private:
 	};
 
 public:
+
 	InputMemoryStream(char* _inBuffer, uint32_t _inByteCount);
 
 	~InputMemoryStream();
