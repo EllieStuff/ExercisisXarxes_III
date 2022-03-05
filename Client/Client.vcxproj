@@ -149,6 +149,9 @@
   <ItemGroup>
     <ClInclude Include="InputMemoryStream.h" />
     <ClInclude Include="OutputMemoryStream.h" />
+    <ClInclude Include="TcpListener.h" />
+    <ClInclude Include="TcpSocket.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

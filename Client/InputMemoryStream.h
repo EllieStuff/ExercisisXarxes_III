@@ -9,6 +9,13 @@ private:
 	char* mBuffer;
 	uint32_t mHead;
 	uint32_t mCapacity;
+	//sf::TcpListener listener;
+
+	struct PeerAddress {
+		std::string ip;
+		unsigned short port;
+	};
+
 public:
 	InputMemoryStream(char* _inBuffer, uint32_t _inByteCount);
 
@@ -23,4 +30,5 @@ public:
 	//Es necesario hacer esta función específica para strings 
 	//para evitar que entre en el Read con template genérico
 	std::string ReadString();
+
 };
