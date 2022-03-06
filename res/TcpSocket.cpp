@@ -34,6 +34,7 @@ InputMemoryStream* TcpSocket::Receive(Status& _status)
 void TcpSocket::Send(OutputMemoryStream* _info, Status& _status)
 {
 	sf::Socket::Status status = socket.send(_info->GetBufferPtr(), _info->GetLength());
+
 	_status = (Status)(int)status;
 }
 

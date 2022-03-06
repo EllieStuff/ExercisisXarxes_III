@@ -39,16 +39,18 @@ void AcceptConnections(std::vector<PeerAddress>* peerAddresses) {
 
 		//mtxConexiones.lock();
 		std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses->size() << std::endl;
-		OutputMemoryStream out;
-		out.Write(peerAddresses->size());
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write(peerAddresses->size());
 		//Packet pack;
 		//pack << (Uint64)peerAddresses.size();
 		for (int i = 0; i < peerAddresses->size(); i++) {
 			//pack << peerAddresses[i].ip << peerAddresses[i].port;
-			out.WriteString(peerAddresses->at(i).ip);
-			out.Write(peerAddresses->at(i).port);
+			std::cout << peerAddresses->at(i).ip << ", " << peerAddresses->at(i).port << std::endl;
+			out->WriteString(peerAddresses->at(i).ip);
+			out->Write(peerAddresses->at(i).port);
 		}
-		sock->Send(&out, status);
+		sock->Send(out, status);
+		std::cout << (int)status << std::endl;
 
 		PeerAddress address;
 		address.ip = sock->GetRemoteAddress();

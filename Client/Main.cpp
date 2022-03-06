@@ -19,12 +19,14 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 
 		//Packet pack;
 		//pack << msg;
-		OutputMemoryStream out;
-		out.WriteString(msg);
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->WriteString(msg);
 		//mtx.lock();
+		std::cout << _socks->size() << std::endl;
 		for (int i = 0; i < _socks->size(); i++) {
 			Status status;
-			_socks->at(i)->Send(&out, status);
+			_socks->at(i)->Send(out, status);
+			std::cout << (int)status << std::endl;
 		}
 		if (msg == "e") {
 			end = true;
@@ -43,27 +45,24 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 		//Packet pack;
 		//Socket::Status status = _sock->receive(pack);
 		Status status;
-		InputMemoryStream in = *_sock->Receive(status);
+		InputMemoryStream* in = _sock->Receive(status);
 
 		//mtx.lock();
-		std::string msg = in.ReadString();
-		//pack >> msg;
+		std::string msg = in->ReadString();
+		std::cout << msg << std::endl;
 		if (msg == "e" || status != Status::DONE) {
 			std::cout << "Socket with ip: " << _sock->GetRemoteAddress() << " and port: " << _sock->GetLocalPort() << " was disconnected" << std::endl;
 			for (auto it = _socks->begin(); it != _socks->end(); it++) {
 				if (*it == _sock) {
 					_socks->erase(it);
 					delete _sock;
-					//mtx.unlock();
 
 					return;
 				}
-			
 			}
 		}
 
-		std::cout << msg << std::endl;
-		//mtx.unlock();
+		
 	}
 
 }
@@ -109,9 +108,11 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 	for (int i = 0; i < socketNum; i++) {
 		PeerAddress address;
 		TcpSocket *sock = new TcpSocket();
+		std::string msg;
 		//pack >> address.ip >> address.port;
-		address.ip = in->ReadString();
+		msg = in->ReadString();
 		in->Read(&address.port);
+		std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
 		status = sock->Connect(address.ip, address.port);
 		if (status == Status::DONE) {
 			_socks->push_back(sock);
@@ -127,7 +128,6 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		std::thread tReceive(ReceiveMessages, _socks, _socks->at(i));
 		tReceive.detach();
 	}
-
 }
 
 
