@@ -9,9 +9,10 @@
 
 class TcpSocket {
 private:
-	sf::TcpSocket socket;
 	
 public:
+	sf::TcpSocket socket;
+	
 	TcpSocket();
 	~TcpSocket();
 
@@ -20,4 +21,13 @@ public:
 
 	InputMemoryStream* Receive(Status &_status);
 	void Send(OutputMemoryStream* _info, Status& _status);
+
+	unsigned short GetLocalPort();
+	std::string GetRemoteAddress();
+	unsigned short GetRemotePort();
+
+	bool IsBlocking();
+	void SetBlocking(bool _blocking);
+
+
 };

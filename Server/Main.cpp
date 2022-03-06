@@ -1,59 +1,64 @@
 
 #include <iostream>
-#include <SFML/Network.hpp>
 #include <vector>
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include "..\Client\TcpSocket.h"
+#include "..\Client\TcpListener.h"
 
 
-std::mutex mtxConexiones;
+//std::mutex mtxConexiones;
 
-struct PeerAddress {
-	std::string ip;
-	unsigned short port;
-};
+//struct PeerAddress {
+//	std::string ip;
+//	unsigned short port;
+//};
 std::vector<PeerAddress> peerAddresses;
 
 
 void AcceptConnections() {
-	sf::TcpListener listener;
-	sf::Socket::Status status = listener.listen(50000);
-	if (status != sf::Socket::Status::Done) {
+	TcpListener listener;
+	Status status = listener.Listen(50000);
+	if (status != Status::DONE) {
 		return;
 	}
 
 
 	while (peerAddresses.size() < 4) {
 		//Accept
-		sf::TcpSocket* sock = new sf::TcpSocket();
-		status = listener.accept(*sock);
-		if (status != sf::Socket::Status::Done) {
+		TcpSocket* sock = new TcpSocket();
+		status = listener.Accept(*sock);
+		if (status != Status::DONE) {
 			delete sock;
 			continue;
 		}
 
-		mtxConexiones.lock();
-		std::cout << "Connected with " << sock->getRemoteAddress() << ". Curr Size = " << peerAddresses.size() << std::endl;
-		sf::Packet pack;
-		pack << (sf::Uint64)peerAddresses.size();
+		//mtxConexiones.lock();
+		std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses.size() << std::endl;
+		OutputMemoryStream out;
+		out.Write(peerAddresses.size());
+		//Packet pack;
+		//pack << (Uint64)peerAddresses.size();
 		for (int i = 0; i < peerAddresses.size(); i++) {
-			pack << peerAddresses[i].ip << peerAddresses[i].port;
+			//pack << peerAddresses[i].ip << peerAddresses[i].port;
+			out.WriteString(peerAddresses[i].ip);
+			out.Write(peerAddresses[i].port);
 		}
-		sock->send(pack);
+		sock->Send(&out, status);
 
 		PeerAddress address;
-		address.ip = sock->getRemoteAddress().toString();
-		address.port = sock->getRemotePort();
+		address.ip = sock->GetRemoteAddress();
+		address.port = sock->GetRemotePort();
 		peerAddresses.push_back(address);
 
-		mtxConexiones.unlock();
+		//mtxConexiones.unlock();
 
-		sock->disconnect();
+		sock->Disconnect();
 
 	}
 
-	listener.close();
+	listener.Close();
 
 }
 

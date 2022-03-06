@@ -145,6 +145,7 @@
     <ClCompile Include="InputMemoryStream.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="OutputMemoryStream.cpp" />
+    <ClCompile Include="TcpListener.cpp" />
     <ClCompile Include="TcpSocket.cpp" />
   </ItemGroup>
   <ItemGroup>

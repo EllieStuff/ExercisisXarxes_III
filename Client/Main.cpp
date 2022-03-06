@@ -1,58 +1,60 @@
 
 #include <iostream>
-#include <SFML/Network.hpp>
 #include <vector>
 #include <thread>
+#include "TcpSocket.h"
+#include "TcpListener.h"
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
-struct PeerAddress {
-	std::string ip;
-	unsigned short port;
-};
 unsigned short localPort;
 bool end = false;
 
-sf::Mutex mtx;
+//sf::Mutex mtx;
 
-void SendMessages(std::vector<sf::TcpSocket*>* _socks) {
+void SendMessages(std::vector<TcpSocket*>* _socks) {
 	while (!end) {
 		std::string msg;
 		std::cin >> msg;
 
-		sf::Packet pack;
-		pack << msg;
-		mtx.lock();
+		//Packet pack;
+		//pack << msg;
+		OutputMemoryStream out;
+		out.WriteString(msg);
+		//mtx.lock();
 		for (int i = 0; i < _socks->size(); i++) {
-			_socks->at(i)->send(pack);
+			Status status;
+			_socks->at(i)->Send(&out, status);
 		}
 		if (msg == "e") {
 			end = true;
 			for (int i = 0; i < _socks->size(); i++) {
-				_socks->at(i)->disconnect();
+				_socks->at(i)->Disconnect();
 			}
 		}
-		mtx.unlock();
+		//mtx.unlock();
 
 	}
 
 }
 
-void ReceiveMessages(std::vector<sf::TcpSocket*>* _socks, sf::TcpSocket* _sock) {
+void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 	while (!end) {
-		sf::Packet pack;
-		sf::Socket::Status status = _sock->receive(pack);
+		//Packet pack;
+		//Socket::Status status = _sock->receive(pack);
+		Status status;
+		InputMemoryStream in = *_sock->Receive(status);
 
-		mtx.lock();
-		std::string msg;
-		pack >> msg;
-		if (msg == "e" || status != sf::Socket::Done) {
-			std::cout << "Socket with ip: " << _sock->getRemoteAddress() << " and port: " << _sock->getLocalPort() << " was disconnected" << std::endl;
+		//mtx.lock();
+		std::string msg = in.ReadString();
+		//pack >> msg;
+		if (msg == "e" || status != Status::DONE) {
+			std::cout << "Socket with ip: " << _sock->GetRemoteAddress() << " and port: " << _sock->GetLocalPort() << " was disconnected" << std::endl;
 			for (auto it = _socks->begin(); it != _socks->end(); it++) {
 				if (*it == _sock) {
 					_socks->erase(it);
 					delete _sock;
-					mtx.unlock();
+					//mtx.unlock();
 
 					return;
 				}
@@ -61,55 +63,59 @@ void ReceiveMessages(std::vector<sf::TcpSocket*>* _socks, sf::TcpSocket* _sock) 
 		}
 
 		std::cout << msg << std::endl;
-		mtx.unlock();
+		//mtx.unlock();
 	}
 
 }
 
 
-void AcceptPeers(std::vector<sf::TcpSocket*>* _socks) {
-	sf::TcpListener listener;
-	listener.listen(localPort);
+void AcceptPeers(std::vector<TcpSocket*>* _socks) {
+	TcpListener listener;
+	listener.Listen(localPort);
 
 	while (_socks->size() < 3 && !end)
 	{
-		sf::TcpSocket* sock = new sf::TcpSocket();
-		sf::Socket::Status status = listener.accept(*sock);
-		if (status == sf::Socket::Status::Done) {
+		TcpSocket* sock = new TcpSocket();
+		Status status = listener.Accept(*sock);
+		if (status == Status::DONE) {
 			_socks->push_back(sock);
-			std::cout << "Connected with ip: " << sock->getRemoteAddress() << " and port: " << sock->getLocalPort() << std::endl;
+			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 
 			std::thread tReceive(ReceiveMessages, _socks, _socks->at(_socks->size() - 1));
 			tReceive.detach();
 		}
 	}
 
-	listener.close();
+	listener.Close();
 
 }
 
-void ConnectPeer2Peer(std::vector<sf::TcpSocket*>* _socks) {
-	sf::TcpSocket serverSock;
-	sf::Socket::Status status = serverSock.connect("127.0.0.1", 50000);
-	if (status != sf::Socket::Status::Done) {
+void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
+	TcpSocket serverSock;
+	Status status = serverSock.Connect("127.0.0.1", 50000);
+	if (status != Status::DONE) {
 		return;
 	}
-	localPort = serverSock.getLocalPort();
+	localPort = serverSock.GetLocalPort();
 
-	sf::Packet pack;
-	serverSock.receive(pack);
-	sf::Uint64 socketNum;
-	pack >> socketNum;
+	//Packet pack;
+	InputMemoryStream in = *serverSock.Receive(status);
+	int socketNum;
+	in.Read(&socketNum);
+	//sf::Uint64 socketNum;
+	//pack >> socketNum;
 	std::cout << socketNum << std::endl;
-	serverSock.disconnect();
+	serverSock.Disconnect();
 	for (int i = 0; i < socketNum; i++) {
 		PeerAddress address;
-		sf::TcpSocket *sock = new sf::TcpSocket();
-		pack >> address.ip >> address.port;
-		status = sock->connect(address.ip, address.port);
-		if (status == sf::Socket::Status::Done) {
+		TcpSocket *sock = new TcpSocket();
+		//pack >> address.ip >> address.port;
+		address.ip = in.ReadString();
+		in.Read(&address.port);
+		status = sock->Connect(address.ip, address.port);
+		if (status == Status::DONE) {
 			_socks->push_back(sock);
-			std::cout << "Connected with ip: " << sock->getRemoteAddress() << " and port: " << sock->getLocalPort() << std::endl;
+			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 		}
 	}
 
@@ -126,7 +132,7 @@ void ConnectPeer2Peer(std::vector<sf::TcpSocket*>* _socks) {
 
 
 int main() {
-	std::vector<sf::TcpSocket*> socks;
+	std::vector<TcpSocket*> socks;
 	ConnectPeer2Peer(&socks);
 
 	while(!end){}

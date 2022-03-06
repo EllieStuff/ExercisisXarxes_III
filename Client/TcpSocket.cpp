@@ -39,3 +39,28 @@ void TcpSocket::Send(OutputMemoryStream* _info, Status& _status)
 	sf::Socket::Status status = socket.send(_info->GetBufferPtr(), _info->GetLength());
 	_status = (Status)(int)status;
 }
+
+unsigned short TcpSocket::GetLocalPort()
+{
+	return socket.getLocalPort();
+}
+
+std::string TcpSocket::GetRemoteAddress()
+{
+	return socket.getRemoteAddress().toString();
+}
+
+unsigned short TcpSocket::GetRemotePort()
+{
+	return socket.getRemotePort();
+}
+
+bool TcpSocket::IsBlocking()
+{
+	return socket.isBlocking();
+}
+
+void TcpSocket::SetBlocking(bool _blocking)
+{
+	socket.setBlocking(_blocking);
+}
