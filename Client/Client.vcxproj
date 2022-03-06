@@ -142,18 +142,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="InputMemoryStream.cpp" />
+    <ClCompile Include="..\res\InputMemoryStream.cpp" />
+    <ClCompile Include="..\res\OutputMemoryStream.cpp" />
+    <ClCompile Include="..\res\TcpListener.cpp" />
+    <ClCompile Include="..\res\TcpSocket.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="OutputMemoryStream.cpp" />
-    <ClCompile Include="TcpListener.cpp" />
-    <ClCompile Include="TcpSocket.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="InputMemoryStream.h" />
-    <ClInclude Include="OutputMemoryStream.h" />
-    <ClInclude Include="TcpListener.h" />
-    <ClInclude Include="TcpSocket.h" />
-    <ClInclude Include="Utils.h" />
+    <ClInclude Include="..\res\InputMemoryStream.h" />
+    <ClInclude Include="..\res\OutputMemoryStream.h" />
+    <ClInclude Include="..\res\TcpListener.h" />
+    <ClInclude Include="..\res\TcpSocket.h" />
+    <ClInclude Include="..\res\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

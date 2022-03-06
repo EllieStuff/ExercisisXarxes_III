@@ -18,33 +18,33 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="InputMemoryStream.cpp">
+    <ClCompile Include="..\res\InputMemoryStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OutputMemoryStream.cpp">
+    <ClCompile Include="..\res\OutputMemoryStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TcpSocket.cpp">
+    <ClCompile Include="..\res\TcpListener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TcpListener.cpp">
+    <ClCompile Include="..\res\TcpSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="InputMemoryStream.h">
+    <ClInclude Include="..\res\InputMemoryStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OutputMemoryStream.h">
+    <ClInclude Include="..\res\OutputMemoryStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TcpListener.h">
+    <ClInclude Include="..\res\TcpListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TcpSocket.h">
+    <ClInclude Include="..\res\TcpSocket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Utils.h">
+    <ClInclude Include="..\res\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

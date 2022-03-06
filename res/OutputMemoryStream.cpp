@@ -42,25 +42,3 @@ void OutputMemoryStream::WriteString(std::string _inString)
 	Write(_inString.size());
 	Write(_inString.c_str(), _inString.size());
 };
-
-template<typename T>
-inline void OutputMemoryStream::Write(T _data)
-{
-	//Tal y cómo está hecho, este Write sólo funciona para tipos básicos.
-	//Así evitamos que se nos cuele algo que se serializará mal
-	static_assert(std::is_arithmetic<T>::value || std::is_enum<T>::value, "Este Write solo soporta tipos basicos.");
-	Write(&_data, sizeof(_data));
-}
-
-template<typename T>
-void OutputMemoryStream::Write(const std::vector<T>& _inVector)
-{
-	//Para serializar vectores, pasamos el tamaño del vector
-	//y a continuación todos sus elementos.
-	size_t elementCount = _inVector.size();
-	Write(elementCount);
-	for (const T& element : _inVector)
-	{
-		Write(element);
-	}
-}

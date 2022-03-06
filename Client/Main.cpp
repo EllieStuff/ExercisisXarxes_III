@@ -2,8 +2,8 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "TcpSocket.h"
-#include "TcpListener.h"
+#include "..\res\TcpSocket.h"
+#include "..\res\TcpListener.h"
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
@@ -99,9 +99,9 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 	localPort = serverSock.GetLocalPort();
 
 	//Packet pack;
-	InputMemoryStream in = *serverSock.Receive(status);
+	InputMemoryStream* in = serverSock.Receive(status);
 	int socketNum;
-	in.Read(&socketNum);
+	in->Read(&socketNum);
 	//sf::Uint64 socketNum;
 	//pack >> socketNum;
 	std::cout << socketNum << std::endl;
@@ -110,8 +110,8 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		PeerAddress address;
 		TcpSocket *sock = new TcpSocket();
 		//pack >> address.ip >> address.port;
-		address.ip = in.ReadString();
-		in.Read(&address.port);
+		address.ip = in->ReadString();
+		in->Read(&address.port);
 		status = sock->Connect(address.ip, address.port);
 		if (status == Status::DONE) {
 			_socks->push_back(sock);

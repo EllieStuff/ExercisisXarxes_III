@@ -4,9 +4,13 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
-#include "..\Client\TcpSocket.h"
-#include "..\Client\TcpListener.h"
+#include "..\res\TcpSocket.h"
+#include "..\res\TcpListener.h"
 
+class OutputMemoryStream;
+class InputMemoryStream;
+class TcpSocket;
+class TcpListener;
 
 //std::mutex mtxConexiones;
 
@@ -14,10 +18,9 @@
 //	std::string ip;
 //	unsigned short port;
 //};
-std::vector<PeerAddress> peerAddresses;
 
 
-void AcceptConnections() {
+void AcceptConnections(std::vector<PeerAddress>* peerAddresses) {
 	TcpListener listener;
 	Status status = listener.Listen(50000);
 	if (status != Status::DONE) {
@@ -25,7 +28,7 @@ void AcceptConnections() {
 	}
 
 
-	while (peerAddresses.size() < 4) {
+	while (peerAddresses->size() < 4) {
 		//Accept
 		TcpSocket* sock = new TcpSocket();
 		status = listener.Accept(*sock);
@@ -35,22 +38,22 @@ void AcceptConnections() {
 		}
 
 		//mtxConexiones.lock();
-		std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses.size() << std::endl;
+		std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses->size() << std::endl;
 		OutputMemoryStream out;
-		out.Write(peerAddresses.size());
+		out.Write(peerAddresses->size());
 		//Packet pack;
 		//pack << (Uint64)peerAddresses.size();
-		for (int i = 0; i < peerAddresses.size(); i++) {
+		for (int i = 0; i < peerAddresses->size(); i++) {
 			//pack << peerAddresses[i].ip << peerAddresses[i].port;
-			out.WriteString(peerAddresses[i].ip);
-			out.Write(peerAddresses[i].port);
+			out.WriteString(peerAddresses->at(i).ip);
+			out.Write(peerAddresses->at(i).port);
 		}
 		sock->Send(&out, status);
 
 		PeerAddress address;
 		address.ip = sock->GetRemoteAddress();
 		address.port = sock->GetRemotePort();
-		peerAddresses.push_back(address);
+		peerAddresses->push_back(address);
 
 		//mtxConexiones.unlock();
 
@@ -64,8 +67,8 @@ void AcceptConnections() {
 
 
 int main() {
-
-	AcceptConnections();
+	std::vector<PeerAddress> peerAddresses;
+	AcceptConnections(&peerAddresses);
 
 
 	return 0;
