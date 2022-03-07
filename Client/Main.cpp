@@ -46,8 +46,13 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 		//Socket::Status status = _sock->receive(pack);
 		Status status;
 		InputMemoryStream* in = _sock->Receive(status);
-
+		if (status == Status::DISCONNECTED)
+		{
+			delete in;
+			return;
+		}
 		//mtx.lock();
+
 		std::string msg = in->ReadString();
 		std::cout << msg << std::endl;
 		if (msg == "e" || status != Status::DONE) {
@@ -62,7 +67,7 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 			}
 		}
 
-		
+		delete in;
 	}
 
 }
@@ -110,6 +115,12 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		TcpSocket *sock = new TcpSocket();
 		std::string msg;
 		//pack >> address.ip >> address.port;
+
+		int num;
+		in->Read(&num);
+
+		std::cout << num << std::endl;
+
 		msg = in->ReadString();
 		in->Read(&address.port);
 		std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
@@ -119,6 +130,7 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 		}
 	}
+	delete in;
 
 	std::thread tAccept(AcceptPeers, _socks);
 	tAccept.detach();

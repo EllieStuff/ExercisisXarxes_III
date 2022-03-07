@@ -45,11 +45,13 @@ void AcceptConnections(std::vector<PeerAddress>* peerAddresses) {
 		//pack << (Uint64)peerAddresses.size();
 		for (int i = 0; i < peerAddresses->size(); i++) {
 			//pack << peerAddresses[i].ip << peerAddresses[i].port;
+			PeerAddress current = peerAddresses->at(i);
 			std::cout << peerAddresses->at(i).ip << ", " << peerAddresses->at(i).port << std::endl;
-			out->WriteString(peerAddresses->at(i).ip);
-			out->Write(peerAddresses->at(i).port);
+			out->WriteString(current.ip);
+			out->Write(current.port);
 		}
 		sock->Send(out, status);
+		delete out;
 		std::cout << (int)status << std::endl;
 
 		PeerAddress address;
