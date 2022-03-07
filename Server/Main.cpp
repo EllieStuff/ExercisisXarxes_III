@@ -71,9 +71,10 @@ void AcceptConnections(std::vector<PeerAddress>* peerAddresses) {
 
 
 int main() {
-	/*std::vector<PeerAddress> peerAddresses;
-	AcceptConnections(&peerAddresses);*/
-	std::string msg = "localhost";
+	std::vector<PeerAddress> peerAddresses;
+	AcceptConnections(&peerAddresses);
+
+	/*std::string msg = "localhost";
 	std::vector<char> str (msg.begin(), msg.end());
 	OutputMemoryStream oms;
 	oms.WriteString(msg);
@@ -83,7 +84,7 @@ int main() {
 	InputMemoryStream ims (oms.GetBufferPtr(), oms.GetLength());
 	msg = ims.ReadString();
 	std::cout << std::string(str.begin(), str.end()) << std::endl;
-	system("pause");
+	system("pause");*/
 
 	return 0;
 }
