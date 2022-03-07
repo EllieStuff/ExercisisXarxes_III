@@ -110,6 +110,7 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 	//pack >> socketNum;
 	std::cout << socketNum << std::endl;
 	serverSock.Disconnect();
+	bool started = false;
 	for (int i = 0; i < socketNum; i++) {
 		PeerAddress address;
 		TcpSocket *sock = new TcpSocket();
@@ -117,14 +118,18 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		//pack >> address.ip >> address.port;
 
 		int num;
-		in->Read(&num);
 
-		std::cout << num << std::endl;
+		if(!started) 
+		{
+			in->Read(&num);
+			std::cout << num << std::endl;
+			started = true;
+		}
 
 		msg = in->ReadString();
 		in->Read(&address.port);
 		std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
-		status = sock->Connect(address.ip, address.port);
+		status = sock->Connect(msg, address.port);
 		if (status == Status::DONE) {
 			_socks->push_back(sock);
 			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
