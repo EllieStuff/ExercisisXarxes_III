@@ -39,6 +39,7 @@ void OutputMemoryStream::Write(const void* _inData, size_t _inByteCount)
 void OutputMemoryStream::WriteString(std::string _inString)
 {
 	//Escribo el tamaño del string y su información
-	Write(_inString.size());
-	Write(_inString.c_str(), _inString.size());
+	int size = _inString.size();
+	Write(size);
+	Write(_inString.c_str(), size);
 };
