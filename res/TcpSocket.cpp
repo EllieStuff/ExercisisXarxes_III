@@ -18,10 +18,10 @@ Status TcpSocket::Connect(std::string _ip, unsigned short _port)
 InputMemoryStream* TcpSocket::Receive(Status& _status)
 {
 	//peta aquí
-	char* bufferChar = new char();
+	std::string* bufferChar = new std::string();
 	size_t size = 1000;
 	std::size_t received;
-	InputMemoryStream* input = new InputMemoryStream(bufferChar, size);
+	InputMemoryStream* input = new InputMemoryStream((char*) bufferChar, size);
 	sf::Socket::Status status = socket.receive(bufferChar, size, received);
 
 	_status = (Status)(int)status;
