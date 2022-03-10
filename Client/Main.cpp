@@ -102,48 +102,70 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 	}
 	localPort = serverSock.GetLocalPort();
 
-	//Packet pack;
-	InputMemoryStream* in = serverSock.Receive(status);
-	int socketNum;
-	in->Read(&socketNum);
-	//sf::Uint64 socketNum;
-	//pack >> socketNum;
-	std::cout << socketNum << std::endl;
-	serverSock.Disconnect();
-	bool started = false;
-	for (int i = 0; i < socketNum; i++) {
-		PeerAddress address;
-		TcpSocket *sock = new TcpSocket();
-		std::string msg;
-		//pack >> address.ip >> address.port;
+	std::cout << "Welcome!" << std::endl;
+	std::cout << "1. Create P2P Game" << std::endl;
+	std::cout << "2. List P2P Games" << std::endl;
+	std::cout << "3. Join P2P Game" << std::endl;
 
-		int num;
+	int option;
+	std::cin >> option;
 
-		if(!started) 
-		{
-			in->Read(&num);
-			std::cout << num << std::endl;
-			started = true;
-		}
+	OutputMemoryStream* out = new OutputMemoryStream();
+	out->Write(option);
 
-		msg = in->ReadString();
-		in->Read(&address.port);
-		std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
-		status = sock->Connect(msg, address.port);
-		if (status == Status::DONE) {
-			_socks->push_back(sock);
-			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
-		}
+	serverSock.Send(out, status);
+
+	if(option == 3) 
+	{
+		std::cout << "Type server number" << std::endl;
+		int server;
+		std::cin >> server;
+		out = new OutputMemoryStream();
+		out->Write(server);
+		serverSock.Send(out, status);
 	}
-	delete in;
 
-	std::thread tAccept(AcceptPeers, _socks);
-	tAccept.detach();
-	std::thread tSend(SendMessages, _socks);
-	tSend.detach();
-	for (int i = 0; i < _socks->size(); i++) {
-		std::thread tReceive(ReceiveMessages, _socks, _socks->at(i));
-		tReceive.detach();
+	if(option == 1 || option == 3) 
+	{
+		InputMemoryStream* in = serverSock.Receive(status);
+		int socketNum;
+		in->Read(&socketNum);
+		std::cout << socketNum << std::endl;
+		serverSock.Disconnect();
+		bool started = false;
+		for (int i = 0; i < socketNum; i++) {
+			PeerAddress address;
+			TcpSocket* sock = new TcpSocket();
+			std::string msg;
+
+			int num;
+
+			if (!started)
+			{
+				in->Read(&num);
+				std::cout << num << std::endl;
+				started = true;
+			}
+
+			msg = in->ReadString();
+			in->Read(&address.port);
+			std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
+			status = sock->Connect(msg, address.port);
+			if (status == Status::DONE) {
+				_socks->push_back(sock);
+				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
+			}
+		}
+		delete in;
+
+		std::thread tAccept(AcceptPeers, _socks);
+		tAccept.detach();
+		std::thread tSend(SendMessages, _socks);
+		tSend.detach();
+		for (int i = 0; i < _socks->size(); i++) {
+			std::thread tReceive(ReceiveMessages, _socks, _socks->at(i));
+			tReceive.detach();
+		}
 	}
 }
 
