@@ -60,11 +60,12 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 		{
 			std::vector<PeerAddress> newConns;
 			peerAddresses->push_back(newConns);
-			ConnectToServer(peerAddresses, sock, peerAddresses->size()-1);
+			ConnectToServer(peerAddresses, sock, peerAddresses->size() - 1);
+			delete in;
 			break;
 		}
 			//search game
-		if(menuOption == 2) 
+		else if(menuOption == 2) 
 		{
 			OutputMemoryStream* out = new OutputMemoryStream();
 			for (size_t i = 0; i < peerAddresses->size(); i++)
@@ -77,16 +78,19 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 				}
 			}
 			sock->Send(out, status);
+			delete out;
 		}
 			//connect
-		if(menuOption == 3) 
+		else if(menuOption == 3) 
 		{
 			in = sock->Receive(status);
 			int serverIndex;
 			in->Read(&serverIndex);
 			ConnectToServer(peerAddresses, sock, serverIndex);
+			delete in;
 			break;
 		}
+		delete in;
 	}
 }
 
@@ -96,7 +100,6 @@ void AcceptConnections(std::vector<std::vector<PeerAddress>>* peerAddresses) {
 	if (status != Status::DONE) {
 		return;
 	}
-
 
 	while (true) {
 		//Accept
@@ -110,7 +113,6 @@ void AcceptConnections(std::vector<std::vector<PeerAddress>>* peerAddresses) {
 		std::thread clientMenu(ClientMenu, sock, peerAddresses);
 
 		clientMenu.detach();
-
 	}
 
 	listener.Close();

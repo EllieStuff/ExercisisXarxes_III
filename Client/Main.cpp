@@ -17,8 +17,6 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 		std::string msg;
 		std::cin >> msg;
 
-		//Packet pack;
-		//pack << msg;
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->WriteString(msg);
 		//mtx.lock();
@@ -32,12 +30,14 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 			end = true;
 			for (int i = 0; i < _socks->size(); i++) {
 				_socks->at(i)->Disconnect();
+				delete _socks->at(i);
 			}
+			_socks->clear();
 		}
 		//mtx.unlock();
-
+		delete out;
 	}
-
+	
 }
 
 void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
@@ -61,7 +61,7 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 				if (*it == _sock) {
 					_socks->erase(it);
 					delete _sock;
-
+					delete in;
 					return;
 				}
 			}
@@ -94,7 +94,8 @@ void AcceptPeers(std::vector<TcpSocket*>* _socks) {
 
 }
 
-void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
+void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) 
+{
 	TcpSocket serverSock;
 	Status status = serverSock.Connect("127.0.0.1", 50000);
 	if (status != Status::DONE) {
@@ -120,9 +121,14 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		std::cout << "Type server number" << std::endl;
 		int server;
 		std::cin >> server;
+
+		delete out;
 		out = new OutputMemoryStream();
+
 		out->Write(server);
 		serverSock.Send(out, status);
+
+		delete out;
 	}
 
 	if(option == 1 || option == 3) 
@@ -130,10 +136,12 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		InputMemoryStream* in = serverSock.Receive(status);
 		int socketNum;
 		in->Read(&socketNum);
-		std::cout << socketNum << std::endl;
+
 		serverSock.Disconnect();
+		
 		bool started = false;
-		for (int i = 0; i < socketNum; i++) {
+		for (int i = 0; i < socketNum; i++) 
+		{
 			PeerAddress address;
 			TcpSocket* sock = new TcpSocket();
 			std::string msg;
@@ -151,7 +159,9 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 			in->Read(&address.port);
 			std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
 			status = sock->Connect(msg, address.port);
-			if (status == Status::DONE) {
+
+			if (status == Status::DONE) 
+			{
 				_socks->push_back(sock);
 				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 			}
@@ -162,7 +172,8 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks) {
 		tAccept.detach();
 		std::thread tSend(SendMessages, _socks);
 		tSend.detach();
-		for (int i = 0; i < _socks->size(); i++) {
+		for (int i = 0; i < _socks->size(); i++) 
+		{
 			std::thread tReceive(ReceiveMessages, _socks, _socks->at(i));
 			tReceive.detach();
 		}

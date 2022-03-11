@@ -43,17 +43,4 @@ std::string InputMemoryStream::ReadString()
 	}
 
 	return str;
-	/*//Recuperamos la longitud del string
-	int length;
-	Read(&length);
-	//Reservamos memoria para un char* y lo recuperamos con la función genérica.
-	char* buffer = new char[length + 1];
-	Read(buffer, length);
-	buffer[length] = '\0';
-
-	//Construimos el string a partir del buffer
-	std::string str = std::string(buffer);
-	//Liberamos memoria
-	delete[] buffer;
-	return str;*/
 }
