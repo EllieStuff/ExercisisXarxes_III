@@ -52,6 +52,9 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 	while(true) 
 	{
 		InputMemoryStream* in = sock->Receive(status);
+		if (status != Status::DONE)
+			continue;
+
 		int menuOption;
 		in->Read(&menuOption);
 
@@ -68,6 +71,7 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 		else if(menuOption == 2) 
 		{
 			OutputMemoryStream* out = new OutputMemoryStream();
+			out->Write((int)peerAddresses->size());
 			for (size_t i = 0; i < peerAddresses->size(); i++)
 			{
 				if (peerAddresses->at(i).size() > 0)
@@ -75,6 +79,10 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 					PeerAddress current = peerAddresses->at(i).at(0);
 					out->WriteString(current.ip);
 					out->Write(current.port);
+				}
+				else 
+				{
+					peerAddresses->erase(peerAddresses->begin() + i);
 				}
 			}
 			sock->Send(out, status);
@@ -92,6 +100,7 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 		}
 		delete in;
 	}
+
 }
 
 void AcceptConnections(std::vector<std::vector<PeerAddress>>* peerAddresses) {
