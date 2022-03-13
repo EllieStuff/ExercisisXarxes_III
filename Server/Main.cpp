@@ -2,22 +2,20 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include <chrono>
+#include <time.h>
 #include <mutex>
 #include "..\res\TcpSocket.h"
 #include "..\res\TcpListener.h"
+
 
 class OutputMemoryStream;
 class InputMemoryStream;
 class TcpSocket;
 class TcpListener;
 
-//std::mutex mtxConexiones;
-
-//struct PeerAddress {
-//	std::string ip;
-//	unsigned short port;
-//};
+std::vector<clock_t> peerTimers;
+int closeTime = 120 * CLOCKS_PER_SEC;
+std::mutex mtx;
 
 void ConnectToServer(std::vector<std::vector<PeerAddress>>* peerAddresses, TcpSocket* sock, int serverIndex)
 {
@@ -34,12 +32,22 @@ void ConnectToServer(std::vector<std::vector<PeerAddress>>* peerAddresses, TcpSo
 	sock->Send(out, status);
 	delete out;
 	std::cout << (int)status << std::endl;
+	
+	if(peerAddresses->at(serverIndex).size() < 3)
+	{
+		PeerAddress address;
+		address.ip = sock->GetRemoteAddress();
+		address.port = sock->GetRemotePort();
+		peerAddresses->at(serverIndex).push_back(address);
 
-	PeerAddress address;
-	address.ip = sock->GetRemoteAddress();
-	address.port = sock->GetRemotePort();
-	peerAddresses->at(serverIndex).push_back(address);
-
+		peerTimers[serverIndex] = clock() + closeTime;
+	}
+	else
+	{
+		peerAddresses->erase(peerAddresses->begin() + serverIndex);
+		peerTimers.erase(peerTimers.begin() + serverIndex);
+	}
+	
 	sock->Disconnect();
 }
 
@@ -61,9 +69,14 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 			//create game
 		if(menuOption == 1) 
 		{
+			mtx.lock();
 			std::vector<PeerAddress> newConns;
 			peerAddresses->push_back(newConns);
+
+			peerTimers.push_back(clock() + closeTime);
+
 			ConnectToServer(peerAddresses, sock, peerAddresses->size() - 1);
+			mtx.unlock();
 			delete in;
 			break;
 		}
@@ -72,6 +85,7 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 		{
 			OutputMemoryStream* out = new OutputMemoryStream();
 			out->Write((int)peerAddresses->size());
+			mtx.lock();
 			for (size_t i = 0; i < peerAddresses->size(); i++)
 			{
 				if (peerAddresses->at(i).size() > 0)
@@ -83,24 +97,48 @@ void ClientMenu(TcpSocket* sock, std::vector<std::vector<PeerAddress>>* peerAddr
 				else 
 				{
 					peerAddresses->erase(peerAddresses->begin() + i);
+					peerTimers.erase(peerTimers.begin() + i);
 				}
 			}
+			mtx.unlock();
 			sock->Send(out, status);
 			delete out;
 		}
 			//connect
 		else if(menuOption == 3) 
 		{
+			mtx.lock();
 			in = sock->Receive(status);
 			int serverIndex;
 			in->Read(&serverIndex);
+			if(peerAddresses->size() - 1 <= serverIndex)
 			ConnectToServer(peerAddresses, sock, serverIndex);
+			mtx.unlock();
 			delete in;
 			break;
 		}
 		delete in;
 	}
 
+}
+
+void ServerCountDown(std::vector<std::vector<PeerAddress>>* _peerAddresses)
+{
+	while(true)
+	{
+		mtx.lock();
+		clock_t currClock = clock();
+		for (size_t i = 0; i < peerTimers.size(); i++)
+		{
+			if(peerTimers[i] < currClock)
+			{
+				peerTimers.erase(peerTimers.begin() + i);
+				_peerAddresses->erase(_peerAddresses->begin() + i);
+				i--;
+			}
+		}
+		mtx.unlock();
+	}
 }
 
 void AcceptConnections(std::vector<std::vector<PeerAddress>>* peerAddresses) {
@@ -131,19 +169,13 @@ void AcceptConnections(std::vector<std::vector<PeerAddress>>* peerAddresses) {
 
 int main() {
 	std::vector<std::vector<PeerAddress>> peerAddresses{};
+	
+	std::thread tServerTimedown(ServerCountDown, &peerAddresses);
+	tServerTimedown.detach();
+
 	AcceptConnections(&peerAddresses);
 
-	/*std::string msg = "localhost";
-	std::vector<char> str (msg.begin(), msg.end());
-	OutputMemoryStream oms;
-	oms.WriteString(msg);
-
-
-	str.clear();
-	InputMemoryStream ims (oms.GetBufferPtr(), oms.GetLength());
-	msg = ims.ReadString();
-	std::cout << std::string(str.begin(), str.end()) << std::endl;
-	system("pause");*/
+	
 
 	return 0;
 }
