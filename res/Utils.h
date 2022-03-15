@@ -4,6 +4,14 @@
 
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
 
+struct Game
+{
+	std::vector<PeerAddress> peers;
+
+	int gameId;
+	std::string pwd = "";
+};
+
 struct PeerAddress {
 	std::string ip;
 	int port;

@@ -53,6 +53,7 @@ void ShowTable()
 		switch ((int)table.at(i)->organType)
 		{
 		case 0:
+			
 			organType = "STOMACH";
 			break;
 		case 1:
@@ -91,7 +92,7 @@ void ShowTable()
 			break;
 		}
 
-		std::cout << "Card: " << i << " cardType: " << cardType << " OrganType: " << organType << " ThreatmentType: " << threatmentType << std::endl;
+		std::cout << "Card: " + std::to_string(i) + " cardType: " + cardType + " OrganType: " + organType + " ThreatmentType: " + threatmentType << std::endl;
 	}
 }
 
@@ -160,7 +161,7 @@ void listCards()
 			break;
 		}
 
-		std::cout << "Card: " << i << " cardType: " << cardType << " OrganType: " << organType << " ThreatmentType: " << threatmentType << std::endl;
+		std::cout << "Card: " + std::to_string(i) + " cardType: " + cardType + " OrganType: " + organType + " ThreatmentType: " + threatmentType << std::endl;
 	}
 }
 
@@ -195,9 +196,9 @@ void receiveCards(int quantity)
 	listCards();
 }
 
-void PlaceCard(int pos, int type) 
+void PlaceCard(int pos, Card::CardType type) 
 {
-	if(hand[pos]->cardType == (Card::CardType) (int) type) 
+	if(hand[pos]->cardType == type) 
 	{
 		table.push_back(hand[pos]);
 		hand.erase(hand.begin() + pos);
@@ -239,7 +240,7 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 			int card;
 			std::cin >> card;
 
-			PlaceCard(card, 0);
+			PlaceCard(card, Card::CardType::ORGAN);
 
 			std::cout << "Organ Placed!" << std::endl;
 		}
@@ -323,7 +324,6 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 
 }
 
-
 void AcceptPeers(std::vector<TcpSocket*>* _socks) {
 	TcpListener listener;
 	listener.Listen(localPort);
@@ -378,12 +378,35 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 			int server;
 			std::cin >> server;
 
-			delete out;
-			out = new OutputMemoryStream();
-
 			out->Write(server);
 			serverSock.Send(out, status);
 
+			InputMemoryStream* in;
+			
+			in = serverSock.Receive(status);
+
+			std::string msg = in->ReadString();
+
+			std::cout << msg << std::endl;
+
+			if (msg != "")
+			{
+				do
+				{
+					std::cin >> msg;
+
+					out->WriteString(msg);
+					serverSock.Send(out, status);
+
+					in = serverSock.Receive(status);
+
+					msg = in->ReadString();
+					std::cout << msg << std::endl;
+
+				} while (msg == "Incorrect password. Try again or write 'exit' to leave");
+			}
+
+			delete in;
 			delete out;
 		}
 		else if (option == 2)
@@ -397,6 +420,22 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 				peerAddress.ip = in->ReadString();
 				in->Read(&peerAddress.port);
 				std::cout << "Game idx: " << i << ", Game ip: " << peerAddress.ip << ", Game Port: " << peerAddress.port << std::endl;
+			}
+
+			delete in;
+		}
+		else if (option == 1)
+		{
+			InputMemoryStream* in = serverSock.Receive(status);
+			if (status == Status::DONE)
+			{
+				std::string msg = in->ReadString();
+				std::cout << msg << std::endl;
+
+				std::cin >> msg;
+				out->WriteString(msg);
+
+				serverSock.Send(out, status);
 			}
 
 			delete in;
@@ -463,17 +502,17 @@ void InitializeCards()
 	for (size_t i = 0; i < 5; i++)
 	{
 		organCard = new Card();
-		organCard->cardType = (Card::CardType)(int)0;
+		organCard->cardType = Card::CardType::ORGAN;
 		organCard->organType = (Card::OrganType)(int)i;
 		organs.push_back(organCard);
 
 		medicineCard = new Card();
-		medicineCard->cardType = (Card::CardType)(int)1;
+		medicineCard->cardType = Card::CardType::MEDICINE;
 		medicineCard->organType = (Card::OrganType)(int)i;
 		medicines.push_back(medicineCard);
 
 		virusCard = new Card();
-		virusCard->cardType = (Card::CardType)(int)2;
+		virusCard->cardType = Card::CardType::VIRUS;
 		virusCard->organType = (Card::OrganType)(int)i;
 		virus.push_back(medicineCard);
 	}
@@ -482,7 +521,7 @@ void InitializeCards()
 	{
 		Card* threatmentCard = new Card();
 		threatmentCard = new Card();
-		threatmentCard->cardType = (Card::CardType)(int)3;
+		threatmentCard->cardType = Card::CardType::TREATMENT;
 		threatmentCard->treatmentType = (Card::TreatmentType)(int)i;
 		threatment.push_back(threatmentCard);
 	}
