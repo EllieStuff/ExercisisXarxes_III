@@ -23,7 +23,7 @@ bool end = false;
 void receiveCards() 
 {
 	srand((unsigned int)time(NULL));
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 3; i++)
 	{
 		int random = (rand() % (4 + 0));
 		int random2;
