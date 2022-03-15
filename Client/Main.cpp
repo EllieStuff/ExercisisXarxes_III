@@ -4,22 +4,63 @@
 #include <thread>
 #include "..\res\TcpSocket.h"
 #include "..\res\TcpListener.h"
+#include "..\res\Utils.h"
+
+//Cards system
+std::vector<Card*> organs;
+std::vector<Card*> medicines;
+std::vector<Card*> virus;
+std::vector<Card*> threatment;
+
+std::vector<Card*> Hand;
+//___________________________
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
 unsigned short localPort;
 bool end = false;
 
-//sf::Mutex mtx;
+void receiveCards() 
+{
+	srand((unsigned int)time(NULL));
+	for (size_t i = 0; i < 4; i++)
+	{
+		int random = (rand() % (4 + 0));
+		int random2;
+
+		switch(random) 
+		{
+			case 0:
+				random2 = (rand() % (organs.size() + 0));
+				Hand.push_back(organs.at(random2));
+				break;
+			case 1:
+				random2 = (rand() % (medicines.size() + 0));
+				Hand.push_back(medicines.at(random2));
+				break;
+			case 2:
+				random2 = (rand() % (virus.size() + 0));
+				Hand.push_back(virus.at(random2));
+				break;
+			case 3:
+				random2 = (rand() % (threatment.size() + 0));
+				Hand.push_back(threatment.at(random2));
+				break;
+		}
+
+		std::cout << "cardType: " << std::to_string((int)Hand.at(i)->cardType) << " OrganType: " << std::to_string((int)Hand.at(i)->organType) << " ThreatmentType: " << std::to_string((int)Hand.at(i)->treatmentType) << std::endl;
+	}
+}
 
 void SendMessages(std::vector<TcpSocket*>* _socks) {
+	receiveCards();
+	
 	while (!end) {
 		std::string msg;
 		std::cin >> msg;
 
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->WriteString(msg);
-		//mtx.lock();
 		std::cout << _socks->size() << std::endl;
 		for (int i = 0; i < _socks->size(); i++) {
 			Status status;
@@ -34,7 +75,6 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 			}
 			_socks->clear();
 		}
-		//mtx.unlock();
 		delete out;
 	}
 	
@@ -42,8 +82,6 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 
 void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 	while (!end) {
-		//Packet pack;
-		//Socket::Status status = _sock->receive(pack);
 		Status status;
 		InputMemoryStream* in = _sock->Receive(status);
 		if (status == Status::DISCONNECTED)
@@ -51,7 +89,6 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 			delete in;
 			return;
 		}
-		//mtx.lock();
 
 		std::string msg = in->ReadString();
 		std::cout << msg << std::endl;
@@ -202,9 +239,45 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 	}
 }
 
+void InitializeCards() 
+{
+	Card* organCard;
+	Card* medicineCard;
+	Card* virusCard;
+	Card* threatmentCard;
+	
+	for (size_t i = 0; i < 5; i++)
+	{
+		organCard = new Card();
+		organCard->cardType = (Card::CardType)(int)0;
+		organCard->organType = (Card::OrganType)(int)i;
+		organs.push_back(organCard);
+
+		medicineCard = new Card();
+		medicineCard->cardType = (Card::CardType)(int)1;
+		medicineCard->organType = (Card::OrganType)(int)i;
+		medicines.push_back(medicineCard);
+
+		virusCard = new Card();
+		virusCard->cardType = (Card::CardType)(int)2;
+		virusCard->organType = (Card::OrganType)(int)i;
+		virus.push_back(medicineCard);
+	}
+
+	for (size_t i = 0; i < 6; i++)
+	{
+		Card* threatmentCard = new Card();
+		threatmentCard = new Card();
+		threatmentCard->cardType = (Card::CardType)(int)3;
+		threatmentCard->treatmentType = (Card::TreatmentType)(int)i;
+		threatment.push_back(threatmentCard);
+	}
+}
 
 int main() {
+
 	std::vector<TcpSocket*> socks;
+	InitializeCards();
 	ConnectPeer2Peer(&socks);
 
 	while(!end){}
