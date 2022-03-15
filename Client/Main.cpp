@@ -371,6 +371,8 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 		out->Write(option);
 
 		serverSock.Send(out, status);
+		delete out;
+		out = new OutputMemoryStream();
 
 		if (option == 3)
 		{
@@ -380,6 +382,8 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 
 			out->Write(server);
 			serverSock.Send(out, status);
+			delete out;
+			out = new OutputMemoryStream();
 
 			InputMemoryStream* in;
 			
@@ -404,6 +408,7 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 					std::cout << msg << std::endl;
 
 				} while (msg == "Incorrect password. Try again or write 'exit' to leave");
+
 			}
 
 			delete in;
@@ -416,10 +421,11 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 			in->Read(&size);
 			for (int i = 0; i < size; i++)
 			{
-				PeerAddress peerAddress;
-				peerAddress.ip = in->ReadString();
-				in->Read(&peerAddress.port);
-				std::cout << "Game idx: " << i << ", Game ip: " << peerAddress.ip << ", Game Port: " << peerAddress.port << std::endl;
+				int idx;
+				in->Read(&idx);
+				int numOfPlayers;
+				in->Read(&numOfPlayers);
+				std::cout << "Game number: " << idx << ", Players connected: " << numOfPlayers << std::endl;
 			}
 
 			delete in;

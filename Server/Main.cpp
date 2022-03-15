@@ -134,10 +134,9 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			{
 				msg = "Write the password. Write exit to leave";
 				
-				OutputMemoryStream* out;
-				out->WriteString(msg);
+				out.WriteString(msg);
 				
-				sock->Send(out, status);
+				sock->Send(&out, status);
 
 				in = sock->Receive(status);
 
@@ -151,11 +150,10 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 				if (msg != peerAddresses->at(serverIndex).pwd)
 				{
 					std::string msg2 = "Incorrect password. Try again or write 'exit' to leave";
-					out->WriteString(msg2);
-					sock->Send(out, status);
+					out.WriteString(msg2);
+					sock->Send(&out, status);
 				}
-
-				delete out;
+				
 			}
 
 			if(peerAddresses->size() - 1 <= serverIndex)

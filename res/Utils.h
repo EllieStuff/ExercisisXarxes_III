@@ -1,8 +1,13 @@
 #pragma once
 #include <string>
-
+#include <vector>
 
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
+
+struct PeerAddress {
+	std::string ip;
+	int port;
+};
 
 struct Game
 {
@@ -12,10 +17,6 @@ struct Game
 	std::string pwd = "";
 };
 
-struct PeerAddress {
-	std::string ip;
-	int port;
-};
 
 
 struct Card {
