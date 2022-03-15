@@ -6,13 +6,19 @@
 #include "..\res\TcpListener.h"
 #include "..\res\Utils.h"
 
-//Cards system
+//Cards System
 std::vector<Card*> organs;
 std::vector<Card*> medicines;
 std::vector<Card*> virus;
 std::vector<Card*> threatment;
+std::vector<Card*> hand;
+std::vector<Card*> table;
+std::vector<std::vector<Card*>> cardsOnEveryOrgan;
+//___________________________
 
-std::vector<Card*> Hand;
+//Game System
+int playerNum;
+int turNum;
 //___________________________
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
@@ -20,10 +26,148 @@ std::vector<Card*> Hand;
 unsigned short localPort;
 bool end = false;
 
-void receiveCards() 
+void ShowTable() 
+{
+	for (size_t i = 0; i < table.size(); i++)
+	{
+		std::string cardType;
+		std::string organType;
+		std::string threatmentType;
+
+		switch ((int)table.at(i)->cardType)
+		{
+		case 0:
+			cardType = "ORGAN";
+			break;
+		case 1:
+			cardType = "MEDICINE";
+			break;
+		case 2:
+			cardType = "VIRUS";
+			break;
+		case 3:
+			cardType = "TREATMENT";
+			break;
+		}
+
+		switch ((int)table.at(i)->organType)
+		{
+		case 0:
+			organType = "STOMACH";
+			break;
+		case 1:
+			organType = "BRAIN";
+			break;
+		case 2:
+			organType = "SKELETON";
+			break;
+		case 3:
+			organType = "HEART";
+			break;
+		case 4:
+			organType = "NONE";
+			break;
+		}
+
+		switch ((int)table.at(i)->treatmentType)
+		{
+		case 0:
+			threatmentType = "INFECTION";
+			break;
+		case 1:
+			threatmentType = "ROBER";
+			break;
+		case 2:
+			threatmentType = "TRANSPLANT";
+			break;
+		case 3:
+			threatmentType = "LATEX_GLOVES";
+			break;
+		case 4:
+			threatmentType = "MEDICAL_ERROR";
+			break;
+		case 5:
+			threatmentType = "NONE";
+			break;
+		}
+
+		std::cout << "Card: " << i << " cardType: " << cardType << " OrganType: " << organType << " ThreatmentType: " << threatmentType << std::endl;
+	}
+}
+
+void listCards() 
+{
+	for (size_t i = 0; i < hand.size(); i++)
+	{
+		std::string cardType;
+		std::string organType;
+		std::string threatmentType;
+
+		switch ((int)hand.at(i)->cardType)
+		{
+			case 0:
+				cardType = "ORGAN";
+				break;
+			case 1:
+				cardType = "MEDICINE";
+				break;
+			case 2:
+				cardType = "VIRUS";
+				break;
+			case 3:
+				cardType = "TREATMENT";
+				break;
+		}
+
+		switch ((int)hand.at(i)->organType)
+		{
+		case 0:
+			organType = "STOMACH";
+			break;
+		case 1:
+			organType = "BRAIN";
+			break;
+		case 2:
+			organType = "SKELETON";
+			break;
+		case 3:
+			organType = "HEART";
+			break;
+		case 4:
+			organType = "NONE";
+			break;
+		}
+
+		switch ((int)hand.at(i)->treatmentType)
+		{
+		case 0:
+			threatmentType = "INFECTION";
+			break;
+		case 1:
+			threatmentType = "ROBER";
+			break;
+		case 2:
+			threatmentType = "TRANSPLANT";
+			break;
+		case 3:
+			threatmentType = "LATEX_GLOVES";
+			break;
+		case 4:
+			threatmentType = "MEDICAL_ERROR";
+			break;
+		case 5:
+			threatmentType = "NONE";
+			break;
+		}
+
+		std::cout << "Card: " << i << " cardType: " << cardType << " OrganType: " << organType << " ThreatmentType: " << threatmentType << std::endl;
+	}
+}
+
+void receiveCards(int quantity) 
 {
 	srand((unsigned int)time(NULL));
-	for (size_t i = 0; i < 3; i++)
+	for (size_t i = 0; i < quantity; i++)
 	{
 		int random = (rand() % (4 + 0));
 		int random2;
@@ -32,31 +176,101 @@ void receiveCards()
 		{
 			case 0:
 				random2 = (rand() % (organs.size() + 0));
-				Hand.push_back(organs.at(random2));
+				hand.push_back(organs.at(random2));
 				break;
 			case 1:
 				random2 = (rand() % (medicines.size() + 0));
-				Hand.push_back(medicines.at(random2));
+				hand.push_back(medicines.at(random2));
 				break;
 			case 2:
 				random2 = (rand() % (virus.size() + 0));
-				Hand.push_back(virus.at(random2));
+				hand.push_back(virus.at(random2));
 				break;
 			case 3:
 				random2 = (rand() % (threatment.size() + 0));
-				Hand.push_back(threatment.at(random2));
+				hand.push_back(threatment.at(random2));
 				break;
 		}
+	}
+	listCards();
+}
 
-		std::cout << "cardType: " << std::to_string((int)Hand.at(i)->cardType) << " OrganType: " << std::to_string((int)Hand.at(i)->organType) << " ThreatmentType: " << std::to_string((int)Hand.at(i)->treatmentType) << std::endl;
+void PlaceCard(int pos, int type) 
+{
+	if(hand[pos]->cardType == (Card::CardType) (int) type) 
+	{
+		table.push_back(hand[pos]);
+		hand.erase(hand.begin() + pos);
+		receiveCards(1);
+	}
+	else 
+	{
+		std::cout << "Invalid Card!!!!!" << std::endl;
 	}
 }
 
 void SendMessages(std::vector<TcpSocket*>* _socks) {
-	receiveCards();
+	receiveCards(3);
 	
 	while (!end) {
-		std::string msg;
+		std::cout << "" << std::endl;
+		std::cout << "___________MENU___________" << std::endl;
+		std::cout << "1. Place Organ" << std::endl;
+		std::cout << "2. Infect Other Organ" << std::endl;
+		std::cout << "3. Vaccine Organ" << std::endl;
+		std::cout << "4. Discard card" << std::endl;
+		std::cout << "5. Deploy threatment card" << std::endl;
+		std::cout << "___________MENU___________" << std::endl;
+		std::cout << "" << std::endl;
+
+		std::cout << "___________TABLE___________" << std::endl;
+		ShowTable();
+		std::cout << "___________TABLE___________" << std::endl;
+		std::cout << "" << std::endl;
+
+		int option;
+		std::cin >> option;
+
+		//place organ
+		if(option == 1)
+		{
+			listCards();
+			std::cout << "Choose a card: ";
+			int card;
+			std::cin >> card;
+
+			PlaceCard(card, 0);
+
+			std::cout << "Organ Placed!" << std::endl;
+		}
+		//infect other organ
+		else if(option == 2) 
+		{
+
+		}
+		//vaccine organ
+		else if (option == 3) 
+		{
+
+		}
+		//discard card
+		else if (option == 4)
+		{
+			listCards();
+			std::cout << "Choose a card: ";
+			int card;
+			std::cin >> card;
+			hand.erase(hand.begin() + card);
+			receiveCards(1);
+			std::cout << "Card Removed!" << std::endl;
+		}
+		//deploy threatment card
+		else if (option == 5)
+		{
+
+		}
+
+		/*std::string msg;
 		std::cin >> msg;
 
 		OutputMemoryStream* out = new OutputMemoryStream();
@@ -75,7 +289,7 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 			}
 			_socks->clear();
 		}
-		delete out;
+		delete out;*/
 	}
 	
 }
