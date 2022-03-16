@@ -5,6 +5,9 @@
 #include "..\res\TcpSocket.h"
 #include "..\res\TcpListener.h"
 #include "..\res\Utils.h"
+#include <mutex>
+
+std::mutex mtx;
 
 //Cards System
 std::vector<Card*> organs;
@@ -22,6 +25,11 @@ std::vector<std::vector<Card*>> cardsOnEveryOrgan;
 //Game System
 int playerNum;
 int turNum;
+
+int player1Organs = 0;
+int player2Organs = 0;
+int player3Organs = 0;
+int player4Organs = 0;
 //___________________________
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
@@ -196,10 +204,73 @@ void PlaceCard(int pos, Card::CardType type)
 	}
 }
 
+void TurnSystem(std::vector<TcpSocket*>* _socks)
+{
+	mtx.lock();
+	int organQuantity = 0;
+	for (size_t i = 0; i < hand.size(); i++)
+	{
+		if (hand.at(i)->cardType == Card::CardType::ORGAN)
+			organQuantity++;
+	}
+
+	if (playerNum == 1)
+		player1Organs = organQuantity;
+	else if (playerNum == 2)
+		player2Organs = organQuantity;
+	else if (playerNum == 3)
+		player3Organs = organQuantity;
+	else if (playerNum == 4)
+		player4Organs = organQuantity;
+
+	OutputMemoryStream* out = new OutputMemoryStream();
+	//instruction 0: receive the organ quantity to receive the turn
+	out->Write(0);
+	out->Write(playerNum);
+	out->Write(organQuantity);
+
+	std::cout << organQuantity << std::endl;
+
+	for (int i = 0; i < _socks->size(); i++)
+	{
+		Status status;
+		_socks->at(i)->Send(out, status);
+	}
+
+	delete(out);
+
+	mtx.unlock();
+}
+
 void SendMessages(std::vector<TcpSocket*>* _socks) {
+	playerNum = _socks->size()+1;
 	receiveCards(3);
 	
 	while (!end) {
+
+		//Falla aqui
+		TurnSystem(_socks);
+
+		std::cout << "Waiting For your turn" << std::endl;
+
+		while (turNum != playerNum)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+			if(_socks->size() > 0) 
+			{
+				if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
+					turNum = 1;
+				else if (player2Organs > player1Organs && player2Organs > player3Organs && player2Organs > player4Organs)
+					turNum = 2;
+				else if (player3Organs > player2Organs && player3Organs > player1Organs && player3Organs > player4Organs)
+					turNum = 3;
+				else if (player4Organs > player2Organs && player4Organs > player3Organs && player4Organs > player1Organs)
+					turNum = 4;
+				else
+					turNum = 1;
+			}
+		}
+
 		std::cout << "" << std::endl;
 		std::cout << "___________MENU___________" << std::endl;
 		std::cout << "1. Place Organ" << std::endl;
@@ -291,9 +362,29 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 			return;
 		}
 
-		std::string msg = in->ReadString();
-		std::cout << msg << std::endl;
-		if (msg == "e" || status != Status::DONE) {
+		int instruction = 0;
+		in->Read(&instruction);
+
+		//Turn system
+		if(instruction == 0) 
+		{
+			int playerNum = 0;
+
+			in->Read(&playerNum);
+
+			if(playerNum == 1)
+				in->Read(&player1Organs);
+			else if (playerNum == 2)
+				in->Read(&player2Organs);
+			else if (playerNum == 3)
+				in->Read(&player3Organs);
+			else if (playerNum == 4)
+				in->Read(&player4Organs);
+		}
+
+		//std::string msg = in->ReadString();
+		//std::cout << msg << std::endl;
+		/*if (msg == "e" || status != Status::DONE) {
 			std::cout << "Socket with ip: " << _sock->GetRemoteAddress() << " and port: " << _sock->GetLocalPort() << " was disconnected" << std::endl;
 			for (auto it = _socks->begin(); it != _socks->end(); it++) {
 				if (*it == _sock) {
@@ -303,7 +394,7 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 					return;
 				}
 			}
-		}
+		}*/
 
 		delete in;
 	}
@@ -322,6 +413,7 @@ void AcceptPeers(std::vector<TcpSocket*>* _socks) {
 			_socks->push_back(sock);
 			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 
+			TurnSystem(_socks);
 			std::thread tReceive(ReceiveMessages, _socks, _socks->at(_socks->size() - 1));
 			tReceive.detach();
 		}
@@ -353,12 +445,12 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 		if (option <= 0 || option > 3)
 			continue;
 
-		OutputMemoryStream* out = new OutputMemoryStream();
-		out->Write(option);
+		OutputMemoryStream* out0 = new OutputMemoryStream();
+		out0->Write(option);
 
-		serverSock.Send(out, status);
-		delete out;
-		out = new OutputMemoryStream();
+		serverSock.Send(out0, status);
+		delete out0;
+		out0 = new OutputMemoryStream();
 
 		if (option == 3)
 		{
@@ -366,16 +458,16 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 			int server;
 			std::cin >> server;
 
-			out->Write(server);
-			serverSock.Send(out, status);
-			delete out;
-			out = new OutputMemoryStream();
+			out0->Write(server);
+			serverSock.Send(out0, status);
+			delete out0;
+			out0 = new OutputMemoryStream();
 
-			InputMemoryStream* in;
+			InputMemoryStream* in0;
 			
-			in = serverSock.Receive(status);
+			in0 = serverSock.Receive(status);
 
-			std::string msg = in->ReadString();
+			std::string msg = in0->ReadString();
 
 			std::cout << msg << std::endl;
 
@@ -385,36 +477,36 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 				{
 					std::cin >> msg;
 
-					out->WriteString(msg);
-					serverSock.Send(out, status);
+					out0->WriteString(msg);
+					serverSock.Send(out0, status);
 
-					in = serverSock.Receive(status);
+					in0 = serverSock.Receive(status);
 
-					msg = in->ReadString();
+					msg = in0->ReadString();
 					std::cout << msg << std::endl;
 
 				} while (msg == "Incorrect password. Try again or write 'exit' to leave");
 
 			}
 
-			delete in;
-			delete out;
+			delete in0;
+			delete out0;
 		}
 		else if (option == 2)
 		{
-			InputMemoryStream* in = serverSock.Receive(status);
+			InputMemoryStream* inp = serverSock.Receive(status);
 			int size;
-			in->Read(&size);
+			inp->Read(&size);
 			for (int i = 0; i < size; i++)
 			{
 				int idx;
-				in->Read(&idx);
+				inp->Read(&idx);
 				int numOfPlayers;
-				in->Read(&numOfPlayers);
+				inp->Read(&numOfPlayers);
 				std::cout << "Game number: " << idx << ", Players connected: " << numOfPlayers << std::endl;
 			}
 
-			delete in;
+			delete inp;
 		}
 		else if (option == 1)
 		{
@@ -425,9 +517,9 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 				std::cout << msg << std::endl;
 
 				std::cin >> msg;
-				out->WriteString(msg);
+				out0->WriteString(msg);
 
-				serverSock.Send(out, status);
+				serverSock.Send(out0, status);
 			}
 
 			delete in;
@@ -436,6 +528,7 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 		if (option == 1 || option == 3)
 		{
 			InputMemoryStream* in = serverSock.Receive(status);
+
 			int socketNum;
 			in->Read(&socketNum);
 

@@ -156,6 +156,8 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 				
 			}
 
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+
 			if(peerAddresses->size() - 1 <= serverIndex)
 				ConnectToServer(peerAddresses, sock, serverIndex);
 			mtx.unlock();
