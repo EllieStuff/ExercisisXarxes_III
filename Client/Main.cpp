@@ -13,6 +13,9 @@ std::vector<Card*> virus;
 std::vector<Card*> threatment;
 std::vector<Card*> hand;
 std::vector<Card*> table;
+std::vector<Card*> deck;
+std::vector<Card*> deckScrambled;
+
 std::vector<std::vector<Card*>> cardsOnEveryOrgan;
 //___________________________
 
@@ -96,7 +99,7 @@ void ShowTable()
 	}
 }
 
-void listCards() 
+void listCards()
 {
 	for (size_t i = 0; i < hand.size(); i++)
 	{
@@ -106,18 +109,18 @@ void listCards()
 
 		switch ((int)hand.at(i)->cardType)
 		{
-			case 0:
-				cardType = "ORGAN";
-				break;
-			case 1:
-				cardType = "MEDICINE";
-				break;
-			case 2:
-				cardType = "VIRUS";
-				break;
-			case 3:
-				cardType = "TREATMENT";
-				break;
+		case 0:
+			cardType = "ORGAN";
+			break;
+		case 1:
+			cardType = "MEDICINE";
+			break;
+		case 2:
+			cardType = "VIRUS";
+			break;
+		case 3:
+			cardType = "TREATMENT";
+			break;
 		}
 
 		switch ((int)hand.at(i)->organType)
@@ -160,41 +163,24 @@ void listCards()
 			threatmentType = "NONE";
 			break;
 		}
-
-		std::cout << "Card: " + std::to_string(i) + " cardType: " + cardType + " OrganType: " + organType + " ThreatmentType: " + threatmentType << std::endl;
+		if (cardType._Equal("TREATMENT"))
+			std::cout << "Card: " << i << " cardType: " << cardType << " ThreatmentType: " << threatmentType << std::endl;
+		else
+			std::cout << "Card: " << i << " cardType: " << cardType << " OrganType: " << organType << std::endl;
 	}
 }
 
-void receiveCards(int quantity) 
+
+void receiveCards(int quantity)
 {
-	srand((unsigned int)time(NULL));
 	for (size_t i = 0; i < quantity; i++)
 	{
-		int random = (rand() % (4 + 0));
-		int random2;
-
-		switch(random) 
-		{
-			case 0:
-				random2 = (rand() % (organs.size() + 0));
-				hand.push_back(organs.at(random2));
-				break;
-			case 1:
-				random2 = (rand() % (medicines.size() + 0));
-				hand.push_back(medicines.at(random2));
-				break;
-			case 2:
-				random2 = (rand() % (virus.size() + 0));
-				hand.push_back(virus.at(random2));
-				break;
-			case 3:
-				random2 = (rand() % (threatment.size() + 0));
-				hand.push_back(threatment.at(random2));
-				break;
-		}
+		hand.push_back(deckScrambled.at(deckScrambled.size() - 1));
+		deckScrambled.erase(deckScrambled.end() - 1);
 	}
 	listCards();
 }
+
 
 void PlaceCard(int pos, Card::CardType type) 
 {
@@ -498,27 +484,27 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 	}
 }
 
-void InitializeCards() 
+void InitializeCards()
 {
 	Card* organCard;
 	Card* medicineCard;
 	Card* virusCard;
 	Card* threatmentCard;
-	
+
 	for (size_t i = 0; i < 5; i++)
 	{
 		organCard = new Card();
-		organCard->cardType = Card::CardType::ORGAN;
+		organCard->cardType = (Card::CardType)(int)0;
 		organCard->organType = (Card::OrganType)(int)i;
 		organs.push_back(organCard);
 
 		medicineCard = new Card();
-		medicineCard->cardType = Card::CardType::MEDICINE;
+		medicineCard->cardType = (Card::CardType)(int)1;
 		medicineCard->organType = (Card::OrganType)(int)i;
 		medicines.push_back(medicineCard);
 
 		virusCard = new Card();
-		virusCard->cardType = Card::CardType::VIRUS;
+		virusCard->cardType = (Card::CardType)(int)2;
 		virusCard->organType = (Card::OrganType)(int)i;
 		virus.push_back(medicineCard);
 	}
@@ -527,11 +513,55 @@ void InitializeCards()
 	{
 		Card* threatmentCard = new Card();
 		threatmentCard = new Card();
-		threatmentCard->cardType = Card::CardType::TREATMENT;
+		threatmentCard->cardType = (Card::CardType)(int)3;
 		threatmentCard->treatmentType = (Card::TreatmentType)(int)i;
 		threatment.push_back(threatmentCard);
 	}
+
+	//Deck Creation
+	deck.push_back(organs.at(4));
+
+	for (size_t i = 0; i < organs.size() - 1; i++)
+	{
+		for (size_t o = 0; o < 5; o++)
+			deck.push_back(organs.at(i));
+	}
+
+	deck.push_back(virus.at(4));
+
+	for (size_t i = 0; i < virus.size() - 1; i++)
+	{
+		for (size_t o = 0; o < 4; o++)
+			deck.push_back(organs.at(i));
+	}
+
+	for (size_t i = 0; i < medicines.size(); i++)
+	{
+		for (size_t o = 0; o < 4; o++)
+			deck.push_back(medicines.at(i));
+	}
+
+	for (size_t i = 0; i < 2; i++)
+		deck.push_back(threatment.at(0));
+
+
+	for (size_t i = 0; i < 3; i++)
+	{
+		deck.push_back(threatment.at(1));
+		deck.push_back(threatment.at(2));
+	}
+
+	deck.push_back(threatment.at(3));
+	deck.push_back(threatment.at(4));
+
+	deckScrambled = deck;
+
+	srand((unsigned int)time(NULL));
+	std::random_shuffle(std::begin(deckScrambled), std::end(deckScrambled));
+
+	//End of Deck Creation
 }
+
 
 int main() {
 
