@@ -24,12 +24,15 @@ std::vector<std::vector<Card*>> cardsOnEveryOrgan;
 
 //Game System
 int playerNum;
-int turNum;
+int* turNum;
 
 int player1Organs = 0;
 int player2Organs = 0;
 int player3Organs = 0;
 int player4Organs = 0;
+
+bool* endRound;
+int* playersFinishedRound;
 //___________________________
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
@@ -242,6 +245,46 @@ void TurnSystem(std::vector<TcpSocket*>* _socks)
 	mtx.unlock();
 }
 
+void TurnRotation(std::vector<TcpSocket*>* _socks)
+{
+	OutputMemoryStream* out = new OutputMemoryStream();
+
+	playersFinishedRound++;
+
+	for (size_t i = 0; i < _socks->size() + 1; i++)
+	{
+		if(i != playerNum-1) 
+		{
+			//instruction 1: send your turn to another player
+			out->Write(1);
+			out->Write(i+1);
+			break;
+		}
+	}
+
+	Status status;
+
+	for (int i = 0; i < _socks->size(); i++)
+	{
+		_socks->at(i)->Send(out, status);
+	}
+
+	if (playersFinishedRound >= (int*)_socks->size() + 1)
+	{
+		for (int i = 0; i < _socks->size(); i++)
+		{
+			out = new OutputMemoryStream();
+			out->Write(2);
+			out->Write(true);
+			_socks->at(i)->Send(out, status);
+		}
+	}
+
+	endRound = (bool*) true;
+
+	delete(out);
+}
+
 void SendMessages(std::vector<TcpSocket*>* _socks) {
 	playerNum = _socks->size()+1;
 	receiveCards(3);
@@ -253,22 +296,8 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 
 		std::cout << "Waiting For your turn" << std::endl;
 
-		while (turNum != playerNum)
+		while (turNum != (int*) playerNum)
 		{
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			if(_socks->size() > 0) 
-			{
-				if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
-					turNum = 1;
-				else if (player2Organs > player1Organs && player2Organs > player3Organs && player2Organs > player4Organs)
-					turNum = 2;
-				else if (player3Organs > player2Organs && player3Organs > player1Organs && player3Organs > player4Organs)
-					turNum = 3;
-				else if (player4Organs > player2Organs && player4Organs > player3Organs && player4Organs > player1Organs)
-					turNum = 4;
-				else
-					turNum = 1;
-			}
 		}
 
 		std::cout << "" << std::endl;
@@ -328,6 +357,23 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 
 		}
 
+		std::cout << "waiting other players" << std::endl;
+
+		TurnRotation(_socks);
+
+		while(!endRound) 
+		{
+			
+		}
+
+		playersFinishedRound = (int*) 0;
+		endRound = (bool*) false;
+		turNum = 0;
+
+		//Mostrar missatges de tota la ronda (events)
+
+		//__________________________________
+
 		/*std::string msg;
 		std::cin >> msg;
 
@@ -368,18 +414,61 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 		//Turn system
 		if(instruction == 0) 
 		{
-			int playerNum = 0;
+			for (size_t i = 0; i < _socks->size(); i++)
+			{
+				if(i > 0) 
+				{
+					in = _sock->Receive(status);
+					in->Read(&instruction);
+				}
 
-			in->Read(&playerNum);
+				int playerNum = 0;
 
-			if(playerNum == 1)
-				in->Read(&player1Organs);
-			else if (playerNum == 2)
-				in->Read(&player2Organs);
-			else if (playerNum == 3)
-				in->Read(&player3Organs);
-			else if (playerNum == 4)
-				in->Read(&player4Organs);
+				in->Read(&playerNum);
+
+				if (playerNum == 1)
+					in->Read(&player1Organs);
+				else if (playerNum == 2)
+					in->Read(&player2Organs);
+				else if (playerNum == 3)
+					in->Read(&player3Organs);
+				else if (playerNum == 4)
+					in->Read(&player4Organs);
+			}
+
+			if (_socks->size() > 0)
+			{
+				if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
+					turNum = (int*)1;
+				else if (player2Organs > player1Organs && player2Organs > player3Organs && player2Organs > player4Organs)
+					turNum = (int*)2;
+				else if (player3Organs > player2Organs && player3Organs > player1Organs && player3Organs > player4Organs)
+					turNum = (int*)3;
+				else if (player4Organs > player2Organs && player4Organs > player3Organs && player4Organs > player1Organs)
+					turNum = (int*)4;
+				else
+					turNum = (int*)1;
+			}
+		}
+		//Receive turn
+		else if(instruction == 1) 
+		{
+			int turn;
+			in->Read(&turn);
+			turNum = (int*)turn;
+			playersFinishedRound++;
+		}
+		//Receive EndRound
+		else if(instruction == 2) 
+		{
+			bool _endRound;
+			in->Read(&_endRound);
+			endRound = (bool*) _endRound;
+		}
+		//Receive a card from another player
+		else if (instruction == 3) 
+		{
+
 		}
 
 		//std::string msg = in->ReadString();
