@@ -76,7 +76,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			peerAddresses->push_back(Game());
 			int size = peerAddresses->size() - 1;
 
-			std::string msg = "Write the password (if you want)";
+			std::string msg = "Write the password if you want (write '-' if you don't)";
 			OutputMemoryStream out ;
 			out.WriteString(msg);
 			sock->Send(&out, status);
@@ -84,6 +84,8 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			in = sock->Receive(status);
 
 			msg = in->ReadString();
+
+			if (msg._Equal("-")) msg = "";
 
 			peerTimers.push_back(clock() + closeTime);
 
@@ -122,21 +124,25 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 
 			std::string msg = "";
 
-			OutputMemoryStream out;
+			OutputMemoryStream* out = new OutputMemoryStream();
 			if (peerAddresses->at(serverIndex).pwd != "")
-				out.WriteString("Write the password");
+				out->WriteString("Server protected with password");
 			else
-				out.WriteString("");
+				out->WriteString("");
 
-			sock->Send(&out, status);
+			sock->Send(out, status);
 			
 			while (peerAddresses->at(serverIndex).pwd != msg)
 			{
+				delete out;
+
+				out = new OutputMemoryStream();
+
 				msg = "Write the password. Write exit to leave";
 				
-				out.WriteString(msg);
+				out->WriteString(msg);
 				
-				sock->Send(&out, status);
+				sock->Send(out, status);
 
 				in = sock->Receive(status);
 
@@ -150,13 +156,13 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 				if (msg != peerAddresses->at(serverIndex).pwd)
 				{
 					std::string msg2 = "Incorrect password. Try again or write 'exit' to leave";
-					out.WriteString(msg2);
-					sock->Send(&out, status);
+					out->WriteString(msg2);
+					sock->Send(out, status);
 				}
 				
 			}
 
-			std::this_thread::sleep_for(std::chrono::seconds(5));
+			delete out;
 
 			if(peerAddresses->size() - 1 <= serverIndex)
 				ConnectToServer(peerAddresses, sock, serverIndex);

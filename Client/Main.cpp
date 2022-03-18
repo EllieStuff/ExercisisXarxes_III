@@ -24,21 +24,21 @@ std::vector<std::vector<Card*>> cardsOnEveryOrgan;
 
 //Game System
 int playerNum;
-int* turNum;
+int* turnNum = new int(0);
 
 int player1Organs = 0;
 int player2Organs = 0;
 int player3Organs = 0;
 int player4Organs = 0;
 
-bool* endRound;
-int* playersFinishedRound;
+bool* endRound = new bool(false);
+int* playersFinishedRound = new int(0);
 //___________________________
 
 // Mirar ip en consola amb ipconfig, sino, es pot fer en mateix PC amb "127.0.0.1" o "localHost"
 
 unsigned short localPort;
-bool end = false;
+bool endGame = false;
 
 void ShowTable() 
 {
@@ -249,11 +249,11 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
 
-	playersFinishedRound++;
+	(*playersFinishedRound)++;
 
 	for (size_t i = 0; i < _socks->size() + 1; i++)
 	{
-		if(i != playerNum-1) 
+		if(i != playerNum - 1) 
 		{
 			//instruction 1: send your turn to another player
 			out->Write(1);
@@ -269,10 +269,11 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 		_socks->at(i)->Send(out, status);
 	}
 
-	if (playersFinishedRound >= (int*)_socks->size() + 1)
+	if (*playersFinishedRound > _socks->size())
 	{
 		for (int i = 0; i < _socks->size(); i++)
 		{
+			delete out;
 			out = new OutputMemoryStream();
 			out->Write(2);
 			out->Write(true);
@@ -280,7 +281,7 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 		}
 	}
 
-	endRound = (bool*) true;
+	*endRound = true;
 
 	delete(out);
 }
@@ -289,14 +290,14 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 	playerNum = _socks->size()+1;
 	receiveCards(3);
 	
-	while (!end) {
+	while (!endGame) {
 
 		//Falla aqui
 		TurnSystem(_socks);
 
 		std::cout << "Waiting For your turn" << std::endl;
 
-		while (turNum != (int*) playerNum)
+		while (*turnNum != playerNum)
 		{
 		}
 
@@ -361,14 +362,14 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 
 		TurnRotation(_socks);
 
-		while(!endRound) 
+		while(!(*endRound)) 
 		{
 			
 		}
 
-		playersFinishedRound = (int*) 0;
-		endRound = (bool*) false;
-		turNum = 0;
+		*playersFinishedRound = 0;
+		*endRound = false;
+		*turnNum = 0;
 
 		//Mostrar missatges de tota la ronda (events)
 
@@ -399,7 +400,7 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 }
 
 void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
-	while (!end) {
+	while (!endGame) {
 		Status status;
 		InputMemoryStream* in = _sock->Receive(status);
 		if (status == Status::DISCONNECTED)
@@ -439,15 +440,15 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 			if (_socks->size() > 0)
 			{
 				if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
-					turNum = (int*)1;
+					*turnNum = 1;
 				else if (player2Organs > player1Organs && player2Organs > player3Organs && player2Organs > player4Organs)
-					turNum = (int*)2;
+					*turnNum = 2;
 				else if (player3Organs > player2Organs && player3Organs > player1Organs && player3Organs > player4Organs)
-					turNum = (int*)3;
+					*turnNum = 3;
 				else if (player4Organs > player2Organs && player4Organs > player3Organs && player4Organs > player1Organs)
-					turNum = (int*)4;
+					*turnNum = 4;
 				else
-					turNum = (int*)1;
+					*turnNum = 1;
 			}
 		}
 		//Receive turn
@@ -455,15 +456,15 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 		{
 			int turn;
 			in->Read(&turn);
-			turNum = (int*)turn;
-			playersFinishedRound++;
+			*turnNum = turn;
+			(*playersFinishedRound)++;
 		}
 		//Receive EndRound
 		else if(instruction == 2) 
 		{
 			bool _endRound;
 			in->Read(&_endRound);
-			endRound = (bool*) _endRound;
+			*endRound = _endRound;
 		}
 		//Receive a card from another player
 		else if (instruction == 3) 
@@ -494,7 +495,7 @@ void AcceptPeers(std::vector<TcpSocket*>* _socks) {
 	TcpListener listener;
 	listener.Listen(localPort);
 
-	while (_socks->size() < 3 && !end)
+	while (_socks->size() < 3 && !endGame)
 	{
 		TcpSocket* sock = new TcpSocket();
 		Status status = listener.Accept(*sock);
@@ -554,6 +555,7 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 
 			InputMemoryStream* in0;
 			
+			//rep el missatge de server protected with password
 			in0 = serverSock.Receive(status);
 
 			std::string msg = in0->ReadString();
@@ -564,15 +566,15 @@ void ConnectPeer2Peer(std::vector<TcpSocket*>* _socks)
 			{
 				do
 				{
-					std::cin >> msg;
-
-					out0->WriteString(msg);
-					serverSock.Send(out0, status);
-
 					in0 = serverSock.Receive(status);
 
 					msg = in0->ReadString();
 					std::cout << msg << std::endl;
+
+					std::cin >> msg;
+
+					out0->WriteString(msg);
+					serverSock.Send(out0, status);
 
 				} while (msg == "Incorrect password. Try again or write 'exit' to leave");
 
@@ -694,7 +696,6 @@ void InitializeCards()
 	for (size_t i = 0; i < 6; i++)
 	{
 		Card* threatmentCard = new Card();
-		threatmentCard = new Card();
 		threatmentCard->cardType = (Card::CardType)(int)3;
 		threatmentCard->treatmentType = (Card::TreatmentType)(int)i;
 		threatment.push_back(threatmentCard);
@@ -751,7 +752,7 @@ int main() {
 	InitializeCards();
 	ConnectPeer2Peer(&socks);
 
-	while(!end){}
+	while(!endGame){}
 
 	return 0;
 }
