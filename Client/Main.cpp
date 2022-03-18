@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <algorithm>
 #include "..\res\TcpSocket.h"
 #include "..\res\TcpListener.h"
 #include "..\res\Utils.h"
@@ -26,10 +27,11 @@ std::vector<std::vector<Card*>> cardsOnEveryOrgan;
 int playerNum;
 int* turnNum = new int(0);
 
-int player1Organs = 0;
-int player2Organs = 0;
-int player3Organs = 0;
-int player4Organs = 0;
+std::vector<int> playerOrgans(4, 0);
+//int player1Organs = 0;
+//int player2Organs = 0;
+//int player3Organs = 0;
+//int player4Organs = 0;
 
 bool* endRound = new bool(false);
 int* playersFinishedRound = new int(0);
@@ -217,14 +219,15 @@ void TurnSystem(std::vector<TcpSocket*>* _socks)
 			organQuantity++;
 	}
 
-	if (playerNum == 1)
+	playerOrgans[playerNum - 1];
+	/*if (playerNum == 1)
 		player1Organs = organQuantity;
 	else if (playerNum == 2)
 		player2Organs = organQuantity;
 	else if (playerNum == 3)
 		player3Organs = organQuantity;
 	else if (playerNum == 4)
-		player4Organs = organQuantity;
+		player4Organs = organQuantity;*/
 
 	OutputMemoryStream* out = new OutputMemoryStream();
 	//instruction 0: receive the organ quantity to receive the turn
@@ -251,7 +254,7 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 
 	(*playersFinishedRound)++;
 
-	for (size_t i = 0; i < _socks->size() + 1; i++)
+	for (int i = 0; i < _socks->size() + 1; i++)
 	{
 		if(i != playerNum - 1) 
 		{
@@ -427,28 +430,32 @@ void ReceiveMessages(std::vector<TcpSocket*>* _socks, TcpSocket* _sock) {
 
 				in->Read(&playerNum);
 
-				if (playerNum == 1)
+				in->Read(&playerOrgans[playerNum - 1]);
+
+				/*if (playerNum == 1)
 					in->Read(&player1Organs);
 				else if (playerNum == 2)
 					in->Read(&player2Organs);
 				else if (playerNum == 3)
 					in->Read(&player3Organs);
 				else if (playerNum == 4)
-					in->Read(&player4Organs);
+					in->Read(&player4Organs);*/
 			}
 
 			if (_socks->size() > 0)
 			{
-				if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
-					*turnNum = 1;
-				else if (player2Organs > player1Organs && player2Organs > player3Organs && player2Organs > player4Organs)
-					*turnNum = 2;
-				else if (player3Organs > player2Organs && player3Organs > player1Organs && player3Organs > player4Organs)
-					*turnNum = 3;
-				else if (player4Organs > player2Organs && player4Organs > player3Organs && player4Organs > player1Organs)
-					*turnNum = 4;
-				else
-					*turnNum = 1;
+				std::sort(playerOrgans.begin(), playerOrgans.end());
+
+				//if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
+				//	*turnNum = 1;
+				//else if (player2Organs > player1Organs && player2Organs > player3Organs && player2Organs > player4Organs)
+				//	*turnNum = 2;
+				//else if (player3Organs > player2Organs && player3Organs > player1Organs && player3Organs > player4Organs)
+				//	*turnNum = 3;
+				//else if (player4Organs > player2Organs && player4Organs > player3Organs && player4Organs > player1Organs)
+				//	*turnNum = 4;
+				//else
+				//	*turnNum = 1;
 			}
 		}
 		//Receive turn
@@ -747,7 +754,6 @@ void InitializeCards()
 
 
 int main() {
-
 	std::vector<TcpSocket*> socks;
 	InitializeCards();
 	ConnectPeer2Peer(&socks);
