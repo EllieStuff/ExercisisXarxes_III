@@ -24,7 +24,7 @@ std::vector<std::vector<Card*>> cardsOnEveryOrgan;
 //___________________________
 
 //Game System
-int playerNum;
+int playerID;
 int* turnNum = new int(0);
 
 std::vector<int> playerOrgans(4, 0);
@@ -219,7 +219,7 @@ void TurnSystem(std::vector<TcpSocket*>* _socks)
 			organQuantity++;
 	}
 
-	playerOrgans[playerNum - 1];
+	playerOrgans[playerID - 1] = organQuantity;
 	/*if (playerNum == 1)
 		player1Organs = organQuantity;
 	else if (playerNum == 2)
@@ -232,7 +232,7 @@ void TurnSystem(std::vector<TcpSocket*>* _socks)
 	OutputMemoryStream* out = new OutputMemoryStream();
 	//instruction 0: receive the organ quantity to receive the turn
 	out->Write(0);
-	out->Write(playerNum);
+	out->Write(playerID);
 	out->Write(organQuantity);
 
 	std::cout << organQuantity << std::endl;
@@ -256,7 +256,7 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 
 	for (int i = 0; i < _socks->size() + 1; i++)
 	{
-		if(i != playerNum - 1) 
+		if(i != playerID - 1) 
 		{
 			//instruction 1: send your turn to another player
 			out->Write(1);
@@ -264,7 +264,7 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 			break;
 		}
 	}
-
+	
 	Status status;
 
 	for (int i = 0; i < _socks->size(); i++)
@@ -286,11 +286,11 @@ void TurnRotation(std::vector<TcpSocket*>* _socks)
 
 	*endRound = true;
 
-	delete(out);
+	delete out;
 }
 
 void SendMessages(std::vector<TcpSocket*>* _socks) {
-	playerNum = _socks->size()+1;
+	playerID = _socks->size()+1;
 	receiveCards(3);
 	
 	while (!endGame) {
@@ -300,7 +300,7 @@ void SendMessages(std::vector<TcpSocket*>* _socks) {
 
 		std::cout << "Waiting For your turn" << std::endl;
 
-		while (*turnNum != playerNum)
+		while (*turnNum != playerID)
 		{
 		}
 

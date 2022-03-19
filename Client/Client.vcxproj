@@ -146,7 +146,12 @@
     <ClCompile Include="..\res\OutputMemoryStream.cpp" />
     <ClCompile Include="..\res\TcpListener.cpp" />
     <ClCompile Include="..\res\TcpSocket.cpp" />
+    <ClCompile Include="Deck.cpp" />
+    <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerHand.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\InputMemoryStream.h" />
@@ -154,6 +159,12 @@
     <ClInclude Include="..\res\TcpListener.h" />
     <ClInclude Include="..\res\TcpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />
+    <ClInclude Include="Deck.h" />
+    <ClInclude Include="GameManager.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerHand.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
