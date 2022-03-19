@@ -9,7 +9,7 @@ public:
 	enum class Scene { INIT, GAME, GAMEOVER };
 
 private:
-	Scene scene;
+	Scene sceneState;
 	TcpSocket serverSock;
 
 	GameManager game;
@@ -17,16 +17,11 @@ private:
 	void EnterInit();
 	void EnterGame();
 
-	void ExitInit();
 	void ExitGame();
 
 	void UpdateInit();
 	void UpdateGame();
 	void UpdateGameOver();
-
-	void CreateGame();
-	void ListCurrentGames();
-	void JoinGame();
 
 public:
 	SceneManager();

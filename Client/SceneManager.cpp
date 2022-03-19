@@ -4,7 +4,7 @@
 
 void SceneManager::EnterInit()
 {
-	scene = Scene::INIT;
+	sceneState = Scene::INIT;
 
 	//Connect to server
 	Status status = serverSock.Connect("127.0.0.1", 50000);
@@ -13,22 +13,19 @@ void SceneManager::EnterInit()
 	}
 	game.SetPort(serverSock.GetLocalPort());
 
-
 }
 
 void SceneManager::EnterGame()
 {
-	scene = Scene::GAME;
+	game.ConnectP2P(serverSock, (int*)sceneState);
+
+	sceneState = Scene::GAME;
 }
 
-void SceneManager::ExitInit()
-{
-	serverSock.Disconnect();
-}
 
 void SceneManager::ExitGame()
 {
-	scene = Scene::GAMEOVER;
+	sceneState = Scene::GAMEOVER;
 
 }
 
@@ -40,31 +37,38 @@ void SceneManager::UpdateInit()
 	std::cout << "3. Join P2P Game" << std::endl;
 
 	std::cout << "\nSelect option: ";
-	int option;
-	std::cin >> option;
-	if (option <= 0 || option > 3)
+	Commands option;
+	int tmpOption;
+	std::cin >> tmpOption;
+	option = (Commands)tmpOption;
+	if (option < Commands::CREATE_GAME || option > Commands::JOIN_GAME)
 		return;
 
 	OutputMemoryStream* out = new OutputMemoryStream();
-
 	Status status;
+	out->Write(option);
 	serverSock.Send(out, status);
+	delete out;
 
-	if (option == 1)
+	if (option == Commands::CREATE_GAME)
 	{
-		out->Write(Commands::CREATE_GAME);
-		CreateGame();
+		game.CreateGame(serverSock);
 	}
-	else if (option == 2)
+	else if (option == Commands::GAME_LIST)
 	{
-		out->Write(Commands::GAME_LIST);
-		ListCurrentGames();
+		game.ListCurrentGames(serverSock);
 	}
-	else if (option == 3)
+	else if (option == Commands::JOIN_GAME)
 	{
-		out->Write(Commands::JOIN_GAME);
-		JoinGame();
+		game.JoinGame(serverSock);
 	}
+
+
+	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) 
+	{
+		EnterGame();
+	}
+
 
 	delete out;
 }
@@ -75,59 +79,6 @@ void SceneManager::UpdateGame()
 
 void SceneManager::UpdateGameOver()
 {
-}
-
-void SceneManager::CreateGame()
-{
-
-}
-
-void SceneManager::ListCurrentGames()
-{
-}
-
-void SceneManager::JoinGame()
-{
-	//Choose game
-	std::cout << "Type server ID" << std::endl;
-	int server;
-	std::cin >> server;
-
-	OutputMemoryStream* out = new OutputMemoryStream();
-
-	Status status;
-	serverSock.Send(out, status);
-
-	delete out;
-
-	//Write password (if necessary)
-	InputMemoryStream* in;
-	in = serverSock.Receive(status);
-
-	std::string msg = in->ReadString();
-	delete in;
-
-	//Write message in console
-	std::cout << msg << std::endl;
-
-	if (msg != "")
-	{
-		do
-		{
-			in = serverSock.Receive(status);
-
-			msg = in->ReadString();
-			std::cout << msg << std::endl;
-
-			std::cin >> msg;
-
-			out = new OutputMemoryStream();
-			out->WriteString(msg);
-			serverSock.Send(out, status);
-			delete out;
-
-		} while (msg == "Incorrect password. Try again or write 'exit' to leave");
-	}
 }
 
 SceneManager::SceneManager()
@@ -141,9 +92,9 @@ SceneManager::~SceneManager()
 
 void SceneManager::Update()
 {
-	while (scene != Scene::GAMEOVER)
+	while (sceneState != Scene::GAMEOVER)
 	{
-		switch (scene)
+		switch (sceneState)
 		{
 		case SceneManager::Scene::INIT:
 			UpdateInit();
