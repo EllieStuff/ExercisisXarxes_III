@@ -102,12 +102,13 @@ SceneManager::~SceneManager()
 
 void SceneManager::Update()
 {
+	Start();
+
 	while (sceneState != Scene::GAMEOVER)
 	{
 		switch (sceneState)
 		{
 		case Scene::START:
-			Start();
 			break;
 		case Scene::INIT:
 			UpdateInit();

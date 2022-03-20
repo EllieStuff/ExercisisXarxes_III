@@ -47,7 +47,8 @@ void GameManager::CalculateOrganQuantity()
 	for (int i = 0; i < socks->size(); i++)
 	{
 		Status status;
-		socks->at(i)->Send(out, status);
+		if (i != player->id)
+			socks->at(i)->Send(out, status);
 	}
 
 	delete(out);
@@ -67,7 +68,8 @@ void GameManager::UpdateTurn()
 
 	for (int i = 0; i < socks->size(); i++)
 	{
-		socks->at(i)->Send(out, status);
+		if(i != player->id)
+			socks->at(i)->Send(out, status);
 	}
 
 	delete out;
@@ -89,7 +91,7 @@ GameManager::~GameManager()
 
 bool GameManager::Update()
 {
-	if (playerTurnOrder[*currentTurn].playerID != player->id)
+	if (*currentTurn < playerTurnOrder.size() && playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	std::cout << "" << std::endl;
@@ -152,12 +154,27 @@ bool GameManager::Update()
 	std::cout << "waiting other players" << std::endl;
 
 	UpdateTurn();
+	currentTurn = new int(*currentTurn + 1);
 
 	//Mostrar missatges de tota la ronda (events)
 
 	//__________________________________
 
 	std::cout << "Waiting For your turn" << std::endl;
+
+	while(*currentTurn <= socks->size())
+	{
+		if (*currentTurn < playerTurnOrder.size() && playerTurnOrder[*currentTurn].playerID == player->id)
+			break;
+	}
+
+	if (*currentTurn > socks->size())
+	{
+		endRound = new bool(true);
+		currentTurn = new int(0);
+		CalculateOrganQuantity();
+		UpdateTurn();
+	}
 
 	return *endRound;
 
@@ -193,26 +210,29 @@ void GameManager::Start()
 
 void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 {
+	InputMemoryStream* in1;
+
 	while (*_sceneState != (int)SceneManager::Scene::GAMEOVER) {
+		
 		Status status;
-		InputMemoryStream* in = _sock->Receive(status);
+		in1 = _sock->Receive(status);
 		if (status == Status::DISCONNECTED)
 		{
-			delete in;
+			delete in1;
 			return;
 		}
 
 		int instruction = 0;
-		in->Read(&instruction);
+		in1->Read(&instruction);
 
 		//Turn system
 		if (instruction == (int)Commands::ORGAN_QUANTITY)
 		{
 			int playerID, organQuantity;
 
-			in->Read(&playerID);
+			in1->Read(&playerID);
 
-			in->Read(&organQuantity);
+			in1->Read(&organQuantity);
 
 			if (playerTurnOrder.size() < socks->size() + 1)
 				playerTurnOrder.push_back(Pair_Organ_Player(playerID, organQuantity));
@@ -234,8 +254,8 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		else if (instruction == (int)Commands::UPDATE_TURN)
 		{
 			int turn;
-			in->Read(&turn);
-			if (turn >= playerTurnOrder.size())
+			in1->Read(&turn);
+			if (turn >= playerTurnOrder.size() + 1)
 			{
 				turn = 0;
 				*endRound = true;
@@ -263,7 +283,7 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 			}
 		}*/
 
-		delete in;
+		delete in1;
 	}
 }
 
