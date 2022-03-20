@@ -89,7 +89,7 @@ GameManager::~GameManager()
 
 bool GameManager::Update()
 {
-	if (playerTurnOrder[*currentTurn].playerID != player->id)
+	if (!playerTurnOrder.empty() && playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	std::cout << "" << std::endl;
@@ -187,6 +187,7 @@ void GameManager::Start()
 {
 	player->ReceiveCards(3, deck);
 	player->hand.ListCards();
+	CalculateOrganQuantity();
 }
 
 void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
@@ -288,10 +289,10 @@ void GameManager::AcceptConnections(int* _sceneState)
 	listener.Close();
 }
 
-void GameManager::CreateGame(TcpSocket &serverSock)
+void GameManager::CreateGame(TcpSocket* serverSock)
 {
 	Status status;
-	InputMemoryStream* in = serverSock.Receive(status);
+	InputMemoryStream* in = serverSock->Receive(status);
 	if (status == Status::DONE)
 	{
 		std::string msg = in->ReadString();
@@ -301,17 +302,17 @@ void GameManager::CreateGame(TcpSocket &serverSock)
 		std::cin >> msg;
 		out->WriteString(msg);
 
-		serverSock.Send(out, status);
+		serverSock->Send(out, status);
 		delete out;
 	}
 
 	delete in;
 }
 
-void GameManager::ListCurrentGames(TcpSocket& serverSock)
+void GameManager::ListCurrentGames(TcpSocket* serverSock)
 {
 	Status status;
-	InputMemoryStream* inp = serverSock.Receive(status);
+	InputMemoryStream* inp = serverSock->Receive(status);
 	int size;
 	inp->Read(&size);
 	for (int i = 0; i < size; i++)
@@ -326,7 +327,7 @@ void GameManager::ListCurrentGames(TcpSocket& serverSock)
 	delete inp;
 }
 
-void GameManager::JoinGame(TcpSocket &serverSock)
+void GameManager::JoinGame(TcpSocket* serverSock)
 {
 	//Choose game
 	std::cout << "Type server ID" << std::endl;
@@ -334,15 +335,15 @@ void GameManager::JoinGame(TcpSocket &serverSock)
 	std::cin >> server;
 
 	OutputMemoryStream* out = new OutputMemoryStream();
-
 	Status status;
-	serverSock.Send(out, status);
+	out->Write(server);
+	serverSock->Send(out, status);
 
 	delete out;
 
 	//Write password (if necessary)
 	InputMemoryStream* in;
-	in = serverSock.Receive(status);
+	in = serverSock->Receive(status);
 
 	std::string msg = in->ReadString();
 	delete in;
@@ -354,7 +355,7 @@ void GameManager::JoinGame(TcpSocket &serverSock)
 	{
 		do
 		{
-			in = serverSock.Receive(status);
+			in = serverSock->Receive(status);
 
 			msg = in->ReadString();
 			std::cout << msg << std::endl;
@@ -363,7 +364,7 @@ void GameManager::JoinGame(TcpSocket &serverSock)
 
 			out = new OutputMemoryStream();
 			out->WriteString(msg);
-			serverSock.Send(out, status);
+			serverSock->Send(out, status);
 			delete out;
 
 		} while (msg == "Incorrect password. Try again or write 'exit' to leave");
@@ -371,15 +372,15 @@ void GameManager::JoinGame(TcpSocket &serverSock)
 }
 
 
-void GameManager::ConnectP2P(TcpSocket& _serverSock, int* _sceneState)
+void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 {
 	Status status;
-	InputMemoryStream* in = _serverSock.Receive(status);
+	InputMemoryStream* in = _serverSock->Receive(status);
 
 	int socketNum;
 	in->Read(&socketNum);
 
-	_serverSock.Disconnect();
+	_serverSock->Disconnect();
 
 	table->table.push_back(std::vector<Card*>());
 

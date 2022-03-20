@@ -16,7 +16,7 @@ void SceneManager::Start()
 
 void SceneManager::EnterGame()
 {
-	game.ConnectP2P(serverSock, (int*)sceneState);
+	game.ConnectP2P(&serverSock, new int((int)sceneState));
 
 	game.Start();
 
@@ -56,15 +56,15 @@ void SceneManager::UpdateInit()
 
 	if (option == Commands::CREATE_GAME)
 	{
-		game.CreateGame(serverSock);
+		game.CreateGame(&serverSock);
 	}
 	else if (option == Commands::GAME_LIST)
 	{
-		game.ListCurrentGames(serverSock);
+		game.ListCurrentGames(&serverSock);
 	}
 	else if (option == Commands::JOIN_GAME)
 	{
-		game.JoinGame(serverSock);
+		game.JoinGame(&serverSock);
 	}
 
 

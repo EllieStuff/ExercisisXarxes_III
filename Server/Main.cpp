@@ -70,7 +70,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 		in->Read(&menuOption);
 
 			//create game
-		if(menuOption == 1) 
+		if(menuOption == (int)Commands::CREATE_GAME) 
 		{
 			mtx.lock();
 			peerAddresses->push_back(Game());
@@ -99,7 +99,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			break;
 		}
 			//search game
-		else if(menuOption == 2) 
+		else if(menuOption == (int)Commands::GAME_LIST) 
 		{
 			OutputMemoryStream* out = new OutputMemoryStream();
 			out->Write((int)peerAddresses->size());
@@ -115,7 +115,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			delete out;
 		}
 			//connect
-		else if(menuOption == 3) 
+		else if(menuOption == (int)Commands::JOIN_GAME) 
 		{
 			mtx.lock();
 			in = sock->Receive(status);
@@ -170,6 +170,15 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			delete in;
 			break;
 		}
+		else 
+		{
+			OutputMemoryStream* out = new OutputMemoryStream();
+			out->WriteString("");
+
+			sock->Send(out, status);
+			delete in;
+		}
+
 		delete in;
 	}
 }

@@ -25,14 +25,14 @@ public:
 	~GameManager();
 
 	void CalculateOrganQuantity();
-	void ConnectP2P(TcpSocket& _serverSock, int* _sceneState);
+	void ConnectP2P(TcpSocket* _serverSock, int* _sceneState);
 
 	bool Update();
 	void Start();
 
-	void CreateGame(TcpSocket& serverSock);
-	void ListCurrentGames(TcpSocket& serverSock);
-	void JoinGame(TcpSocket& serverSock);
+	void CreateGame(TcpSocket* serverSock);
+	void ListCurrentGames(TcpSocket* serverSock);
+	void JoinGame(TcpSocket* serverSock);
 
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }
