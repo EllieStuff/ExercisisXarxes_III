@@ -3,8 +3,74 @@
 #include <thread>
 #include "../res/TcpSocket.h"
 
-void GameManager::CalculateTurn()
+void GameManager::CalculateOrganQuantity()
 {
+	/*mtx.lock();*/
+	int organQuantity = 0;
+	for (size_t i = 0; i < player->hand.hand.size(); i++)
+	{
+		if (player->hand.hand[i]->cardType == Card::CardType::ORGAN)
+			organQuantity++;
+	}
+
+	if (playerTurnOrder.size() < socks->size() + 1) 
+		playerTurnOrder.push_back(Pair_Organ_Player(player->id, organQuantity));
+	else
+	{
+		for (size_t i = 0; i < playerTurnOrder.size(); i++)
+		{
+			if (playerTurnOrder[i].playerID == player->id) 
+			{
+				playerTurnOrder[i].numOrgans = organQuantity;
+				break;
+			}
+		}
+	}
+	
+	/*if (playerNum == 1)
+		player1Organs = organQuantity;
+	else if (playerNum == 2)
+		player2Organs = organQuantity;
+	else if (playerNum == 3)
+		player3Organs = organQuantity;
+	else if (playerNum == 4)
+		player4Organs = organQuantity;*/
+
+	OutputMemoryStream* out = new OutputMemoryStream();
+	//instruction 0: receive the organ quantity to receive the turn
+	out->Write((int)Commands::ORGAN_QUANTITY);
+	out->Write(player->id);
+	out->Write(organQuantity);
+
+	std::cout << organQuantity << std::endl;
+
+	for (int i = 0; i < socks->size(); i++)
+	{
+		Status status;
+		socks->at(i)->Send(out, status);
+	}
+
+	delete(out);
+
+	//mtx.unlock();
+}
+
+void GameManager::UpdateTurn()
+{
+	OutputMemoryStream* out = new OutputMemoryStream();
+
+	//instruction 1: send your turn to another player
+	out->Write((int)Commands::UPDATE_TURN);
+	out->Write(*currentTurn + 1);
+
+	Status status;
+
+	for (int i = 0; i < socks->size(); i++)
+	{
+		socks->at(i)->Send(out, status);
+	}
+
+	delete out;
 }
 
 GameManager::GameManager()
@@ -67,7 +133,7 @@ void GameManager::ConnectP2P(TcpSocket &_serverSock, int* _sceneState)
 
 	std::thread tAccept(&AcceptConnections, _sceneState);
 	tAccept.detach();
-	std::thread tSend(&SendMessages, _sceneState);
+	std::thread tSend(&Update, _sceneState);
 	tSend.detach();
 	for (int i = 0; i < socks->size(); i++)
 	{
@@ -76,117 +142,106 @@ void GameManager::ConnectP2P(TcpSocket &_serverSock, int* _sceneState)
 	}
 }
 
-void GameManager::SendMessages(int* _sceneState)
+bool GameManager::Update()
+{
+	if (playerTurnOrder[*currentTurn].playerID != player->id)
+		return *endRound;
+
+	std::cout << "" << std::endl;
+	std::cout << "___________MENU___________" << std::endl;
+	std::cout << "1. Place Organ" << std::endl;
+	std::cout << "2. Infect Other Organ" << std::endl;
+	std::cout << "3. Vaccine Organ" << std::endl;
+	std::cout << "4. Discard card" << std::endl;
+	std::cout << "5. Deploy threatment card" << std::endl;
+	std::cout << "___________MENU___________" << std::endl;
+	std::cout << "" << std::endl;
+
+	std::cout << "___________TABLE___________" << std::endl;
+	table->ShowTable();
+	std::cout << "___________TABLE___________" << std::endl;
+	std::cout << "" << std::endl;
+
+	int option;
+	std::cin >> option;
+
+	//place organ
+	if (option == 1)
+	{
+		ListCards();
+		std::cout << "Choose a card: ";
+		int card;
+		std::cin >> card;
+
+		player->PlaceCard(card, Card::CardType::ORGAN, table, deck);
+
+		std::cout << "Organ Placed!" << std::endl;
+	}
+	//infect other organ
+	else if (option == 2)
+	{
+
+	}
+	//vaccine organ
+	else if (option == 3)
+	{
+
+	}
+	//discard card
+	else if (option == 4)
+	{
+		ListCards();
+		std::cout << "Choose a card: ";
+		int card;
+		std::cin >> card;
+		player->hand.hand.erase(player->hand.hand.begin() + card);
+		player->ReceiveCards(1, deck);
+		std::cout << "Card Removed!" << std::endl;
+	}
+	//deploy threatment card
+	else if (option == 5)
+	{
+
+	}
+
+	std::cout << "waiting other players" << std::endl;
+
+	UpdateTurn();
+
+	//Mostrar missatges de tota la ronda (events)
+
+	//__________________________________
+
+	std::cout << "Waiting For your turn" << std::endl;
+
+	return *endRound;
+
+	/*std::string msg;
+	std::cin >> msg;
+
+	OutputMemoryStream* out = new OutputMemoryStream();
+	out->WriteString(msg);
+	std::cout << _socks->size() << std::endl;
+	for (int i = 0; i < _socks->size(); i++) {
+		Status status;
+		_socks->at(i)->Send(out, status);
+		std::cout << (int)status << std::endl;
+	}
+	if (msg == "e") {
+		end = true;
+		for (int i = 0; i < _socks->size(); i++) {
+			_socks->at(i)->Disconnect();
+			delete _socks->at(i);
+		}
+		_socks->clear();
+	}
+	delete out;*/
+}
+
+void GameManager::Start()
 {
 	player->ReceiveCards(3, deck);
 	ListCards();
-
-	while (*_sceneState != (int)SceneManager::Scene::GAMEOVER) {
-
-		//Falla aqui
-		TurnSystem(socks);
-
-		std::cout << "Waiting For your turn" << std::endl;
-
-		while (*turnNum != player->id)
-		{
-		}
-
-		std::cout << "" << std::endl;
-		std::cout << "___________MENU___________" << std::endl;
-		std::cout << "1. Place Organ" << std::endl;
-		std::cout << "2. Infect Other Organ" << std::endl;
-		std::cout << "3. Vaccine Organ" << std::endl;
-		std::cout << "4. Discard card" << std::endl;
-		std::cout << "5. Deploy threatment card" << std::endl;
-		std::cout << "___________MENU___________" << std::endl;
-		std::cout << "" << std::endl;
-
-		std::cout << "___________TABLE___________" << std::endl;
-		table->ShowTable();
-		std::cout << "___________TABLE___________" << std::endl;
-		std::cout << "" << std::endl;
-
-		int option;
-		std::cin >> option;
-
-		//place organ
-		if (option == 1)
-		{
-			ListCards();
-			std::cout << "Choose a card: ";
-			int card;
-			std::cin >> card;
-
-			player->PlaceCard(card, Card::CardType::ORGAN, table, deck);
-
-			std::cout << "Organ Placed!" << std::endl;
-		}
-		//infect other organ
-		else if (option == 2)
-		{
-
-		}
-		//vaccine organ
-		else if (option == 3)
-		{
-
-		}
-		//discard card
-		else if (option == 4)
-		{
-			ListCards();
-			std::cout << "Choose a card: ";
-			int card;
-			std::cin >> card;
-			player->hand.hand.erase(player->hand.hand.begin() + card);
-			player->ReceiveCards(1, deck);
-			std::cout << "Card Removed!" << std::endl;
-		}
-		//deploy threatment card
-		else if (option == 5)
-		{
-
-		}
-
-		std::cout << "waiting other players" << std::endl;
-
-		TurnRotation(socks);
-
-		while (!(*endRound))
-		{
-
-		}
-
-		*playersFinishedRound = 0;
-		*endRound = false;
-		*turnNum = 0;
-
-		//Mostrar missatges de tota la ronda (events)
-
-		//__________________________________
-
-		/*std::string msg;
-		std::cin >> msg;
-
-		OutputMemoryStream* out = new OutputMemoryStream();
-		out->WriteString(msg);
-		std::cout << _socks->size() << std::endl;
-		for (int i = 0; i < _socks->size(); i++) {
-			Status status;
-			_socks->at(i)->Send(out, status);
-			std::cout << (int)status << std::endl;
-		}
-		if (msg == "e") {
-			end = true;
-			for (int i = 0; i < _socks->size(); i++) {
-				_socks->at(i)->Disconnect();
-				delete _socks->at(i);
-			}
-			_socks->clear();
-		}
-		delete out;*/
-	}
 }
 
 void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
@@ -204,35 +259,38 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		in->Read(&instruction);
 
 		//Turn system
-		if (instruction == 0)
+		if (instruction == (int)Commands::ORGAN_QUANTITY)
 		{
-			for (size_t i = 0; i < socks->size(); i++)
+			int playerID, organQuantity;
+
+			in->Read(&playerID);
+
+			in->Read(&organQuantity);
+
+			if (playerTurnOrder.size() < socks->size() + 1)
+				playerTurnOrder.push_back(Pair_Organ_Player(playerID, organQuantity));
+			else
 			{
-				if (i > 0)
+				for (size_t i = 0; i < playerTurnOrder.size(); i++)
 				{
-					in = _sock->Receive(status);
-					in->Read(&instruction);
+					if (playerTurnOrder[i].playerID == playerID)
+					{
+						playerTurnOrder[i].numOrgans = organQuantity;
+						break;
+					}
 				}
-
-				int playerNum = 0;
-
-				in->Read(&playerNum);
-
-				in->Read(&playerOrgans[playerNum - 1]);
-
-				/*if (playerNum == 1)
-					in->Read(&player1Organs);
-				else if (playerNum == 2)
-					in->Read(&player2Organs);
-				else if (playerNum == 3)
-					in->Read(&player3Organs);
-				else if (playerNum == 4)
-					in->Read(&player4Organs);*/
 			}
 
-			if (socks->size() > 0)
-			{
-				std::sort(playerOrgans.begin(), playerOrgans.end());
+			/*if (playerNum == 1)
+				in->Read(&player1Organs);
+			else if (playerNum == 2)
+				in->Read(&player2Organs);
+			else if (playerNum == 3)
+				in->Read(&player3Organs);
+			else if (playerNum == 4)
+				in->Read(&player4Organs);*/
+
+			std::sort(playerTurnOrder.begin(), playerTurnOrder.end());
 
 				//if (player1Organs > player2Organs && player1Organs > player3Organs && player1Organs > player4Organs)
 				//	*turnNum = 1;
@@ -244,22 +302,19 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 				//	*turnNum = 4;
 				//else
 				//	*turnNum = 1;
-			}
 		}
 		//Receive turn
-		else if (instruction == 1)
+		else if (instruction == (int)Commands::UPDATE_TURN)
 		{
 			int turn;
 			in->Read(&turn);
-			*turnNum = turn;
-			(*playersFinishedRound)++;
-		}
-		//Receive EndRound
-		else if (instruction == 2)
-		{
-			bool _endRound;
-			in->Read(&_endRound);
-			*endRound = _endRound;
+			if (turn >= playerTurnOrder.size())
+			{
+				turn = 0;
+				*endRound = true;
+			}
+				
+			*currentTurn = turn;
 		}
 		//Receive a card from another player
 		else if (instruction == 3)

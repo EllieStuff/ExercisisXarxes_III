@@ -19,6 +19,10 @@ void SceneManager::EnterGame()
 {
 	game.ConnectP2P(serverSock, (int*)sceneState);
 
+	game.Start();
+
+	std::cout << "Waiting For your turn" << std::endl;
+
 	sceneState = Scene::GAME;
 }
 
@@ -37,6 +41,7 @@ void SceneManager::UpdateInit()
 	std::cout << "3. Join P2P Game" << std::endl;
 
 	std::cout << "\nSelect option: ";
+
 	Commands option;
 	int tmpOption;
 	std::cin >> tmpOption;
@@ -75,6 +80,11 @@ void SceneManager::UpdateInit()
 
 void SceneManager::UpdateGame()
 {
+	if (game.Update())
+	{
+		game.CalculateOrganQuantity();
+		game.SetEndRound(false);
+	}
 }
 
 void SceneManager::UpdateGameOver()

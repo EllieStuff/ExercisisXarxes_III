@@ -3,6 +3,14 @@
 #include "Table.h"
 
 
+Table::Table()
+{
+}
+
+Table::~Table()
+{
+}
+
 void Table::ShowTable()
 {
 	for (size_t j = 0; j < table.size(); j++)

@@ -12,7 +12,7 @@ private:
 
 public:
 	PlayerHand hand;
-	int id;
+	int id, turn;
 
 	Player();
 	~Player();

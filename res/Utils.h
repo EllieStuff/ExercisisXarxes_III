@@ -4,7 +4,7 @@
 
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
 
-enum class Commands {CREATE_GAME = 1, GAME_LIST, JOIN_GAME, INCORRECT_PWD};
+enum class Commands {CREATE_GAME = 1, GAME_LIST, JOIN_GAME, INCORRECT_PWD, ORGAN_QUANTITY, UPDATE_TURN, END_ROUND};
 
 struct PeerAddress {
 	std::string ip;
@@ -19,7 +19,35 @@ struct Game
 	std::string pwd = "", gameName = "";
 };
 
+struct Pair_Organ_Player
+{
+	int playerID, numOrgans;
 
+	Pair_Organ_Player(int _playerID, int _numOrgans) : playerID(_playerID), numOrgans(_numOrgans)
+	{
+
+	}
+
+	bool operator>(int _numOrgans)
+	{
+		return numOrgans > _numOrgans;
+	}
+
+	bool operator<(int _numOrgans)
+	{
+		return numOrgans < _numOrgans;
+	}
+
+	bool operator>=(int _numOrgans)
+	{
+		return numOrgans >= _numOrgans;
+	}
+
+	bool operator<=(int _numOrgans)
+	{
+		return numOrgans <= _numOrgans;
+	}
+};
 
 struct Card {
 public:
