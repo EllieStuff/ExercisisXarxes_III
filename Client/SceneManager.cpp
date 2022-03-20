@@ -2,10 +2,8 @@
 #include "../res/OutputMemoryStream.h"
 #include "../res/InputMemoryStream.h"
 
-void SceneManager::EnterInit()
+void SceneManager::Start()
 {
-	sceneState = Scene::INIT;
-
 	//Connect to server
 	Status status = serverSock.Connect("127.0.0.1", 50000);
 	if (status != Status::DONE) {
@@ -13,6 +11,7 @@ void SceneManager::EnterInit()
 	}
 	game.SetPort(serverSock.GetLocalPort());
 
+	sceneState = Scene::INIT;
 }
 
 void SceneManager::EnterGame()
@@ -73,9 +72,6 @@ void SceneManager::UpdateInit()
 	{
 		EnterGame();
 	}
-
-
-	delete out;
 }
 
 void SceneManager::UpdateGame()
@@ -93,7 +89,7 @@ void SceneManager::UpdateGameOver()
 
 SceneManager::SceneManager()
 {
-	EnterInit();
+	sceneState = Scene::START;
 }
 
 SceneManager::~SceneManager()
@@ -106,10 +102,13 @@ void SceneManager::Update()
 	{
 		switch (sceneState)
 		{
-		case SceneManager::Scene::INIT:
+		case Scene::START:
+			Start();
+			break;
+		case Scene::INIT:
 			UpdateInit();
 			break;
-		case SceneManager::Scene::GAME:
+		case Scene::GAME:
 			UpdateGame();
 			break;
 		}

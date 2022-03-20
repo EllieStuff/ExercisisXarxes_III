@@ -10,6 +10,8 @@ public:
 	PlayerHand();
 	~PlayerHand();
 
+	void ListCards();
+
 	void AddCard(Card* newCard);
 	void PlayCard(int _cardIdx);
 };

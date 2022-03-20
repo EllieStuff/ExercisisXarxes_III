@@ -6,7 +6,7 @@
 class SceneManager
 {
 public:
-	enum class Scene { INIT, GAME, GAMEOVER };
+	enum class Scene { START, INIT, GAME, GAMEOVER };
 
 private:
 	Scene sceneState;
@@ -14,7 +14,7 @@ private:
 
 	GameManager game;
 
-	void EnterInit();
+	void Start();
 	void EnterGame();
 
 	void ExitGame();
