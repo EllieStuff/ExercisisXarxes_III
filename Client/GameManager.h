@@ -36,4 +36,5 @@ public:
 
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }
+	int GetPlayersNum() { return socks->size() + 1; };
 };

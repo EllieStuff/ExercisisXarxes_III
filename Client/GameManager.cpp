@@ -89,7 +89,7 @@ GameManager::~GameManager()
 
 bool GameManager::Update()
 {
-	if (!playerTurnOrder.empty() && playerTurnOrder[*currentTurn].playerID != player->id)
+	if (playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	std::cout << "" << std::endl;
@@ -188,6 +188,7 @@ void GameManager::Start()
 	player->ReceiveCards(3, deck);
 	player->hand.ListCards();
 	CalculateOrganQuantity();
+	UpdateTurn();
 }
 
 void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)

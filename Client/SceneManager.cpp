@@ -16,8 +16,6 @@ void SceneManager::Start()
 
 void SceneManager::EnterGame()
 {
-	game.ConnectP2P(&serverSock, new int((int)sceneState));
-
 	game.Start();
 
 	std::cout << "Waiting For your turn" << std::endl;
@@ -42,8 +40,9 @@ void SceneManager::UpdateInit()
 	std::cout << "\nSelect option: ";
 
 	Commands option;
-	int tmpOption;
+	char tmpOption;
 	std::cin >> tmpOption;
+	tmpOption -= '0';
 	option = (Commands)tmpOption;
 	if (option < Commands::CREATE_GAME || option > Commands::JOIN_GAME)
 		return;
@@ -69,9 +68,14 @@ void SceneManager::UpdateInit()
 
 
 	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) 
+		game.ConnectP2P(&serverSock, new int((int)sceneState));
+
+	while (game.GetPlayersNum() < 2)
 	{
-		EnterGame();
+
 	}
+	
+	EnterGame();
 }
 
 void SceneManager::UpdateGame()
