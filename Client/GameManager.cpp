@@ -73,10 +73,6 @@ void GameManager::UpdateTurn()
 	delete out;
 }
 
-GameManager::GameManager()
-{
-}
-
 GameManager::~GameManager()
 {
 	for (int i = 0; i < socks->size(); i++)
@@ -86,6 +82,9 @@ GameManager::~GameManager()
 	delete player;
 	delete deck;
 	delete table;
+
+	delete endRound;
+	delete currentTurn;
 }
 
 bool GameManager::Update()
