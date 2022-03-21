@@ -81,6 +81,8 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			out.WriteString(msg);
 			sock->Send(&out, status);
 
+			delete in;
+
 			in = sock->Receive(status);
 
 			msg = in->ReadString();
@@ -117,6 +119,8 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			//connect
 		else if(menuOption == (int)Commands::JOIN_GAME) 
 		{
+			delete in;
+
 			mtx.lock();
 			in = sock->Receive(status);
 			int serverIndex;
@@ -135,6 +139,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			while (peerAddresses->at(serverIndex).pwd != msg)
 			{
 				delete out;
+				delete in;
 
 				out = new OutputMemoryStream();
 
@@ -178,8 +183,6 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			sock->Send(out, status);
 			delete in;
 		}
-
-		delete in;
 	}
 }
 
