@@ -41,9 +41,11 @@ void SceneManager::UpdateInit()
 
 	Commands option;
 	char tmpOption;
+	
 	std::cin >> tmpOption;
 	tmpOption -= '0';
 	option = (Commands)tmpOption;
+
 	if (option < Commands::CREATE_GAME || option > Commands::JOIN_GAME)
 		return;
 
@@ -104,6 +106,7 @@ void SceneManager::Update()
 {
 	while (sceneState != Scene::GAMEOVER)
 	{
+		/*system("cls");*/
 		switch (sceneState)
 		{
 		case Scene::START:

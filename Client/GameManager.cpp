@@ -58,10 +58,10 @@ void GameManager::CalculateOrganQuantity()
 void GameManager::UpdateTurn()
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
+
 	int *value = new int(*currentTurn + 1);
 	delete currentTurn;
 	currentTurn = value;
-	std::cout << "CurrTurn: " << *currentTurn << std::endl;
 
 	//instruction 1: send your turn to another player
 	out->Write((int)Commands::UPDATE_TURN);
@@ -96,6 +96,8 @@ bool GameManager::Update()
 	if (*currentTurn == playerTurnOrder.size()|| playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
+	player->ReceiveCards(MAX_CARDS - player->hand.hand.size(), deck);
+
 	std::cout << "" << std::endl;
 	std::cout << "___________MENU___________" << std::endl;
 	std::cout << "1. Place Organ" << std::endl;
@@ -111,46 +113,45 @@ bool GameManager::Update()
 	std::cout << "___________TABLE___________" << std::endl;
 	std::cout << "" << std::endl;
 
-	int option;
-	std::cin >> option;
+	Commands option;
+	char tmpOption;
+	std::cin >> tmpOption;
+	tmpOption -= '0';
+	option = (Commands)tmpOption;
 
-	//place organ
-	if (option == 1)
+	char card;
+	
+	switch (option)
 	{
+	case Commands::PLACE_ORGAN:
 		player->hand.ListCards();
 		std::cout << "Choose a card: ";
-		int card;
+		
 		std::cin >> card;
+		card -= -'0';
 
 		player->PlaceCard(card, Card::CardType::ORGAN, table, deck);
 
 		std::cout << "Organ Placed!" << std::endl;
-	}
-	//infect other organ
-	else if (option == 2)
-	{
-
-	}
-	//vaccine organ
-	else if (option == 3)
-	{
-
-	}
-	//discard card
-	else if (option == 4)
-	{
+		break;
+	case Commands::PLACE_INFECTION:
+		break;
+	case Commands::PLACE_MEDICINE:
+		break;
+	case Commands::PLACE_TREATMENT:
+		break;
+	case Commands::DISCARD_CARD:
 		player->hand.ListCards();
 		std::cout << "Choose a card: ";
-		int card;
-		std::cin >> card;
-		player->hand.hand.erase(player->hand.hand.begin() + card);
-		player->ReceiveCards(1, deck);
-		std::cout << "Card Removed!" << std::endl;
-	}
-	//deploy threatment card
-	else if (option == 5)
-	{
 
+		std::cin >> card;
+		card -= -'0';
+
+		player->hand.hand.erase(player->hand.hand.begin() + card);
+		std::cout << "Card Removed!" << std::endl;
+		break;
+
+	default:;
 	}
 
 	std::cout << "waiting other players" << std::endl;
@@ -204,6 +205,7 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		if (status == Status::DISCONNECTED)
 		{
 			delete in;
+			mtx.unlock();
 			return;
 		}
 
@@ -338,8 +340,10 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 {
 	//Choose game
 	std::cout << "Type server ID" << std::endl;
-	int server;
-	std::cin >> server;
+
+	char tmpOption;
+	std::cin >> tmpOption;
+	int server = tmpOption - '0';
 
 	OutputMemoryStream* out = new OutputMemoryStream();
 	Status status;

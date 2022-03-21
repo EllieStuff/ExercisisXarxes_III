@@ -11,6 +11,8 @@ Player::~Player()
 
 void Player::ReceiveCards(int _quantity, Deck* _deck)
 {
+	if (_quantity <= 0) return;
+
 	for (size_t i = 0; i < _quantity; i++)
 	{
 		hand.hand.push_back(_deck->deck.back());
