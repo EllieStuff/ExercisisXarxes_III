@@ -93,7 +93,7 @@ GameManager::~GameManager()
 
 bool GameManager::Update()
 {
-	if (*currentTurn == playerTurnOrder.size()|| playerTurnOrder[*currentTurn].playerID != player->id)
+	if (*currentTurn == playerTurnOrder.size() || playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	std::cout << "" << std::endl;
