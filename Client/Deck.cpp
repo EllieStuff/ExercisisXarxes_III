@@ -86,7 +86,7 @@ Deck::Deck()
 	newCard = new Card(Card::TreatmentType::MEDICAL_ERROR);
 	deck.push_back(newCard);
 
-	srand((unsigned int)time(NULL));
+	srand((unsigned int)1);
 	std::random_shuffle(deck.begin(), deck.end());
 }
 

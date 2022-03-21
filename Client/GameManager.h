@@ -16,11 +16,15 @@ class GameManager
 	bool* endRound = new bool(false);
 	std::mutex mtx;
 
+	bool ready = false;
+	int* playersReady = new int(0);
+
 	std::vector<Pair_Organ_Player> playerTurnOrder;
 
 	void UpdateTurn();
 	void ReceiveMessages(TcpSocket* _sock, int* _sceneState);
 	void AcceptConnections(int* _sceneState);
+	void SendReady();
 
 public:
 	GameManager() {}
@@ -32,6 +36,8 @@ public:
 	bool Update();
 	void Start();
 
+	void SetReady();
+
 	void CreateGame(TcpSocket* serverSock);
 	void ListCurrentGames(TcpSocket* serverSock);
 	void JoinGame(TcpSocket* serverSock);
@@ -39,4 +45,7 @@ public:
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }
 	int GetPlayersNum() { return socks->size() + 1; };
+
+	bool GetReady() { return ready; }
+	int GetPlayersReady() { return *playersReady; }
 };

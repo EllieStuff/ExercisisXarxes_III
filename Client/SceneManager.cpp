@@ -72,9 +72,22 @@ void SceneManager::UpdateInit()
 	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) 
 		game.ConnectP2P(&serverSock, new int((int)sceneState));
 
-	while (game.GetPlayersNum() < 2)
-	{
+	std::cout << "Waiting for players" << std::endl;
+	
+	while (game.GetPlayersNum() < 3) {}
 
+	while (game.GetPlayersReady() < game.GetPlayersNum())
+	{
+		if (game.GetReady()) continue;
+		std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
+		std::string _ready;
+		std::cin >> _ready;
+
+		if (!(_ready == "Y" || _ready == "y")) continue;
+
+		game.SetReady();
+
+		std::cout << "I'm ready!!!!" << std::endl;
 	}
 	
 	EnterGame();
@@ -91,6 +104,11 @@ void SceneManager::UpdateGame()
 
 void SceneManager::UpdateGameOver()
 {
+}
+
+void SceneManager::CheckPlayersReady()
+{
+
 }
 
 SceneManager::SceneManager()

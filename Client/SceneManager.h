@@ -23,6 +23,8 @@ private:
 	void UpdateGame();
 	void UpdateGameOver();
 
+	void CheckPlayersReady();
+
 public:
 	SceneManager();
 	~SceneManager();

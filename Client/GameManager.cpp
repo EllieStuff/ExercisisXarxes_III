@@ -196,6 +196,33 @@ void GameManager::Start()
 	UpdateTurn();
 }
 
+void GameManager::SetReady()
+{
+	ready = true;
+
+	int* value = new int(*playersReady + 1);
+	delete playersReady;
+	playersReady = value;
+
+	SendReady();
+}
+
+void GameManager::SendReady()
+{
+	OutputMemoryStream* out = new OutputMemoryStream();
+	out->Write((int)Commands::PLAYER_READY);
+	out->Write(true);
+	
+	Status status;
+
+	for (size_t i = 0; i < socks->size(); i++)
+	{
+		socks->at(i)->Send(out, status);
+	}
+
+	delete out;
+}
+
 void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 {
 	while (*_sceneState != (int)SceneManager::Scene::GAMEOVER) {
@@ -254,6 +281,19 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		else if (instruction == 3)
 		{
 
+		}
+		else if (instruction == (int)Commands::PLAYER_READY)
+		{
+			bool isReady;
+			InputMemoryStream* in = _sock->Receive(status);
+
+			in->Read(&isReady);
+			if (isReady)
+			{
+				int* value = new int(*playersReady + 1);
+				delete playersReady;
+				playersReady = value;
+			}
 		}
 
 		//std::string msg = in->ReadString();
