@@ -58,10 +58,14 @@ void GameManager::CalculateOrganQuantity()
 void GameManager::UpdateTurn()
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
+	int *value = new int(*currentTurn + 1);
+	delete currentTurn;
+	currentTurn = value;
+	std::cout << "CurrTurn: " << *currentTurn << std::endl;
 
 	//instruction 1: send your turn to another player
 	out->Write((int)Commands::UPDATE_TURN);
-	out->Write(*currentTurn + 1);
+	out->Write(*currentTurn);
 
 	Status status;
 
@@ -89,7 +93,7 @@ GameManager::~GameManager()
 
 bool GameManager::Update()
 {
-	if (playerTurnOrder[*currentTurn].playerID != player->id)
+	if (*currentTurn == playerTurnOrder.size()|| playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	std::cout << "" << std::endl;
@@ -195,6 +199,7 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 {
 	while (*_sceneState != (int)SceneManager::Scene::GAMEOVER) {
 		Status status;
+		mtx.lock();
 		InputMemoryStream* in = _sock->Receive(status);
 		if (status == Status::DISCONNECTED)
 		{
@@ -264,6 +269,7 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		}*/
 
 		delete in;
+		mtx.unlock();
 	}
 }
 

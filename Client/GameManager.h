@@ -1,5 +1,6 @@
 #pragma once
 #include "Player.h"
+#include <mutex>
 
 class TcpSocket;
 
@@ -13,6 +14,7 @@ class GameManager
 	Table* table = new Table();
 	int* currentTurn = new int(0);
 	bool* endRound = new bool(false);
+	std::mutex mtx;
 
 	std::vector<Pair_Organ_Player> playerTurnOrder;
 
