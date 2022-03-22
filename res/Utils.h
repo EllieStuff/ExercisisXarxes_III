@@ -42,14 +42,19 @@ struct Pair_Organ_Player
 
 	bool operator>=(Pair_Organ_Player _other)
 	{
-		return numOrgans >= _other.numOrgans;
+		return numOrgans > _other.numOrgans || (numOrgans == _other.numOrgans && playerID < _other.playerID);
 	}
 
 	bool operator<=(Pair_Organ_Player _other)
 	{
-		return numOrgans <= _other.numOrgans;
+		return numOrgans < _other.numOrgans || (numOrgans == _other.numOrgans && playerID < _other.playerID);
 	}
 };
+
+inline bool ComparePlayers(Pair_Organ_Player _first, Pair_Organ_Player _second)
+{
+	return _first >= _second;
+}
 
 struct Card {
 public:

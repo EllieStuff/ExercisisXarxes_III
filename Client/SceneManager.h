@@ -9,6 +9,7 @@ public:
 	enum class Scene { START, INIT, GAME, GAMEOVER };
 
 private:
+	std::mutex mtx;
 	Scene sceneState;
 	TcpSocket serverSock;
 

@@ -21,7 +21,7 @@ class GameManager
 
 	std::vector<Pair_Organ_Player> playerTurnOrder;
 
-	void UpdateTurn();
+	void UpdateTurn(bool plus);
 	void ReceiveMessages(TcpSocket* _sock, int* _sceneState);
 	void AcceptConnections(int* _sceneState);
 	void SendReady();
@@ -29,6 +29,8 @@ class GameManager
 public:
 	GameManager() {}
 	~GameManager();
+
+	void CheckArray();
 
 	void CalculateOrganQuantity();
 	void ConnectP2P(TcpSocket* _serverSock, int* _sceneState);

@@ -72,7 +72,6 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			//create game
 		if(menuOption == (int)Commands::CREATE_GAME) 
 		{
-			mtx.lock();
 			peerAddresses->push_back(Game());
 			int size = peerAddresses->size() - 1;
 
@@ -81,11 +80,13 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			out.WriteString(msg);
 			sock->Send(&out, status);
 
-			delete in;
+			//delete in;
 
-			in = sock->Receive(status);
+			//delete in;
 
-			msg = in->ReadString();
+			InputMemoryStream* in2 = sock->Receive(status);
+
+			msg = in2->ReadString();
 
 			if (msg._Equal("-")) msg = "";
 
@@ -95,8 +96,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			peerAddresses->at(size).pwd = msg;
 
 			ConnectToServer(peerAddresses, sock, size);
-			mtx.unlock();
-			delete in;
+			delete in2;
 			currGameId++;
 			break;
 		}
@@ -122,9 +122,9 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			delete in;
 
 			mtx.lock();
-			in = sock->Receive(status);
+			InputMemoryStream* in2 = sock->Receive(status);
 			int serverIndex;
-			in->Read(&serverIndex);
+			in2->Read(&serverIndex);
 
 			std::string msg = "";
 
@@ -139,7 +139,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			while (peerAddresses->at(serverIndex).pwd != msg)
 			{
 				delete out;
-				delete in;
+				//delete in;
 
 				out = new OutputMemoryStream();
 
