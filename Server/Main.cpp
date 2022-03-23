@@ -19,57 +19,33 @@ int currGameId = 0;
 
 void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serverIndex)
 {
-	std::cout << "c_1" << std::endl;
 	Status status;
-	std::cout << "c_2" << std::endl;
 	std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses->at(serverIndex).peers.size() << std::endl;
-	std::cout << "c_3" << std::endl;
 	OutputMemoryStream* out = new OutputMemoryStream();
-	std::cout << "c_4" << std::endl;
 	out->Write(peerAddresses->at(serverIndex).peers.size());
-	std::cout << "c_5" << std::endl;
 	for (int i = 0; i < peerAddresses->at(serverIndex).peers.size(); i++) {
-		std::cout << "c_6 " << i << std::endl;
 		PeerAddress current = peerAddresses->at(serverIndex).peers[i];
 		std::cout << peerAddresses->at(serverIndex).peers[i].ip << ", " << peerAddresses->at(serverIndex).peers[i].port << std::endl;
 		out->WriteString(current.ip);
 		out->Write(current.port);
 	}
-	std::cout << "c_7" << std::endl;
 	sock->Send(out, status);
-	std::cout << "c_8" << std::endl;
 	delete out;
-	std::cout << "c_9" << std::endl;
 	std::cout << (int)status << std::endl;
 
 	if (peerAddresses->at(serverIndex).peers.size() < 3)
 	{
-		std::cout << "c_10" << std::endl;
 		PeerAddress address;
-		std::cout << "c_11" << std::endl;
 		address.ip = sock->GetRemoteAddress();
-		std::cout << "c_12" << std::endl;
 		address.port = sock->GetRemotePort();
-		std::cout << "c_13" << std::endl;
-		std::cout << "c_14" << std::endl;
 		peerAddresses->at(serverIndex).peers.push_back(address);
-		std::cout << "c_15" << std::endl;
-
-		std::cout << "c_16" << std::endl;
 
 		peerTimers[serverIndex] = clock() + closeTime;
-
-		std::cout << "c_17" << std::endl;
 	}
 	else
 	{
-		std::cout << "c_18" << std::endl;
-		std::cout << "c_19" << std::endl;
 		peerAddresses->erase(peerAddresses->begin() + serverIndex);
-		std::cout << "c_20" << std::endl;
 		peerTimers.erase(peerTimers.begin() + serverIndex);
-		std::cout << "c_21" << std::endl;
-		std::cout << "c_22" << std::endl;
 	}
 
 	sock->Disconnect();

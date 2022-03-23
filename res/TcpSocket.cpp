@@ -24,7 +24,7 @@ InputMemoryStream* TcpSocket::Receive(Status& _status)
 	sf::Socket::Status status = socket.receive(bufferChar, size, received);
 
 	_status = (Status)(int)status;
-	std::cout << "Receive status: " << (int)_status << std::endl;
+	system("CLS");
 
 	if (_status == Status::DONE)
 		return input;
@@ -36,7 +36,7 @@ void TcpSocket::Send(OutputMemoryStream* _info, Status& _status)
 {
 	sf::Socket::Status status = socket.send(_info->GetBufferPtr(), _info->GetLength());
 	_status = (Status)(int)status;
-	std::cout << "Send status: " << (int)_status << std::endl;
+	system("CLS");
 }
 
 unsigned short TcpSocket::GetLocalPort()
