@@ -344,28 +344,46 @@ void GameManager::AcceptConnections(int* _sceneState)
 
 void GameManager::CreateGame(TcpSocket* serverSock)
 {
+	std::cout << "c1" << std::endl;
 	Status status;
+	std::cout << "c2" << std::endl;
 	InputMemoryStream* in = serverSock->Receive(status);
+	std::cout << "c3" << std::endl;
+
 	if (status == Status::DONE)
 	{
+		std::cout << "c4" << std::endl;
+		if (in == nullptr)
+			exit;
+		std::cout << "c5" << std::endl;
 		std::string msg = in->ReadString();
+		std::cout << "c6" << std::endl;
 		std::cout << msg << std::endl;
-
+		std::cout << "c7" << std::endl;
 		OutputMemoryStream *out = new OutputMemoryStream();
+		std::cout << "c8" << std::endl;
 		std::cin >> msg;
+		std::cout << "c9" << std::endl;
 		out->WriteString(msg);
-
+		std::cout << "c10" << std::endl;
 		serverSock->Send(out, status);
+		std::cout << "c11" << std::endl;
 		delete out;
+		std::cout << "c12" << std::endl;
 	}
 
 	delete in;
+	std::cout << "c13" << std::endl;
 }
 
 void GameManager::ListCurrentGames(TcpSocket* serverSock)
 {
 	Status status;
 	InputMemoryStream* inp = serverSock->Receive(status);
+
+	if (inp == nullptr)
+		exit;
+
 	int size;
 	inp->Read(&size);
 	for (int i = 0; i < size; i++)
@@ -402,6 +420,9 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 	InputMemoryStream* in;
 	in = serverSock->Receive(status);
 
+	if (in == nullptr)
+		exit;
+
 	std::string msg = in->ReadString();
 	delete in;
 
@@ -433,55 +454,88 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 
 void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 {
+	std::cout << "1" << std::endl;
 	Status status;
-	mtx.lock();
+	std::cout << "2" << std::endl;
+	std::cout << "3" << std::endl;
 	InputMemoryStream* in = _serverSock->Receive(status);
-
+	std::cout << "4" << std::endl;
+	if (in == nullptr)
+		exit;
+	std::cout << "5" << std::endl;
 	int socketNum;
 	in->Read(&socketNum);
-
+	mtx.lock();
+	std::cout << "6" << std::endl;
 	_serverSock->Disconnect();
-
+	std::cout << "7" << std::endl;
 	table->table.push_back(std::vector<Card*>());
-
+	std::cout << "8" << std::endl;
 	bool started = false;
+	std::cout << "9" << std::endl;
 	for (int i = 0; i < socketNum; i++)
 	{
+		std::cout << "10" << std::endl;
 		PeerAddress address;
+		std::cout << "11" << std::endl;
 		TcpSocket* sock = new TcpSocket();
+		std::cout << "12" << std::endl;
 		std::string msg;
-
+		std::cout << "13" << std::endl;
 		int num;
-
+		std::cout << "14" << std::endl;
 		if (!started)
 		{
+			std::cout << "15" << std::endl;
+			if (in == nullptr)
+				exit;
+			std::cout << "16" << std::endl;
 			in->Read(&num);
+			std::cout << "17" << std::endl;
 			std::cout << num << std::endl;
+			std::cout << "18" << std::endl;
 			started = true;
+			std::cout << "19" << std::endl;
 		}
-
+		std::cout << "20" << std::endl;
+		if (in == nullptr)
+			exit;
+		std::cout << "21" << std::endl;
 		msg = in->ReadString();
+		std::cout << "22" << std::endl;
 		in->Read(&address.port);
+		std::cout << "23" << std::endl;
 		std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
+		std::cout << "23" << std::endl;
 		status = sock->Connect(msg, address.port);
-
+		std::cout << "24" << std::endl;
 		if (status == Status::DONE)
 		{
+			std::cout << "25" << std::endl;
 			socks->push_back(sock);
+			std::cout << "26" << std::endl;
 			table->table.push_back(std::vector<Card*>());
+			std::cout << "27" << std::endl;
 			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
+			std::cout << "28" << std::endl;
 		}
 	}
+	std::cout << "29" << std::endl;
 	player->id = socks->size();
+	std::cout << "30" << std::endl;
 	delete in;
-
+	std::cout << "31" << std::endl;
 	mtx.unlock();
-
+	std::cout << "32" << std::endl;
 	std::thread tAccept(&GameManager::AcceptConnections, this, _sceneState);
+	std::cout << "33" << std::endl;
 	tAccept.detach();
+	std::cout << "34" << std::endl;
 	for (int i = 0; i < socks->size(); i++)
 	{
+		std::cout << "35 " << i << std::endl;
 		std::thread tReceive(&GameManager::ReceiveMessages, this, socks->at(i), _sceneState);
+		std::cout << "36 " << i << std::endl;
 		tReceive.detach();
 	}
 }

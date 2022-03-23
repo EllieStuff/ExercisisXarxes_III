@@ -17,25 +17,26 @@ Status TcpSocket::Connect(std::string _ip, unsigned short _port)
 
 InputMemoryStream* TcpSocket::Receive(Status& _status)
 {
-	while(true) 
-	{
-		std::string* bufferChar = new std::string();
-		size_t size = 1000;
-		std::size_t received;
-		InputMemoryStream* input = new InputMemoryStream((char*)bufferChar, size);
-		sf::Socket::Status status = socket.receive(bufferChar, size, received);
+	std::string* bufferChar = new std::string();
+	size_t size = 1000;
+	std::size_t received;
+	InputMemoryStream* input = new InputMemoryStream((char*)bufferChar, size);
+	sf::Socket::Status status = socket.receive(bufferChar, size, received);
 
-		_status = (Status)(int)status;
+	_status = (Status)(int)status;
+	std::cout << "Receive status: " << (int)_status << std::endl;
 
-		if (_status == Status::DONE)
-			return input;
-	}
+	if (_status == Status::DONE)
+		return input;
+	else
+		return nullptr;
 }
 
 void TcpSocket::Send(OutputMemoryStream* _info, Status& _status)
 {
 	sf::Socket::Status status = socket.send(_info->GetBufferPtr(), _info->GetLength());
 	_status = (Status)(int)status;
+	std::cout << "Send status: " << (int)_status << std::endl;
 }
 
 unsigned short TcpSocket::GetLocalPort()

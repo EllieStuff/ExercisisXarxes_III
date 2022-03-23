@@ -19,36 +19,57 @@ int currGameId = 0;
 
 void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serverIndex)
 {
+	std::cout << "c_1" << std::endl;
 	Status status;
+	std::cout << "c_2" << std::endl;
 	std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses->at(serverIndex).peers.size() << std::endl;
-
+	std::cout << "c_3" << std::endl;
 	OutputMemoryStream* out = new OutputMemoryStream();
+	std::cout << "c_4" << std::endl;
 	out->Write(peerAddresses->at(serverIndex).peers.size());
-
+	std::cout << "c_5" << std::endl;
 	for (int i = 0; i < peerAddresses->at(serverIndex).peers.size(); i++) {
+		std::cout << "c_6 " << i << std::endl;
 		PeerAddress current = peerAddresses->at(serverIndex).peers[i];
 		std::cout << peerAddresses->at(serverIndex).peers[i].ip << ", " << peerAddresses->at(serverIndex).peers[i].port << std::endl;
 		out->WriteString(current.ip);
 		out->Write(current.port);
 	}
-
+	std::cout << "c_7" << std::endl;
 	sock->Send(out, status);
+	std::cout << "c_8" << std::endl;
 	delete out;
+	std::cout << "c_9" << std::endl;
 	std::cout << (int)status << std::endl;
 
 	if (peerAddresses->at(serverIndex).peers.size() < 3)
 	{
+		std::cout << "c_10" << std::endl;
 		PeerAddress address;
+		std::cout << "c_11" << std::endl;
 		address.ip = sock->GetRemoteAddress();
+		std::cout << "c_12" << std::endl;
 		address.port = sock->GetRemotePort();
+		std::cout << "c_13" << std::endl;
+		std::cout << "c_14" << std::endl;
 		peerAddresses->at(serverIndex).peers.push_back(address);
+		std::cout << "c_15" << std::endl;
+
+		std::cout << "c_16" << std::endl;
 
 		peerTimers[serverIndex] = clock() + closeTime;
+
+		std::cout << "c_17" << std::endl;
 	}
 	else
 	{
+		std::cout << "c_18" << std::endl;
+		std::cout << "c_19" << std::endl;
 		peerAddresses->erase(peerAddresses->begin() + serverIndex);
+		std::cout << "c_20" << std::endl;
 		peerTimers.erase(peerTimers.begin() + serverIndex);
+		std::cout << "c_21" << std::endl;
+		std::cout << "c_22" << std::endl;
 	}
 
 	sock->Disconnect();
@@ -56,48 +77,99 @@ void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serv
 
 void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 {
+	std::cout << "1" << std::endl;
 	Status status;
+	std::cout << "2" << std::endl;
 	std::cout << "Connected with " << sock->GetRemoteAddress() << std::endl;
+	std::cout << "3" << std::endl;
 	//sending menu int;
 
 	while (true)
 	{
+		std::cout << "4" << std::endl;
 		InputMemoryStream* in = sock->Receive(status);
+		std::cout << "5" << std::endl;
 		if (status != Status::DONE)
 			continue;
+		std::cout << "6" << std::endl;
 
 		int menuOption;
+
+		std::cout << "7" << std::endl;
+
+		if (in == nullptr)
+			break;
+
+		std::cout << "8" << std::endl;
+
 		in->Read(&menuOption);
+
+		std::cout << "9" << std::endl;
 
 		//create game
 		if (menuOption == (int)Commands::CREATE_GAME)
 		{
-			mtx.lock();
+			//mtx.lock();
+			std::cout << "10" << std::endl;
+			std::cout << "11" << std::endl;
 			peerAddresses->push_back(Game());
+			std::cout << "12" << std::endl;
 			int size = peerAddresses->size() - 1;
+			std::cout << size << std::endl;
+			std::cout << peerAddresses->size() << std::endl;
+			std::cout << "13" << std::endl;
+			//mtx.unlock();
+			std::cout << "14" << std::endl;
 
 			std::string msg = "Write the password if you want (write '-' if you don't)";
+			std::cout << "15" << std::endl;
 			OutputMemoryStream out;
+			std::cout << "16" << std::endl;
 			out.WriteString(msg);
+			std::cout << "17" << std::endl;
 			sock->Send(&out, status);
+			std::cout << "18" << std::endl;
 
 			delete in;
-
+			std::cout << "19" << std::endl;
+			Status status;
+			std::cout << "20" << std::endl;
 			InputMemoryStream* in = sock->Receive(status);
+			std::cout << "21" << std::endl;
 
 			msg = in->ReadString();
 
+			std::cout << "22" << std::endl;
+
 			if (msg._Equal("-")) msg = "";
+
+			std::cout << "23" << std::endl;
 
 			peerTimers.push_back(clock() + closeTime);
 
+			std::cout << "24" << std::endl;
+			std::cout << size << std::endl;
+			std::cout << peerAddresses->size() << std::endl;
+			//PETA AQUI
 			peerAddresses->at(size).gameId = currGameId;
+
+			std::cout << "25" << std::endl;
+
 			peerAddresses->at(size).pwd = msg;
 
+			std::cout << "26" << std::endl;
+
 			ConnectToServer(peerAddresses, sock, size);
-			mtx.unlock();
+
+			std::cout << "27" << std::endl;
+
 			delete in;
+
+			std::cout << "28" << std::endl;
+
 			currGameId++;
+
+			std::cout << "29" << std::endl;
 			break;
 		}
 		//search game
@@ -105,73 +177,95 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 		{
 			OutputMemoryStream* out = new OutputMemoryStream();
 			out->Write((int)peerAddresses->size());
-			mtx.lock();
 
 			for (size_t i = 0; i < peerAddresses->size(); i++)
 			{
 				out->Write(peerAddresses->at(i).gameId);
 				out->Write((int)peerAddresses->at(i).peers.size());
 			}
-			mtx.unlock();
 			sock->Send(out, status);
 			delete out;
 		}
 		//connect
 		else if (menuOption == (int)Commands::JOIN_GAME)
 		{
+			std::cout << "30" << std::endl;
 			delete in;
-
-			mtx.lock();
+			std::cout << "31" << std::endl;
+			std::cout << "32" << std::endl;
 			InputMemoryStream* in = sock->Receive(status);
+			std::cout << "33" << std::endl;
 			int serverIndex;
+			std::cout << "34" << std::endl;
+			while (in == nullptr)
+				in = sock->Receive(status);
+			std::cout << "35" << std::endl;
 			in->Read(&serverIndex);
-
+			std::cout << "36" << std::endl;
 			std::string msg = "";
-
+			std::cout << "37" << std::endl;
 			OutputMemoryStream* out = new OutputMemoryStream();
+			std::cout << "38" << std::endl;
 			if (peerAddresses->at(serverIndex).pwd != "")
 				out->WriteString("Server protected with password");
 			else
 				out->WriteString("");
 
+			std::cout << "39" << std::endl;
+
 			sock->Send(out, status);
+
+			std::cout << "40" << std::endl;
 
 			while (peerAddresses->at(serverIndex).pwd != msg)
 			{
+				std::cout << "41" << std::endl;
 				delete out;
 				delete in;
-
+				std::cout << "42" << std::endl;
 				out = new OutputMemoryStream();
-
+				std::cout << "43" << std::endl;
 				msg = "Write the password. Write exit to leave";
-
+				std::cout << "44" << std::endl;
+				std::cout << "Type password" << std::endl;
+				std::cout << "45" << std::endl;
 				out->WriteString(msg);
-
+				std::cout << "46" << std::endl;
 				sock->Send(out, status);
-
+				std::cout << "47" << std::endl;
 				in = sock->Receive(status);
-
+				std::cout << "48" << std::endl;
+				if (in == nullptr)
+					break;
+				std::cout << "49" << std::endl;
 				msg = in->ReadString();
-
+				std::cout << "50" << std::endl;
 				if (status != Status::DONE || msg == "exit")
 				{
+					std::cout << "51_E" << std::endl;
 					break;
 				}
-
+				std::cout << "51" << std::endl;
 				if (msg != peerAddresses->at(serverIndex).pwd)
 				{
+					std::cout << "52" << std::endl;
 					std::string msg2 = "Incorrect password. Try again or write 'exit' to leave";
+					std::cout << "53" << std::endl;
 					out->WriteString(msg2);
+					std::cout << "54" << std::endl;
 					sock->Send(out, status);
+					std::cout << "55" << std::endl;
 				}
 
 			}
 
 			delete out;
 
-			if (peerAddresses->size() - 1 <= serverIndex)
-				ConnectToServer(peerAddresses, sock, serverIndex);
-			mtx.unlock();
+			std::cout << "connect! " << peerAddresses->size() - 1 << " " << serverIndex << std::endl;
+
+			if (peerAddresses->size() - 1 >= serverIndex)
+			ConnectToServer(peerAddresses, sock, serverIndex);
+			std::cout << "56" << std::endl;
 			delete in;
 			break;
 		}
@@ -183,14 +277,13 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			sock->Send(out, status);
 			delete in;
 		}
-	}
+	};
 }
 
 void ServerCountDown(std::vector<Game>* _peerAddresses)
 {
 	while (true)
 	{
-		mtx.lock();
 		clock_t currClock = clock();
 		for (size_t i = 0; i < peerTimers.size(); i++)
 		{
@@ -201,7 +294,6 @@ void ServerCountDown(std::vector<Game>* _peerAddresses)
 				i--;
 			}
 		}
-		mtx.unlock();
 	}
 }
 
@@ -234,8 +326,8 @@ void AcceptConnections(std::vector<Game>* peerAddresses) {
 int main() {
 	std::vector<Game> peerAddresses;
 
-	std::thread tServerTimedown(ServerCountDown, &peerAddresses);
-	tServerTimedown.detach();
+	//std::thread tServerTimedown(ServerCountDown, &peerAddresses);
+	//tServerTimedown.detach();
 
 	AcceptConnections(&peerAddresses);
 

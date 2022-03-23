@@ -55,7 +55,7 @@ void SceneManager::UpdateInit()
 	serverSock.Send(out, status);
 	delete out;
 
-	mtx.lock();
+	//mtx.lock();
 	if (option == Commands::CREATE_GAME)
 	{
 		game.CreateGame(&serverSock);
@@ -68,7 +68,7 @@ void SceneManager::UpdateInit()
 	{
 		game.JoinGame(&serverSock);
 	}
-	mtx.unlock();
+	//mtx.unlock();
 
 	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) 
 		game.ConnectP2P(&serverSock, new int((int)sceneState));
@@ -124,6 +124,7 @@ SceneManager::~SceneManager()
 void SceneManager::Update()
 {
 	Start();
+	UpdateInit();
 	while (sceneState != Scene::GAMEOVER)
 	{
 		/*system("cls");*/
@@ -132,7 +133,6 @@ void SceneManager::Update()
 		case Scene::START:
 			break;
 		case Scene::INIT:
-			UpdateInit();
 			break;
 		case Scene::GAME:
 			UpdateGame();
