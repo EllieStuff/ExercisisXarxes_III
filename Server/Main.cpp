@@ -21,16 +21,15 @@ void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serv
 {
 	Status status;
 	std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses->at(serverIndex).peers.size() << std::endl;
-	OutputMemoryStream* out = new OutputMemoryStream();
-	out->Write(peerAddresses->at(serverIndex).peers.size());
+	OutputMemoryStream out;
+	out.Write(peerAddresses->at(serverIndex).peers.size());
 	for (int i = 0; i < peerAddresses->at(serverIndex).peers.size(); i++) {
 		PeerAddress current = peerAddresses->at(serverIndex).peers[i];
 		std::cout << peerAddresses->at(serverIndex).peers[i].ip << ", " << peerAddresses->at(serverIndex).peers[i].port << std::endl;
-		out->WriteString(current.ip);
-		out->Write(current.port);
+		out.WriteString(current.ip);
+		out.Write(current.port);
 	}
-	sock->Send(out, status);
-	delete out;
+	sock->Send(&out, status);
 	std::cout << (int)status << std::endl;
 
 	if (peerAddresses->at(serverIndex).peers.size() < 3)
@@ -88,13 +87,13 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			delete in;
 
 			Status status;
-			InputMemoryStream* in = sock->Receive(status);
+			InputMemoryStream in = *sock->Receive(status);
 
 			if(status == Status::DONE) 
 			{
 				//revissar després
 				mtx.lock();
-				msg = in->ReadString();
+				msg = in.ReadString();
 
 				if (msg._Equal("-")) msg = "";
 
@@ -109,8 +108,6 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 				peerAddresses->at(size).pwd = msg;
 
 				ConnectToServer(peerAddresses, sock, size);
-
-				delete in;
 
 				currGameId++;
 
