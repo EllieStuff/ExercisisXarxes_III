@@ -446,7 +446,11 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 
 				std::cout << msg << std::endl;
 
+				mtx.lock();
+
 				std::cin >> msg;
+
+				mtx.unlock();
 
 				out = new OutputMemoryStream();
 				out->WriteString(msg);
