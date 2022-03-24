@@ -173,8 +173,8 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 						}
 						if (msg != peerAddresses->at(serverIndex).pwd)
 						{
-							std::string msg2 = "Incorrect password. Try again or write 'exit' to leave";
-							out->WriteString(msg2);
+							int msg2 = 0;
+							out->Write(msg2);
 							sock->Send(out, status);
 						}
 					}

@@ -361,7 +361,7 @@ void GameManager::CreateGame(TcpSocket* serverSock)
 	if (status == Status::DONE)
 	{
 		mtx.lock();
-		std::string msg = inR.ReadString();
+		std::string msg = "Write Your Password (type '-' to leave it empty)";
 		std::cout << msg << std::endl;
 		mtx.unlock();
 		std::string msg2;
@@ -430,9 +430,13 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 
 		if (msg != "")
 		{
+			int password = 1;
 			std::string msg3 = "";
 			do
 			{
+				if (password == 0)
+					exit;
+
 				std::cin >> msg3;
 				OutputMemoryStream out2;
 				out2.WriteString(msg3);
@@ -442,17 +446,13 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 				inP = *serverSock->Receive(status);
 
 				mtx.lock();
-
 				if (status != Status::DONE)
 					break;
 
-				std::string msg2 = "";
-				msg2 = inP.ReadString();
-
-				std::cout << msg2 << std::endl;
+				inP.Read(&password);
 				mtx.unlock();
 
-			} while (msg3 == "Incorrect password. Try again or write 'exit' to leave");
+			} while (password == 0);
 		}
 	}
 }
