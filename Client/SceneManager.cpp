@@ -123,16 +123,16 @@ SceneManager::~SceneManager()
 
 void SceneManager::Update()
 {
-	Start();
-	UpdateInit();
 	while (sceneState != Scene::GAMEOVER)
 	{
 		/*system("cls");*/
 		switch (sceneState)
 		{
 		case Scene::START:
+			Start();
 			break;
 		case Scene::INIT:
+			UpdateInit();
 			break;
 		case Scene::GAME:
 			UpdateGame();

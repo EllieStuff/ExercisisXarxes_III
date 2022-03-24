@@ -5,7 +5,6 @@
 
 void GameManager::CalculateOrganQuantity()
 {
-	mtx.lock();
 	int organQuantity = 0;
 	for (size_t i = 0; i < player->hand.hand.size(); i++)
 	{
@@ -14,7 +13,11 @@ void GameManager::CalculateOrganQuantity()
 	}
 
 	if (playerTurnOrder.size() < socks->size() + 1) 
+	{
+		mtx.lock();
 		playerTurnOrder.push_back(Pair_Organ_Player(player->id, organQuantity));
+		mtx.unlock();
+	}
 	else
 	{
 		for (size_t i = 0; i < playerTurnOrder.size(); i++)
@@ -51,8 +54,6 @@ void GameManager::CalculateOrganQuantity()
 		Status status;
 		socks->at(i)->Send(out, status);
 	}
-
-	mtx.unlock();
 
 	delete(out);
 }
@@ -98,7 +99,6 @@ GameManager::~GameManager()
 
 bool GameManager::Update()
 {
-	//PROBLEMA AQUÍ!!!!!
 	if (*currentTurn == playerTurnOrder.size() || playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
@@ -235,27 +235,32 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 	while (*_sceneState != (int)SceneManager::Scene::GAMEOVER) {
 		Status status;
 		InputMemoryStream in1 = *_sock->Receive(status);
-		if (status == Status::DISCONNECTED)
-		{
+
+		if (status != Status::DONE)
 			return;
-		}
 
 		mtx.lock();
-
 		int instruction = 0;
 		in1.Read(&instruction);
+		mtx.unlock();
 
 		//Turn system
 		if (instruction == (int)Commands::ORGAN_QUANTITY)
 		{
+			mtx.lock();
 			int playerID, organQuantity;
 
 			in1.Read(&playerID);
 
 			in1.Read(&organQuantity);
+			mtx.unlock();
 
-			if (playerTurnOrder.size() < socks->size() + 1)
+			if (playerTurnOrder.size() < socks->size() + 1) 
+			{
+				mtx.lock();
 				playerTurnOrder.push_back(Pair_Organ_Player(playerID, organQuantity));
+				mtx.unlock();
+			}
 			else
 			{
 				for (size_t i = 0; i < playerTurnOrder.size(); i++)
@@ -274,8 +279,10 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		//Receive turn
 		else if (instruction == (int)Commands::UPDATE_TURN)
 		{
+			mtx.lock();
 			int turn;
 			in1.Read(&turn);
+			mtx.unlock();
 			if (turn >= playerTurnOrder.size())
 			{
 				turn = 0;
@@ -291,8 +298,10 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 		}
 		else if (instruction == (int)Commands::PLAYER_READY)
 		{
+			mtx.lock();
 			bool isReady;
 			in1.Read(&isReady);
+			mtx.unlock();
 			if (isReady)
 			{
 				int* value = new int(*playersReady + 1);
@@ -314,7 +323,6 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 				}
 			}
 		}*/
-		mtx.unlock();
 	}
 }
 
@@ -329,6 +337,7 @@ void GameManager::AcceptConnections(int* _sceneState)
 		sock = new TcpSocket();
 		Status status = listener.Accept(*sock);
 		if (status == Status::DONE) {
+			mtx.lock();
 			socks->push_back(sock);
 			table->table.push_back(std::vector<Card*>());
 			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
@@ -336,6 +345,7 @@ void GameManager::AcceptConnections(int* _sceneState)
 			/*TurnSystem(_socks);*/
 			std::thread tReceive(&GameManager::ReceiveMessages, this, sock, _sceneState);
 			tReceive.detach();
+			mtx.unlock();
 		}
 	}
 
@@ -346,22 +356,22 @@ void GameManager::CreateGame(TcpSocket* serverSock)
 {
 	Status status;
 
-	InputMemoryStream* in = serverSock->Receive(status);
+	InputMemoryStream* inR = serverSock->Receive(status);
 
 	if (status == Status::DONE)
 	{
-		if (in == nullptr)
-			exit;
-		std::string msg = in->ReadString();
+		mtx.lock();
+		std::string msg = inR->ReadString();
 		std::cout << msg << std::endl;
-		OutputMemoryStream *out = new OutputMemoryStream();
 		std::cin >> msg;
+		mtx.unlock();
+		OutputMemoryStream* out = new OutputMemoryStream();
 		out->WriteString(msg);
 		serverSock->Send(out, status);
 		delete out;
 	}
 
-	delete in;
+	delete inR;
 }
 
 void GameManager::ListCurrentGames(TcpSocket* serverSock)
@@ -369,21 +379,25 @@ void GameManager::ListCurrentGames(TcpSocket* serverSock)
 	Status status;
 	InputMemoryStream* inp = serverSock->Receive(status);
 
-	if (inp == nullptr)
-		exit;
-
-	int size;
-	inp->Read(&size);
-	for (int i = 0; i < size; i++)
+	if (status == Status::DONE)
 	{
-		int idx;
-		inp->Read(&idx);
-		int numOfPlayers;
-		inp->Read(&numOfPlayers);
-		std::cout << "Game number: " << idx << ", Players connected: " << numOfPlayers << std::endl;
-	}
+		mtx.lock();
+		int size;
+		inp->Read(&size);
+		mtx.unlock();
+		for (int i = 0; i < size; i++)
+		{
+			mtx.lock();
+			int idx;
+			inp->Read(&idx);
+			int numOfPlayers;
+			inp->Read(&numOfPlayers);
+			mtx.unlock();
+			std::cout << "Game number: " << idx << ", Players connected: " << numOfPlayers << std::endl;
+		}
 
-	delete inp;
+		delete inp;
+	}
 }
 
 void GameManager::JoinGame(TcpSocket* serverSock)
@@ -395,8 +409,6 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 	std::cin >> tmpOption;
 	int server = tmpOption - '0';
 
-	mtx.lock();
-
 	OutputMemoryStream* out = new OutputMemoryStream();
 	Status status;
 	out->Write(server);
@@ -405,88 +417,101 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 	delete out;
 
 	//Write password (if necessary)
-	InputMemoryStream* in;
-	in = serverSock->Receive(status);
+	InputMemoryStream* inP;
+	inP = serverSock->Receive(status);
 
-	if (in == nullptr)
-		exit;
-
-	std::string msg = in->ReadString();
-	delete in;
-
-	//Write message in console
-	std::cout << msg << std::endl;
-
-	if (msg != "")
+	if (status == Status::DONE) 
 	{
-		do
+		mtx.lock();
+		std::string msg = inP->ReadString();
+		delete inP;
+		//Write message in console
+		std::cout << msg << std::endl;
+		mtx.unlock();
+
+		if (msg != "")
 		{
-			in = serverSock->Receive(status);
+			do
+			{
+				inP = serverSock->Receive(status);
+				
+				mtx.lock();
 
-			msg = in->ReadString();
-			std::cout << msg << std::endl;
+				if (status != Status::DONE)
+					break;
 
-			std::cin >> msg;
+				msg = inP->ReadString();
 
-			out = new OutputMemoryStream();
-			out->WriteString(msg);
-			serverSock->Send(out, status);
-			delete out;
+				mtx.unlock();
 
-		} while (msg == "Incorrect password. Try again or write 'exit' to leave");
+				std::cout << msg << std::endl;
+
+				std::cin >> msg;
+
+				out = new OutputMemoryStream();
+				out->WriteString(msg);
+				serverSock->Send(out, status);
+				delete out;
+
+			} while (msg == "Incorrect password. Try again or write 'exit' to leave");
+		}
 	}
-
-	mtx.unlock();
 }
 
 
 void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 {
 	Status status;
-	mtx.lock();
 	InputMemoryStream* in = _serverSock->Receive(status);
-	if (in == nullptr)
-		exit;
-	int socketNum;
-	in->Read(&socketNum);
-	_serverSock->Disconnect();
-	table->table.push_back(std::vector<Card*>());
-	bool started = false;
-	for (int i = 0; i < socketNum; i++)
+
+	if(status == Status::DONE) 
 	{
-		PeerAddress address;
-		TcpSocket* sock = new TcpSocket();
-		std::string msg;
-		int num;
-		if (!started)
+		mtx.lock();
+		int socketNum;
+		in->Read(&socketNum);
+		mtx.unlock();
+		_serverSock->Disconnect();
+		table->table.push_back(std::vector<Card*>());
+		bool started = false;
+		for (int i = 0; i < socketNum; i++)
 		{
+			PeerAddress address;
+			TcpSocket* sock = new TcpSocket();
+			std::string msg;
+			int num;
+			if (!started)
+			{
+				mtx.lock();
+				in->Read(&num);
+				mtx.unlock();
+				started = true;
+			}
 			if (in == nullptr)
 				exit;
-			in->Read(&num);
-			started = true;
+			mtx.lock();
+			msg = in->ReadString();
+			in->Read(&address.port);
+			mtx.unlock();
+			std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
+			status = sock->Connect(msg, address.port);
+			if (status == Status::DONE)
+			{
+				mtx.lock();
+				socks->push_back(sock);
+				table->table.push_back(std::vector<Card*>());
+				mtx.unlock();
+				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
+			}
 		}
-		if (in == nullptr)
-			exit;
-		msg = in->ReadString();
-		in->Read(&address.port);
-		std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
-		status = sock->Connect(msg, address.port);
-		if (status == Status::DONE)
+		player->id = socks->size();
+		delete in;
+		std::thread tAccept(&GameManager::AcceptConnections, this, _sceneState);
+		tAccept.detach();
+		for (int i = 0; i < socks->size(); i++)
 		{
-			socks->push_back(sock);
-			table->table.push_back(std::vector<Card*>());
-			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
+			std::thread tReceive(&GameManager::ReceiveMessages, this, socks->at(i), _sceneState);
+			tReceive.detach();
 		}
-	}
-	player->id = socks->size();
-	delete in;
-	mtx.unlock();
-	std::thread tAccept(&GameManager::AcceptConnections, this, _sceneState);
-	tAccept.detach();
-	for (int i = 0; i < socks->size(); i++)
-	{
-		std::thread tReceive(&GameManager::ReceiveMessages, this, socks->at(i), _sceneState);
-		tReceive.detach();
 	}
 }
 

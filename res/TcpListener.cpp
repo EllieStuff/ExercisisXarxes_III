@@ -3,7 +3,6 @@
 
 TcpListener::TcpListener()
 {
-	listener.setBlocking(false);
 }
 
 TcpListener::~TcpListener()
