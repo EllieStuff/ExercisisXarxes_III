@@ -469,9 +469,9 @@ void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 		mtx.lock();
 		int socketNum;
 		in->Read(&socketNum);
-		mtx.unlock();
 		_serverSock->Disconnect();
 		table->table.push_back(std::vector<Card*>());
+		mtx.unlock();
 		bool started = false;
 		for (int i = 0; i < socketNum; i++)
 		{

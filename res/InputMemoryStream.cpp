@@ -32,15 +32,13 @@ std::string InputMemoryStream::ReadString()
 	int length;
 	Read(&length);
 	
-	std::string str;
-	str.resize(length);
+	char* buffer = new char[length + 1];
+	Read(buffer, length);
+	buffer[length] = '\0';
 
-	for (size_t i = 0; i < length; i++)
-	{
-		char a;
-		Read(&a);
-		str[i] = a;
-	}
-
+	//Construimos el string a partir del buffer
+	std::string str = std::string(buffer);
+	//Liberamos memoria
+	delete[] buffer;
 	return str;
 }

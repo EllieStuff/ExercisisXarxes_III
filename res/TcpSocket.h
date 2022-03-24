@@ -6,10 +6,11 @@
 #include "Utils.h"
 #include "InputMemoryStream.h"
 #include "OutputMemoryStream.h"
+#include <mutex>
 
 class TcpSocket {
 private:
-	
+	std::mutex mtx;
 public:
 	sf::TcpSocket socket;
 	

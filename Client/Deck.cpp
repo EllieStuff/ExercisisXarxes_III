@@ -8,6 +8,7 @@ Deck::Deck()
 	//Organ
 	for (size_t i = 0; i < 5; i++)
 	{
+		mtx.lock();
 		//Heart
 		newCard = new Card(Card::CardType::ORGAN, Card::OrganType::HEART);
 		deck.push_back(newCard);
@@ -20,6 +21,7 @@ Deck::Deck()
 		//Skeleton
 		newCard = new Card(Card::CardType::ORGAN, Card::OrganType::SKELETON);
 		deck.push_back(newCard);
+		mtx.unlock();
 	}
 	newCard = new Card(Card::CardType::ORGAN, Card::OrganType::NONE, true);
 	deck.push_back(newCard);
@@ -27,6 +29,7 @@ Deck::Deck()
 	//Virus
 	for (size_t i = 0; i < 4; i++)
 	{
+		mtx.lock();
 		//Heart
 		newCard = new Card(Card::CardType::VIRUS, Card::OrganType::HEART);
 		deck.push_back(newCard);
@@ -39,13 +42,17 @@ Deck::Deck()
 		//Skeleton
 		newCard = new Card(Card::CardType::VIRUS, Card::OrganType::SKELETON);
 		deck.push_back(newCard);
+		mtx.unlock();
 	}
+	mtx.lock();
 	newCard = new Card(Card::CardType::VIRUS, Card::OrganType::NONE, true);
 	deck.push_back(newCard);
+	mtx.unlock();
 
 	//Medicine
 	for (size_t i = 0; i < 4; i++)
 	{
+		mtx.lock();
 		//Heart
 		newCard = new Card(Card::CardType::MEDICINE, Card::OrganType::HEART);
 		deck.push_back(newCard);
@@ -61,24 +68,30 @@ Deck::Deck()
 		//Wildcard
 		newCard = new Card(Card::CardType::MEDICINE, Card::OrganType::NONE, true);
 		deck.push_back(newCard);
+		mtx.unlock();
 	}
 
 	//Infection
 	for (size_t i = 0; i < 2; i++)
 	{
+		mtx.lock();
 		newCard = new Card(Card::TreatmentType::INFECTION);
 		deck.push_back(newCard);
+		mtx.unlock();
 	}
 
 	for (size_t i = 0; i < 3; i++)
 	{
+		mtx.lock();
 		//Rober
 		newCard = new Card(Card::TreatmentType::ROBER);
 		deck.push_back(newCard);
 		//Transplant
 		newCard = new Card(Card::TreatmentType::TRANSPLANT);
 		deck.push_back(newCard);
+		mtx.unlock();
 	}
+	mtx.lock();
 	//Latex Gloves
 	newCard = new Card(Card::TreatmentType::LATEX_GLOVES);
 	deck.push_back(newCard);
@@ -88,6 +101,7 @@ Deck::Deck()
 
 	srand(time(NULL));
 	std::random_shuffle(deck.begin(), deck.end());
+	mtx.unlock();
 }
 
 Deck::~Deck()
