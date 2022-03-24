@@ -449,12 +449,12 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 
 				mtx.unlock();
 
-				std::string msg3;
+				std::string msg3 = "";
 				std::cin >> msg3;
 
-				out = new OutputMemoryStream();
-				out->WriteString(msg3);
-				serverSock->Send(out, status);
+				OutputMemoryStream* out2 = new OutputMemoryStream();
+				out2->WriteString(msg3);
+				serverSock->Send(out2, status);
 				delete out;
 
 			} while (msg == "Incorrect password. Try again or write 'exit' to leave");
