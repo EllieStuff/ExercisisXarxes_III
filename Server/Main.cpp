@@ -79,10 +79,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			std::cout << peerAddresses->size() << std::endl;
 			mtx.unlock();
 
-			std::string msg = "Write the password if you want (write '-' if you don't)";
-			OutputMemoryStream out;
-			out.WriteString(msg);
-			sock->Send(&out, status);
+			std::string msg = "";
 
 			delete in;
 
@@ -91,7 +88,6 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 
 			if(status == Status::DONE) 
 			{
-				//revissar després
 				mtx.lock();
 				msg = in.ReadString();
 

@@ -354,23 +354,16 @@ void GameManager::AcceptConnections(int* _sceneState)
 
 void GameManager::CreateGame(TcpSocket* serverSock)
 {
+	mtx.lock();
+	std::string msg = "Write Your Password (type '-' to leave it empty)";
+	std::cout << msg << std::endl;
+	mtx.unlock();
 	Status status;
-
-	InputMemoryStream inR = *serverSock->Receive(status);
-
-	if (status == Status::DONE)
-	{
-		mtx.lock();
-		std::string msg = "Write Your Password (type '-' to leave it empty)";
-		std::cout << msg << std::endl;
-		mtx.unlock();
-		std::string msg2;
-		std::cin >> msg2;
-		OutputMemoryStream* out = new OutputMemoryStream();
-		out->WriteString(msg2);
-		serverSock->Send(out, status);
-		delete out;
-	}
+	std::string msg2;
+	std::cin >> msg2;
+	OutputMemoryStream out;
+	out.WriteString(msg2);
+	serverSock->Send(&out, status);
 }
 
 void GameManager::ListCurrentGames(TcpSocket* serverSock)
