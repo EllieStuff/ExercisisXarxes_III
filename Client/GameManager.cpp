@@ -394,58 +394,71 @@ void GameManager::ListCurrentGames(TcpSocket* serverSock)
 
 void GameManager::JoinGame(TcpSocket* serverSock)
 {
-	//Choose game
-	std::cout << "Type server ID" << std::endl;
-
-	mtx.lock();
-	char tmpOption;
-	std::cin >> tmpOption;
-	int server = tmpOption - '0';
-	mtx.unlock();
-
-	OutputMemoryStream* out = new OutputMemoryStream();
 	Status status;
-	out->Write(server);
-	serverSock->Send(out, status);
+	OutputMemoryStream* out;
+	InputMemoryStream* in;
+	bool validIdx = false;
+	do {
+		//Choose game
+		std::cout << "Type server ID" << std::endl;
+		char tmpOption;
+		std::cin >> tmpOption;
+		int serverIdx = tmpOption - '0';
 
-	delete out;
+		mtx.lock();
+		out = new OutputMemoryStream();
+		out->Write(serverIdx);
+		serverSock->Send(out, status);
+		delete out;
+		mtx.unlock();
+
+		in = serverSock->Receive(status);
+		mtx.lock();
+		in->Read(&validIdx);
+		delete in;
+		mtx.unlock();
+	} while (!validIdx);
+
 
 	//Write password (if necessary)
-	InputMemoryStream inP = *serverSock->Receive(status);
+	in = serverSock->Receive(status);
 
 	if (status == Status::DONE) 
 	{
-		mtx.lock();
-		std::string msg = inP.ReadString();
+		std::string msg = in->ReadString();
+		delete in;
 		//Write message in console
 		std::cout << msg << std::endl;
-		mtx.unlock();
 
 		if (msg != "")
 		{
-			int password = 1;
+			bool validPassword = false;
 			std::string msg3 = "";
 			do
 			{
-				if (password == 0)
+				if (validPassword)
 					exit;
 
 				std::cin >> msg3;
-				OutputMemoryStream out2;
-				out2.WriteString(msg3);
+				OutputMemoryStream* out2 = new OutputMemoryStream();
+				out2->WriteString(msg3);
+				serverSock->Send(out2, status);
+				delete out2;
 
-				serverSock->Send(&out2, status);
-
-				inP = *serverSock->Receive(status);
+				in = serverSock->Receive(status);
 
 				mtx.lock();
 				if (status != Status::DONE)
 					break;
 
-				inP.Read(&password);
+				in->Read(&validPassword);
+				delete in;
 				mtx.unlock();
 
-			} while (password == 0);
+				if(!validPassword)
+					std::cout << "Write the password. Write exit to leave\n";
+
+			} while (!validPassword);
 		}
 	}
 }

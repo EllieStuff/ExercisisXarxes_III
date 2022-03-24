@@ -68,6 +68,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 		int menuOption;
 
 		in->Read(&menuOption);
+		delete in;
 		mtx.unlock();
 
 		//create game
@@ -81,15 +82,12 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 
 			std::string msg = "";
 
-			delete in;
-
-			Status status;
-			InputMemoryStream in = *sock->Receive(status);
+			in = sock->Receive(status);
 
 			if(status == Status::DONE) 
 			{
 				mtx.lock();
-				msg = in.ReadString();
+				msg = in->ReadString();
 
 				if (msg._Equal("-")) msg = "";
 
@@ -127,62 +125,78 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 		//connect
 		else if (menuOption == (int)Commands::JOIN_GAME)
 		{
-			delete in;
-			Status status;
-			InputMemoryStream* in = sock->Receive(status);
-
 			if(status == Status::DONE) 
 			{
-				mtx.lock();
-				int serverIndex;
-				in->Read(&serverIndex);
-				mtx.unlock();
-				std::string msg = "";
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryStream* out;
+				bool validIdx;
+				int serverIndex = false;
+				do {
+					in = sock->Receive(status);
+					mtx.lock();
+					in->Read(&serverIndex);
+					delete in;
+					validIdx = serverIndex >= 0 && serverIndex < peerAddresses->size();
+
+					out = new OutputMemoryStream();
+					out->Write(validIdx);
+					sock->Send(out, status);
+					delete out;
+					mtx.unlock();
+				} while (!validIdx);
+
+				//std::string msg = "";
+				out = new OutputMemoryStream();
 				if (peerAddresses->at(serverIndex).pwd != "")
 					out->WriteString("Server protected with password");
 				else
 					out->WriteString("");
 
 				sock->Send(out, status);
-
-				while (peerAddresses->at(serverIndex).pwd != msg)
+				delete out;
+				
+				bool validPassword = peerAddresses->at(serverIndex).pwd == "";
+				while (!validPassword)
 				{
-					delete out;
-					delete in;
-					out = new OutputMemoryStream();
-					msg = "Write the password. Write exit to leave";
-					out->WriteString(msg);
-					sock->Send(out, status);
-
-					Status status;
 					in = sock->Receive(status);
 
 					if(status == Status::DONE) 
 					{
 						mtx.lock();
-						msg = in->ReadString();
+						std::string msg = in->ReadString();
+						delete in;
 						mtx.unlock();
 						if (status != Status::DONE || msg == "exit")
 						{
 							break;
 						}
-						if (msg != peerAddresses->at(serverIndex).pwd)
+						/*if (msg != peerAddresses->at(serverIndex).pwd)
 						{
 							int msg2 = 0;
 							out->Write(msg2);
 							sock->Send(out, status);
-						}
+						}*/
+						validPassword = msg == peerAddresses->at(serverIndex).pwd;
+						out = new OutputMemoryStream();
+						out->Write(validPassword);
+						sock->Send(out, status);
+						delete out;
+
+						/*if (!validPassword) 
+						{
+							out = new OutputMemoryStream();
+							msg = "Write the password. Write exit to leave";
+							out->WriteString(msg);
+							sock->Send(out, status);
+							delete out;
+						}*/
+
 					}
 				}
-
-				delete out;
 
 				std::cout << "connect! " << peerAddresses->size() - 1 << " " << serverIndex << std::endl;
 
 				if (peerAddresses->size() - 1 >= serverIndex)
 				ConnectToServer(peerAddresses, sock, serverIndex);
-				delete in;
 				break;
 			}
 		}

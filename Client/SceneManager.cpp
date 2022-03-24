@@ -32,7 +32,7 @@ void SceneManager::ExitGame()
 
 void SceneManager::UpdateInit()
 {
-	std::cout << "Welcome!" << std::endl;
+	std::cout << "\nWelcome!" << std::endl;
 	std::cout << "1. Create P2P Game" << std::endl;
 	std::cout << "2. List P2P Games" << std::endl;
 	std::cout << "3. Join P2P Game" << std::endl;
@@ -70,28 +70,29 @@ void SceneManager::UpdateInit()
 	}
 	//mtx.unlock();
 
-	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) 
+	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) {
 		game.ConnectP2P(&serverSock, new int((int)sceneState));
 
-	std::cout << "Waiting for players" << std::endl;
-	
-	while (game.GetPlayersNum() < 3) {}
+		std::cout << "Waiting for players" << std::endl;
 
-	while (game.GetPlayersReady() < game.GetPlayersNum())
-	{
-		if (game.GetReady()) continue;
-		std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
-		std::string _ready;
-		std::cin >> _ready;
+		while (game.GetPlayersNum() < 3) {}
 
-		if (!(_ready == "Y" || _ready == "y")) continue;
+		while (game.GetPlayersReady() < game.GetPlayersNum())
+		{
+			if (game.GetReady()) continue;
+			std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
+			std::string _ready;
+			std::cin >> _ready;
 
-		game.SetReady();
+			if (!(_ready == "Y" || _ready == "y")) continue;
 
-		std::cout << "I'm ready!!!!" << std::endl;
+			game.SetReady();
+
+			std::cout << "I'm ready!!!!" << std::endl;
+		}
+
+		EnterGame();
 	}
-	
-	EnterGame();
 }
 
 void SceneManager::UpdateGame()
