@@ -363,8 +363,9 @@ void GameManager::CreateGame(TcpSocket* serverSock)
 		mtx.lock();
 		std::string msg = inR->ReadString();
 		std::cout << msg << std::endl;
-		std::cin >> msg;
 		mtx.unlock();
+		std::string msg2;
+		std::cin >> msg2;
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->WriteString(msg);
 		serverSock->Send(out, status);
@@ -405,9 +406,11 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 	//Choose game
 	std::cout << "Type server ID" << std::endl;
 
+	mtx.lock();
 	char tmpOption;
 	std::cin >> tmpOption;
 	int server = tmpOption - '0';
+	mtx.unlock();
 
 	OutputMemoryStream* out = new OutputMemoryStream();
 	Status status;
@@ -434,7 +437,7 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 			do
 			{
 				inP = serverSock->Receive(status);
-				
+
 				mtx.lock();
 
 				if (status != Status::DONE)
@@ -442,18 +445,15 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 
 				msg = inP->ReadString();
 
-				mtx.unlock();
-
 				std::cout << msg << std::endl;
 
-				mtx.lock();
-
-				std::cin >> msg;
-
 				mtx.unlock();
 
+				std::string msg3;
+				std::cin >> msg3;
+
 				out = new OutputMemoryStream();
-				out->WriteString(msg);
+				out->WriteString(msg3);
 				serverSock->Send(out, status);
 				delete out;
 
