@@ -32,22 +32,29 @@ void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serv
 	sock->Send(&out, status);
 	std::cout << (int)status << std::endl;
 
-	if (peerAddresses->at(serverIndex).peers.size() < 3)
+	if (peerAddresses->at(serverIndex).peers.size() < peerAddresses->at(serverIndex).gameMaxSize)
 	{
+		mtx.lock();
 		PeerAddress address;
 		address.ip = sock->GetRemoteAddress();
 		address.port = sock->GetRemotePort();
-		mtx.lock();
 		peerAddresses->at(serverIndex).peers.push_back(address);
+		peerTimers[serverIndex] = clock() + closeTime;
+
+		if (peerAddresses->at(serverIndex).peers.size() >= peerAddresses->at(serverIndex).gameMaxSize) 
+		{
+			peerAddresses->erase(peerAddresses->begin() + serverIndex);
+			peerTimers.erase(peerTimers.begin() + serverIndex);
+		}
+
 		mtx.unlock();
 
-		peerTimers[serverIndex] = clock() + closeTime;
 	}
-	else
+	/*else
 	{
 		peerAddresses->erase(peerAddresses->begin() + serverIndex);
 		peerTimers.erase(peerTimers.begin() + serverIndex);
-	}
+	}*/
 
 	sock->Disconnect();
 }
@@ -128,14 +135,19 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			if(status == Status::DONE) 
 			{
 				OutputMemoryStream* out;
-				bool validIdx;
-				int serverIndex = false;
+				bool validIdx = false;
+				int serverIndex;
 				do {
 					in = sock->Receive(status);
 					mtx.lock();
 					in->Read(&serverIndex);
 					delete in;
 					validIdx = serverIndex >= 0 && serverIndex < peerAddresses->size();
+					for (auto it = peerAddresses->begin(); it != peerAddresses->end(); it++) 
+					{
+						if (it->gameId == serverIndex) 
+							validIdx = true;
+					}
 
 					out = new OutputMemoryStream();
 					out->Write(validIdx);
@@ -196,7 +208,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 				std::cout << "connect! " << peerAddresses->size() - 1 << " " << serverIndex << std::endl;
 
 				if (peerAddresses->size() - 1 >= serverIndex)
-				ConnectToServer(peerAddresses, sock, serverIndex);
+					ConnectToServer(peerAddresses, sock, serverIndex);
 				break;
 			}
 		}

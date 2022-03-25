@@ -75,7 +75,12 @@ void SceneManager::UpdateInit()
 
 		std::cout << "Waiting for players" << std::endl;
 
-		while (game.GetPlayersNum() < 3) {}
+		int playersNum = game.GetPlayersNum();
+		while (game.GetPlayersNum() < game.GetGameSize()) {
+			if (playersNum != game.GetPlayersNum()) {
+				playersNum = game.GetPlayersNum();
+			}
+		}
 
 		while (game.GetPlayersReady() < game.GetPlayersNum())
 		{

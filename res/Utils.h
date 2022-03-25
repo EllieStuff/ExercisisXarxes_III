@@ -17,7 +17,7 @@ struct Game
 {
 	std::vector<PeerAddress> peers;
 
-	int gameSize, gameId;
+	int gameMaxSize = 3, gameId;
 	std::string pwd = "", gameName = "";
 };
 
