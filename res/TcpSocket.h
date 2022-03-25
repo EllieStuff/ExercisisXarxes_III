@@ -6,13 +6,11 @@
 #include "Utils.h"
 #include "InputMemoryStream.h"
 #include "OutputMemoryStream.h"
-#include <mutex>
 
 class TcpSocket {
 private:
-	std::mutex mtx;
-public:
 	sf::TcpSocket socket;
+public:
 	
 	TcpSocket();
 	~TcpSocket();
@@ -30,5 +28,5 @@ public:
 	bool IsBlocking();
 	void SetBlocking(bool _blocking);
 
-
+	sf::TcpSocket* GetSocket() { return &socket; }
 };

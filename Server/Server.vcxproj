@@ -145,6 +145,7 @@
     <ClCompile Include="..\res\InputMemoryStream.cpp" />
     <ClCompile Include="..\res\OutputMemoryStream.cpp" />
     <ClCompile Include="..\res\TcpListener.cpp" />
+    <ClCompile Include="..\res\TcpSelector.cpp" />
     <ClCompile Include="..\res\TcpSocket.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -152,6 +153,7 @@
     <ClInclude Include="..\res\InputMemoryStream.h" />
     <ClInclude Include="..\res\OutputMemoryStream.h" />
     <ClInclude Include="..\res\TcpListener.h" />
+    <ClInclude Include="..\res\TcpSelector.h" />
     <ClInclude Include="..\res\TcpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />
   </ItemGroup>

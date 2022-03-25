@@ -25,5 +25,5 @@ public:
 	bool IsBlocking();
 	void SetBlocking(bool _blocking);
 
-
+	sf::TcpListener* GetListener() { return &listener; }
 };

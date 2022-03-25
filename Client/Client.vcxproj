@@ -145,6 +145,7 @@
     <ClCompile Include="..\res\InputMemoryStream.cpp" />
     <ClCompile Include="..\res\OutputMemoryStream.cpp" />
     <ClCompile Include="..\res\TcpListener.cpp" />
+    <ClCompile Include="..\res\Selector.cpp" />
     <ClCompile Include="..\res\TcpSocket.cpp" />
     <ClCompile Include="Deck.cpp" />
     <ClCompile Include="GameManager.cpp" />
@@ -158,6 +159,7 @@
     <ClInclude Include="..\res\InputMemoryStream.h" />
     <ClInclude Include="..\res\OutputMemoryStream.h" />
     <ClInclude Include="..\res\TcpListener.h" />
+    <ClInclude Include="..\res\Selector.h" />
     <ClInclude Include="..\res\TcpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />
     <ClInclude Include="Deck.h" />
