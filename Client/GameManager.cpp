@@ -336,17 +336,17 @@ void GameManager::AcceptConnections(int* _sceneState)
 	{
 		sock = new TcpSocket();
 		Status status = listener.Accept(*sock);
+		mtx.lock();
 		if (status == Status::DONE) {
-			mtx.lock();
+			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 			socks->push_back(sock);
 			table->table.push_back(std::vector<Card*>());
-			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 
 			/*TurnSystem(_socks);*/
 			std::thread tReceive(&GameManager::ReceiveMessages, this, sock, _sceneState);
 			tReceive.detach();
-			mtx.unlock();
 		}
+		mtx.unlock();
 	}
 
 	listener.Close();
