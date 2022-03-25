@@ -16,24 +16,19 @@ class TcpListener;
 std::mutex mtx;
 int currGameId = 0;
 
-void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serverIndex)
+void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serverIndex, OutputMemoryStream* out)
 {
 	Status status;
 	std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << peerAddresses->at(serverIndex).peers.size() << std::endl;
-	OutputMemoryStream out;
-	out.Write(peerAddresses->at(serverIndex).peers.size());
+	out->Write(peerAddresses->at(serverIndex).peers.size());
 
-	////----------------
-	//mtx.lock();
 	for (int i = 0; i < peerAddresses->at(serverIndex).peers.size(); i++) 
 	{
 		PeerAddress current = peerAddresses->at(serverIndex).peers[i];
 		std::cout << peerAddresses->at(serverIndex).peers[i].ip << ", " << peerAddresses->at(serverIndex).peers[i].port << std::endl;
-		out.WriteString(current.ip);
-		out.Write(current.port);
+		out->WriteString(current.ip);
+		out->Write(current.port);
 	}
-	sock->Send(&out, status);
-	std::cout << (int)status << std::endl;
 
 	if (peerAddresses->at(serverIndex).peers.size() < 3)
 	{
@@ -48,8 +43,6 @@ void ConnectToServer(std::vector<Game>* peerAddresses, TcpSocket* sock, int serv
 	{
 		peerAddresses->erase(peerAddresses->begin() + serverIndex);
 	}
-	//mtx.unlock();
-	////----------------
 
 	sock->Disconnect();
 }
@@ -123,7 +116,6 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 			OutputMemoryStream* out = new OutputMemoryStream();
 			out->Write((int)peerAddresses->size());
 
-			
 			for (size_t i = 0; i < peerAddresses->size(); i++)
 			{
 				out->Write(peerAddresses->at(i).gameId);
@@ -230,12 +222,7 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 	};
 }
 
-void Update()
-{
-
-}
-
-void ServerControl(std::vector<Game>* peerAddresses)
+void ServerControl(std::vector<Game>* _games)
 {
 	std::vector<TcpSocket*> socks;
 
@@ -276,26 +263,101 @@ void ServerControl(std::vector<Game>* peerAddresses)
 						int menuOption;
 
 						in->Read(&menuOption);
-						delete in;
+						OutputMemoryStream* out = new OutputMemoryStream();
 
-						if (menuOption == (int)Commands::CREATE_GAME)
+						//--------------------------// CREATE GAME LOGIC //--------------------------//
+						if (menuOption == (int)Commands::CREATE_GAME)			//CREATE GAME
 						{
-							peerAddresses->push_back(Game());
-							int size = peerAddresses->size() - 1;
-							std::cout << peerAddresses->size() << std::endl;
-
-						}
-						//search game
-						else if (menuOption == (int)Commands::GAME_LIST)
-						{
-
-						}
-						//connect
-						else if (menuOption == (int)Commands::JOIN_GAME)
-						{
+							_games->push_back(Game());
+							int size = _games->size() - 1;
+							std::cout << _games->size() << std::endl;
 
 						}
 
+						//--------------------------// END CREATE GAME LOGIC //--------------------------//
+						else if (menuOption == (int)Commands::GAME_LIST)		//SEARCH GAME
+						{
+							out->Write(menuOption);
+							out->Write((int)_games->size());
+
+							for (size_t i = 0; i < _games->size(); i++)
+							{
+								out->Write(_games->at(i).gameId);
+								out->Write((int)_games->at(i).peers.size());
+							}
+						}
+
+						//--------------------------// JOIN GAME LOGIC //--------------------------//
+						else if (menuOption == (int)Commands::JOIN_GAME)		//JOIN GAME
+						{
+							Game* game;
+							//Get game id
+							int gameID;
+
+							in->Read(&gameID);
+							bool valid = false;
+							for (size_t i = 0; i < _games->size(); i++)
+							{
+								if (gameID == _games->at(i).gameId)
+								{
+									game = &_games->at(i);
+									valid = true;
+									break;
+								}
+							}
+
+							if (valid)
+							{
+								if (game->pwd.compare("") > 0)
+								{
+									// PROTECTED
+									out->Write((int)Commands::PROTECTED);
+								}
+								else
+								{
+									//NOT_PROTECTED
+									out->Write((int)Commands::NOT_PROTECTED);
+								}
+							}
+							else
+							{
+								//INCORRECT_ID
+								out->Write((int)Commands::INCORRECT_ID);
+							}
+						}
+						else if (menuOption == (int)Commands::PWD_CHECK)			//GAME PWD CHECK
+						{
+							//Get game id
+							int gameID;
+
+							in->Read(&gameID);
+							std::string msg = in->ReadString();
+							bool valid = false;
+
+							for (size_t i = 0; i < _games->size(); i++)
+							{
+								if (gameID == _games->at(i).gameId && msg.compare(_games->at(i).pwd.c_str()) == 0)
+								{
+									valid = true;
+								}
+							}
+
+							if (valid)
+							{
+								// CORRECT_PWD
+								out->Write((int)Commands::CORRECT_PWD);
+								ConnectToServer(_games, socks[i], gameID, out);
+							}
+							else
+							{
+								// INCORRECT_PWD
+								out->Write((int)Commands::INCORRECT_PWD);
+							}
+							
+						}
+						//--------------------------// END JOIN GAME LOGIC //--------------------------//
+
+						socks[i]->Send(out, status);
 					}
 				}
 			}
@@ -306,12 +368,10 @@ void ServerControl(std::vector<Game>* peerAddresses)
 }
 
 int main() {
-	std::vector<Game> peerAddresses;
+	std::vector<Game> games;
 
-	std::thread tServer(ServerControl, &peerAddresses);
+	std::thread tServer(ServerControl, &games);
 	tServer.detach();
-
-	Update();
 
 	return 0;
 }

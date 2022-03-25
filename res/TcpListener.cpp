@@ -11,7 +11,7 @@ TcpListener::~TcpListener()
 
 Status TcpListener::Accept(TcpSocket &_socket)
 {
-	sf::TcpListener::Status status = listener.accept(_socket.socket);
+	sf::TcpListener::Status status = listener.accept(*_socket.GetSocket());
 
 	return (Status)(int)status;
 }
