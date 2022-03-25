@@ -9,11 +9,13 @@ class TcpSocket;
 
 class TcpListener {
 private:
-	sf::TcpListener listener;
 
 public:
+	sf::TcpListener listener;
 	TcpListener();
 	~TcpListener();
+
+	sf::SocketSelector selector;
 
 	Status Accept(TcpSocket &_socket);
 	void Close();

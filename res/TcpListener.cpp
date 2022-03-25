@@ -24,6 +24,7 @@ void TcpListener::Close()
 Status TcpListener::Listen(unsigned short _port)
 {
 	sf::TcpListener::Status status = listener.listen(_port);
+	selector.add(listener);
 
 	return (Status)(int)status;
 }

@@ -41,6 +41,7 @@ void SceneManager::Ready()
 
 	while (game.GetPlayersReady() < game.GetPlayersNum())
 	{
+		std::cout << game.GetPlayersReady() << std::endl;
 		if (game.GetReady()) continue;
 		std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
 		std::string _ready;

@@ -6,7 +6,7 @@ const int MAX_CARDS = 3;
 
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
 
-enum class Commands {CREATE_GAME = 1, GAME_LIST, JOIN_GAME, INCORRECT_PWD, PLAYER_READY, ORGAN_QUANTITY, UPDATE_TURN, END_ROUND, PLACE_ORGAN, PLACE_INFECTION, PLACE_MEDICINE, PLACE_TREATMENT, DISCARD_CARD};
+enum class Commands { SHOWCARDS = -2, LISTCARDS = -1, CREATE_GAME = 1, GAME_LIST, JOIN_GAME, INCORRECT_PWD, PLAYER_READY, ORGAN_QUANTITY, UPDATE_TURN, END_ROUND, PLACE_ORGAN, PLACE_INFECTION, PLACE_MEDICINE, DISCARD_CARD, PLACE_TREATMENT };
 
 struct PeerAddress {
 	std::string ip;
@@ -66,6 +66,7 @@ public:
 	OrganType organType;
 	TreatmentType treatmentType;
 	bool isWildcard = false;
+	int virusQuantity = 0;
 
 	Card(CardType _type, OrganType _organ, bool _isWildcard = false) 
 	{

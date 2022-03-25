@@ -2,6 +2,7 @@
 #include "../res/TcpSocket.h"
 #include "../res/TcpListener.h"
 #include "GameManager.h"
+#include <thread>
 
 class SceneManager
 {
@@ -10,10 +11,12 @@ public:
 
 private:
 	std::mutex mtx;
-	Scene sceneState;
+	int* sceneState;
 	TcpSocket serverSock;
 
 	GameManager game;
+
+	void Ready();
 
 	void Start();
 	void EnterGame();
