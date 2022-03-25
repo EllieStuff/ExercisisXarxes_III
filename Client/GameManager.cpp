@@ -117,6 +117,7 @@ void GameManager::ListEnemiesWithTheirCards()
 		Status status;
 		TcpSocket& client = **it;
 		client.Send(out, status);
+		//break;
 	}
 
 	delete out;
@@ -405,30 +406,55 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 
 			mtx.lock();
 
-			for (size_t o = 0; o < table->table.at(0).size(); o++)
+			for (size_t i = 0; i < table->table.size(); i++)
 			{
-				out.Write((int)table->table.at(0).at(o)->cardType);
-				out.Write((int)table->table.at(0).at(o)->organType);
-				out.Write((int)table->table.at(0).at(o)->virusQuantity);
+				if (table->table[i].size() > 0)
+				{
+					int size = table->table.at(i).size();
+					std::cout << size << std::endl;
+					out.Write(size);
+					break;
+				}
 			}
+
+			for (size_t i = 0; i < table->table.size(); i++)
+			{
+				if (table->table[i].size() > 0)
+				{
+					for (size_t o = 0; o < table->table.at(i).size(); o++)
+					{
+						out.Write((int)table->table[i][o]->cardType);
+						out.Write((int)table->table[i][o]->organType);
+						out.Write((int)table->table[i][o]->virusQuantity);
+					}
+				}
+			}
+
+			mtx.unlock();
+
+			int index = 0;
 
 			for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
 			{
 				Status status;
 				TcpSocket& client = **it;
 				client.Send(&out, status);
+				index++;
+				//break;
 			}
 
-			mtx.unlock();
+
 		}
 		else if(instruction == (int)Commands::SHOWCARDS) 
 		{
 			int playerID;
 			in1.Read(&playerID);
-			if(playerID != player->id) 
-			{
+			//if(playerID != player->id) 
+			//{
+				int tableSize;
+				in1.Read(&tableSize);
 				std::cout << "CARDS FROM PLAYER: " << playerID << std::endl;
-				for (size_t i = 0; i < 3; i++)
+				for (size_t i = 0; i < tableSize; i++)
 				{
 					int cardType;
 					in1.Read(&cardType);
@@ -442,7 +468,7 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 					std::cout << "CARD: " << cardType << " ORGAN: " << organType << " VIRUS: " << virusQuantity << std::endl;
 				}
 				std::cout << "____________________________________________________" << std::endl;
-			}
+			//}
 		}
 
 		//std::string msg = in->ReadString();

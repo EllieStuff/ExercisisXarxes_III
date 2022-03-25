@@ -17,12 +17,10 @@ Status TcpSocket::Connect(std::string _ip, unsigned short _port)
 
 InputMemoryStream* TcpSocket::Receive(Status& _status)
 {
-	mtx.lock();
 	std::string* bufferChar = new std::string();
-	size_t size = 1000;
+	size_t size = 2000;
 	std::size_t received;
 	InputMemoryStream* input = new InputMemoryStream((char*)bufferChar, size);
-	mtx.unlock();
 	sf::Socket::Status status = socket.receive(bufferChar, size, received);
 
 	_status = (Status)(int)status;

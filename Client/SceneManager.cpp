@@ -23,7 +23,7 @@ void SceneManager::EnterGame()
 	sceneState = new int(2);
 
 	while(true)
-	game.Update();
+	UpdateGame();
 }
 
 
