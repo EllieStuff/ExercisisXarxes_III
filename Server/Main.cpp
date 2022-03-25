@@ -397,5 +397,17 @@ int main() {
 	std::thread tServer(ServerControl, &games);
 	tServer.detach();
 
+	while (true)
+	{
+		for (size_t i = 0; i < games.size(); i++)
+		{
+			if (games[i].peers.size() == 0)
+			{
+				games.erase(games.begin() + i);
+				i--;
+			}
+		}
+	}
+
 	return 0;
 }
