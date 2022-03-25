@@ -352,24 +352,49 @@ void GameManager::AcceptConnections(int* _sceneState)
 	listener.Close();
 }
 
-void GameManager::CreateGame(TcpSocket* serverSock)
+void GameManager::CreateGame(TcpSocket* _serverSock)
 {
-	mtx.lock();
-	std::string msg = "Write Your Password (type '-' to leave it empty)";
-	std::cout << msg << std::endl;
-	mtx.unlock();
+	std::string gameName, gamePassword;
+	int numOfPlayers;
+	std::cout << "Game's name: " << std::endl;
+	std::cin >> gameName;
+	do {
+		char numOfPlayersChar;
+		std::cout << "Game's number of players (2-4): " << std::endl;
+		std::cin >> numOfPlayersChar;
+		numOfPlayers = numOfPlayersChar - '0';
+	} while (numOfPlayers < 2 || numOfPlayers > 4);
+	//mtx.lock();
+	bool passwordAssigned = false;
+	while(!passwordAssigned) {
+		std::string ans;
+		std::cout << "Do you want a password? (Y/N)" << std::endl;
+		std::cin >> ans;
+		if (ans == "Y" || ans == "y") {
+			passwordAssigned = true;
+			std::cout << "Write Your Password" << std::endl;
+			std::cin >> gamePassword;
+		}
+		else if (ans == "N" || ans == "n") {
+			passwordAssigned = true;
+			gamePassword = "";
+		}
+	}
+
+	//mtx.unlock();
 	Status status;
-	std::string msg2;
-	std::cin >> msg2;
 	OutputMemoryStream out;
-	out.WriteString(msg2);
-	serverSock->Send(&out, status);
+	out.Write((int)Commands::CREATE_GAME);
+	out.WriteString(gameName);
+	out.Write(numOfPlayers);
+	out.WriteString(gamePassword);
+	_serverSock->Send(&out, status);
 }
 
-void GameManager::ListCurrentGames(TcpSocket* serverSock)
+void GameManager::ListCurrentGames(TcpSocket* _serverSock)
 {
 	Status status;
-	InputMemoryStream* inp = serverSock->Receive(status);
+	InputMemoryStream* inp = _serverSock->Receive(status);
 
 	if (status == Status::DONE)
 	{
@@ -392,7 +417,7 @@ void GameManager::ListCurrentGames(TcpSocket* serverSock)
 	}
 }
 
-void GameManager::JoinGame(TcpSocket* serverSock)
+void GameManager::JoinGame(TcpSocket* _serverSock, bool& _aborted)
 {
 	Status status;
 	OutputMemoryStream* out;
@@ -401,18 +426,23 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 	do {
 		//Choose game
 		std::cout << "Type server ID" << std::endl;
-		char tmpOption;
-		std::cin >> tmpOption;
-		int serverIdx = tmpOption - '0';
+		//char tmpOption;
+		int serverIdx;// = tmpOption - '0';
+		std::cin >> serverIdx;
 
 		mtx.lock();
 		out = new OutputMemoryStream();
 		out->Write(serverIdx);
-		serverSock->Send(out, status);
+		_serverSock->Send(out, status);
 		delete out;
+		if (serverIdx == -1) {
+			_aborted = true;
+			mtx.unlock();
+			return;
+		}
 		mtx.unlock();
 
-		in = serverSock->Receive(status);
+		in = _serverSock->Receive(status);
 		mtx.lock();
 		in->Read(&validIdx);
 		delete in;
@@ -421,7 +451,7 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 
 
 	//Write password (if necessary)
-	in = serverSock->Receive(status);
+	in = _serverSock->Receive(status);
 
 	if (status == Status::DONE) 
 	{
@@ -433,23 +463,29 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 		if (msg != "")
 		{
 			bool validPassword = false;
-			std::string msg3 = "";
+			std::string password = "";
 			do
 			{
-				if (validPassword)
-					exit;
+				//if (validPassword)
+				//	exit;
 
-				std::cin >> msg3;
+				std::cin >> password;
 				OutputMemoryStream* out2 = new OutputMemoryStream();
-				out2->WriteString(msg3);
-				serverSock->Send(out2, status);
+				out2->WriteString(password);
+				_serverSock->Send(out2, status);
 				delete out2;
+				if (password == "exit") {
+					_aborted = true;
+					return;
+				}
 
-				in = serverSock->Receive(status);
+				in = _serverSock->Receive(status);
 
 				mtx.lock();
-				if (status != Status::DONE)
-					break;
+				if (status != Status::DONE) {
+					_aborted = true;
+					return;
+				}
 
 				in->Read(&validPassword);
 				delete in;

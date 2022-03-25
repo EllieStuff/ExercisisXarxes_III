@@ -56,6 +56,7 @@ void SceneManager::UpdateInit()
 	delete out;
 
 	//mtx.lock();
+	bool aborted = false;
 	if (option == Commands::CREATE_GAME)
 	{
 		game.CreateGame(&serverSock);
@@ -66,11 +67,11 @@ void SceneManager::UpdateInit()
 	}
 	else if (option == Commands::JOIN_GAME)
 	{
-		game.JoinGame(&serverSock);
+		game.JoinGame(&serverSock, aborted);
 	}
 	//mtx.unlock();
 
-	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) {
+	if (option == Commands::CREATE_GAME || (option == Commands::JOIN_GAME && !aborted)) {
 		game.ConnectP2P(&serverSock, new int((int)sceneState));
 
 		std::cout << "Waiting for players" << std::endl;

@@ -41,9 +41,9 @@ public:
 
 	void SetReady();
 
-	void CreateGame(TcpSocket* serverSock);
-	void ListCurrentGames(TcpSocket* serverSock);
-	void JoinGame(TcpSocket* serverSock);
+	void CreateGame(TcpSocket* _serverSock);
+	void ListCurrentGames(TcpSocket* _serverSock);
+	void JoinGame(TcpSocket* _serverSock, bool& _aborted);
 
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }
