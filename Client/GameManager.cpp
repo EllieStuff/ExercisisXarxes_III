@@ -2,6 +2,81 @@
 #include "SceneManager.h"
 #include <thread>
 #include "../res/TcpSocket.h"
+#include "../res/Selector.h"
+
+void GameManager::ClientControl(TcpSocket* serverSock)
+{
+	Selector selector;
+
+	TcpListener listener;
+	Status status = listener.Listen(localPort);
+	if (status != Status::DONE)
+		return;
+
+	selector.Add(&listener);
+	selector.Add(serverSock);
+
+	while (true)
+	{
+		if (selector.Wait())
+		{
+			//Accept peers
+			if (selector.IsReady(&listener))
+			{
+				AcceptConnections(&selector, &listener);
+			}
+			//Connect peers
+			else if (serverSock != nullptr && selector.IsReady(serverSock))
+			{
+				ConnectP2P(&selector, serverSock);
+			}
+			//Peer receives
+			else
+			{
+				for (size_t i = 0; i < socks->size(); i++)
+				{
+					if (selector.IsReady(socks->at(i)))
+					{
+						InputMemoryStream* in;
+						in = socks->at(i)->Receive(status);
+						if (status != Status::DONE)
+						{
+							delete in;
+							selector.Remove(socks->at(i));
+							continue;
+						}
+						OutputMemoryStream* out = new OutputMemoryStream();
+
+						//----------------------------// CREATE GAME //----------------------------//
+
+						//Adptar el connect game que hagi fet el Mateu
+
+						//----------------------------// SEARCH GAME //----------------------------//
+
+
+
+						//--------------------------// JOIN GAME LOGIC //--------------------------//
+
+						// JOIN GAME
+
+						// PWD CHECK
+
+						//------------------------// END JOIN GAME LOGIC //------------------------//
+
+						//-----------------------------// GAMELOOP //------------------------------//
+
+
+
+						//---------------------------// END GAMELOOP //----------------------------//
+
+						delete in;
+						socks->at(i)->Send(out, status);
+					}
+				}
+			}
+		}
+	}
+}
 
 void GameManager::CalculateOrganQuantity()
 {
@@ -326,30 +401,20 @@ void GameManager::ReceiveMessages(TcpSocket* _sock, int* _sceneState)
 	}
 }
 
-void GameManager::AcceptConnections(int* _sceneState)
+void GameManager::AcceptConnections(Selector* selector, TcpListener* listener)
 {
-	TcpListener listener;
-	listener.Listen(localPort);
-	TcpSocket* sock;
-
-	while (socks->size() <= 3 && *_sceneState != (int)SceneManager::Scene::GAMEOVER)
-	{
-		sock = new TcpSocket();
-		Status status = listener.Accept(*sock);
-		if (status == Status::DONE) {
-			mtx.lock();
-			socks->push_back(sock);
-			table->table.push_back(std::vector<Card*>());
-			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
-
-			/*TurnSystem(_socks);*/
-			std::thread tReceive(&GameManager::ReceiveMessages, this, sock, _sceneState);
-			tReceive.detach();
-			mtx.unlock();
-		}
+	TcpSocket* sock = new TcpSocket();
+	Status status = listener->Accept(*sock);
+	if (status != Status::DONE) {
+		delete sock;
+		return;
 	}
+	socks->push_back(sock);
+	std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 
-	listener.Close();
+	table->table.push_back(std::vector<Card*>());
+
+	selector->Add(sock);
 }
 
 void GameManager::CreateGame(TcpSocket* serverSock)
@@ -463,57 +528,51 @@ void GameManager::JoinGame(TcpSocket* serverSock)
 	}
 }
 
-
-void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
+void GameManager::ConnectP2P(Selector* selector, TcpSocket* serverSock)
 {
 	Status status;
-	InputMemoryStream in = *_serverSock->Receive(status);
+	InputMemoryStream* in;
 
-	if(status == Status::DONE) 
+	in = serverSock->Receive(status);
+	if (status != Status::DONE)
 	{
-		mtx.lock();
-		int socketNum;
-		in.Read(&socketNum);
-		_serverSock->Disconnect();
-		table->table.push_back(std::vector<Card*>());
-		mtx.unlock();
-		bool started = false;
-		for (int i = 0; i < socketNum; i++)
-		{
-			PeerAddress address;
-			TcpSocket* sock = new TcpSocket();
-			std::string msg;
-			int num;
-			if (!started)
-			{
-				mtx.lock();
-				in.Read(&num);
-				mtx.unlock();
-				started = true;
-			}
-			mtx.lock();
-			msg = in.ReadString();
-			in.Read(&address.port);
-			mtx.unlock();
-			std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
-			status = sock->Connect(msg, address.port);
-			if (status == Status::DONE)
-			{
-				mtx.lock();
-				socks->push_back(sock);
-				table->table.push_back(std::vector<Card*>());
-				mtx.unlock();
-				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
-			}
-		}
-		player->id = socks->size();
-		std::thread tAccept(&GameManager::AcceptConnections, this, _sceneState);
-		tAccept.detach();
-		for (int i = 0; i < socks->size(); i++)
-		{
-			std::thread tReceive(&GameManager::ReceiveMessages, this, socks->at(i), _sceneState);
-			tReceive.detach();
-		}
+		delete in;
+		selector->Remove(serverSock);
+		return;
 	}
+
+	int playerNum;
+	in->Read(&playerNum);
+
+	selector->Remove(serverSock);
+	serverSock->Disconnect();
+
+	table->table.push_back(std::vector<Card*>());
+
+	for (size_t i = 0; i < playerNum; i++)
+	{
+		TcpSocket* peer = new TcpSocket();
+
+		std::string peerIp = in->ReadString();
+		int peerPort;
+		in->Read(&peerPort);
+
+		status = peer->Connect(peerIp, peerPort);
+		if (status != Status::DONE)
+		{
+			delete peer;
+			continue;
+		}
+		std::cout << "Connected with ip: " << peerIp << " and port: " << peerPort << std::endl;
+		socks->push_back(peer);
+
+		selector->Add(peer);
+
+		table->table.push_back(std::vector<Card*>());
+	}
+
+	player->id = socks->size();
+
+	delete in;
 }
 

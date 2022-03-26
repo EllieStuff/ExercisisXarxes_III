@@ -43,186 +43,13 @@ void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, Ou
 			{
 				_games->erase(_games->begin() + i);
 			}
+			
+			break;
 		}
 	}
 
 	sock->Disconnect();
 }
-
-//void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
-//{
-//	std::cout << "Connected with " << sock->GetRemoteAddress() << std::endl;
-//	//sending menu int;
-//
-//	while (true)
-//	{
-//		Status status;
-//		InputMemoryStream* in = sock->Receive(status);
-//		if (status != Status::DONE)
-//			continue;
-//
-//		int menuOption;
-//
-//		in->Read(&menuOption);
-//		delete in;
-//
-//		//create game
-//		if (menuOption == (int)Commands::CREATE_GAME)
-//		{
-//			//----------
-//			mtx.lock();
-//			peerAddresses->push_back(Game());
-//			int size = peerAddresses->size() - 1;
-//			std::cout << peerAddresses->size() << std::endl;
-//			mtx.unlock();
-//			//----------
-//
-//			std::string msg = "";
-//
-//			in = sock->Receive(status);
-//
-//			if(status == Status::DONE) 
-//			{
-//				msg = in->ReadString();
-//
-//				if (msg._Equal("-")) msg = "";
-//
-//				//----------
-//				mtx.lock();
-//
-//				std::cout << size << std::endl;
-//				std::cout << peerAddresses->size() << std::endl;
-//
-//				peerAddresses->at(size).gameId = currGameId;
-//
-//				peerAddresses->at(size).pwd = msg;
-//				//mtx.unlock();
-//				////----------
-//
-//				ConnectToServer(peerAddresses, sock, size, out);
-//				
-//				////----------
-//				//mtx.lock();
-//				currGameId++;
-//				mtx.unlock();
-//				//----------
-//
-//				break;
-//			}
-//		}
-//		//search game
-//		else if (menuOption == (int)Commands::GAME_LIST)
-//		{
-//			//----------
-//			mtx.lock();
-//			OutputMemoryStream* out = new OutputMemoryStream();
-//			out->Write((int)peerAddresses->size());
-//
-//			for (size_t i = 0; i < peerAddresses->size(); i++)
-//			{
-//				out->Write(peerAddresses->at(i).gameId);
-//				out->Write((int)peerAddresses->at(i).peers.size());
-//			}
-//			mtx.unlock();
-//			//----------
-//			sock->Send(out, status);
-//			delete out;
-//		}
-//		//connect
-//		else if (menuOption == (int)Commands::JOIN_GAME)
-//		{
-//			if(status == Status::DONE) 
-//			{
-//				OutputMemoryStream* out;
-//				bool validIdx;
-//				int serverIndex = false;
-//				do {
-//					in = sock->Receive(status);
-//					in->Read(&serverIndex);
-//					delete in;
-//
-//					//----------
-//					mtx.lock();
-//					validIdx = serverIndex >= 0 && serverIndex < peerAddresses->size();
-//					mtx.unlock();
-//					//----------
-//
-//					out = new OutputMemoryStream();
-//					out->Write(validIdx);
-//					sock->Send(out, status);
-//					delete out;
-//				} while (!validIdx);
-//
-//				//std::string msg = "";
-//				out = new OutputMemoryStream();
-//
-//				//----------
-//				mtx.lock();
-//				if (peerAddresses->at(serverIndex).pwd != "")
-//					out->WriteString("Server protected with password");
-//				else
-//					out->WriteString("");
-//				mtx.unlock();
-//				//----------
-//
-//				sock->Send(out, status);
-//				delete out;
-//
-//				//----------
-//				mtx.lock();
-//				bool validPassword = peerAddresses->at(serverIndex).pwd == "";
-//				mtx.unlock();
-//				//----------
-//				while (!validPassword)
-//				{
-//					in = sock->Receive(status);
-//
-//					if(status == Status::DONE) 
-//					{
-//						std::string msg = in->ReadString();
-//						delete in;
-//
-//						if (status != Status::DONE || msg == "exit")
-//						{
-//							break;
-//						}
-//
-//						//----------
-//						mtx.lock();
-//						validPassword = msg == peerAddresses->at(serverIndex).pwd;
-//						mtx.unlock();
-//						//----------
-//
-//						out = new OutputMemoryStream();
-//						out->Write(validPassword);
-//						sock->Send(out, status);
-//						delete out;
-//
-//					}
-//				}
-//
-//				std::cout << "connect! " << peerAddresses->size() - 1 << " " << serverIndex << std::endl;
-//
-//				if (peerAddresses->size() - 1 >= serverIndex)
-//				{
-//					//----------
-//					mtx.lock();
-//					ConnectToServer(peerAddresses, sock, serverIndex, out);
-//					mtx.unlock();
-//					//----------
-//				}
-//				break;
-//			}
-//		}
-//		else
-//		{
-//			/*OutputMemoryStream* out = new OutputMemoryStream();
-//			out->WriteString("");
-//
-//			sock->Send(out, status);*/
-//		}
-//	};
-//}
 
 void ServerControl(std::vector<Game>* _games)
 {
@@ -233,9 +60,9 @@ void ServerControl(std::vector<Game>* _games)
 
 	TcpListener listener;
 	Status status = listener.Listen(50000);
-	if (status != Status::DONE) {
+	if (status != Status::DONE)
 		return;
-	}
+		
 	selector.Add(&listener);
 
 	while (true)
@@ -262,6 +89,7 @@ void ServerControl(std::vector<Game>* _games)
 						InputMemoryStream* in = socks[i]->Receive(status);
 						if (status != Status::DONE)
 						{
+							delete in;
 							selector.Remove(socks[i]);
 							continue;
 						}
@@ -381,6 +209,7 @@ void ServerControl(std::vector<Game>* _games)
 						}
 						//--------------------------// END JOIN GAME LOGIC //--------------------------//
 
+						delete in;
 						socks[i]->Send(out, status);
 					}
 				}

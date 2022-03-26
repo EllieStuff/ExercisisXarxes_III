@@ -23,8 +23,10 @@ class GameManager
 
 	void UpdateTurn(bool plus);
 	void ReceiveMessages(TcpSocket* _sock, int* _sceneState);
-	void AcceptConnections(int* _sceneState);
+	void AcceptConnections(Selector* selector, TcpListener* listener);
 	void SendReady();
+
+	void ConnectP2P(Selector* selector, TcpSocket* serverSock);
 
 public:
 	GameManager() {}
@@ -32,8 +34,8 @@ public:
 
 	void CheckArray();
 
+	void ClientControl(TcpSocket* serverSock);
 	void CalculateOrganQuantity();
-	void ConnectP2P(TcpSocket* _serverSock, int* _sceneState);
 
 	bool Update();
 	void Start();
