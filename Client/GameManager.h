@@ -8,6 +8,8 @@ class GameManager
 {
 	unsigned int localPort = 0;
 
+	int* currentGameID;
+
 	std::vector<TcpSocket*>* socks = new std::vector<TcpSocket*>();
 	Player* player = new Player();
 	Deck* deck = new Deck();
@@ -27,7 +29,7 @@ class GameManager
 	void SendReady();
 
 	void JoinGame(OutputMemoryStream* out);
-	void SendPassword();
+	void SendPassword(OutputMemoryStream* out);
 
 	void ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in);
 	void ListCurrentGames(InputMemoryStream* in);

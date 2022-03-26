@@ -60,10 +60,11 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 				// JOIN GAME
 				else if (instruction == (int)Commands::PROTECTED)
 				{
-
+					SendPassword(out);
 				}
 				else if (instruction == (int)Commands::NOT_PROTECTED)
 				{
+					//Check ready
 
 				}
 				else if (instruction == (int)Commands::INCORRECT_ID)
@@ -73,11 +74,12 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 				// PWD CHECK
 				else if(instruction == (int)Commands::CORRECT_PWD)
 				{
+					//Check ready
 
 				}
 				else if (instruction == (int)Commands::INCORRECT_PWD)
 				{
-
+					SendPassword(out);
 				}
 				//------------------------// END JOIN GAME LOGIC //------------------------//
 				else if (instruction == (int)Commands::PLAYER_LIST)
@@ -156,11 +158,6 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 							*currentTurn = _currentTurn;
 						}
-						//Receive a card from another player
-						else if (instruction == 3)
-						{
-
-						}
 						else if (instruction == (int)Commands::PLAYER_READY)
 						{
 							bool isReady;
@@ -184,6 +181,8 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 			}
 		}
 	}
+
+	selector.Clear();
 }
 
 void GameManager::CalculateOrganQuantity()
@@ -402,49 +401,16 @@ void GameManager::SendReady()
 	delete out;
 }
 
-void GameManager::SendPassword()
+void GameManager::SendPassword(OutputMemoryStream* out)
 {
-	//Write password (if necessary)
-	in = serverSock->Receive(status);
+	int gameID = *currentGameID;
+	out->Write(gameID);
 
-	if (status == Status::DONE)
-	{
-		std::string msg = in->ReadString();
-		delete in;
-		//Write message in console
-		std::cout << msg << std::endl;
+	std::string password;
+	std::cin >> password;
 
-		if (msg != "")
-		{
-			bool validPassword = false;
-			std::string msg3 = "";
-			do
-			{
-				if (validPassword)
-					exit;
+	out->WriteString(password);
 
-				std::cin >> msg3;
-				OutputMemoryStream* out2 = new OutputMemoryStream();
-				out2->WriteString(msg3);
-				serverSock->Send(out2, status);
-				delete out2;
-
-				in = serverSock->Receive(status);
-
-				mtx.lock();
-				if (status != Status::DONE)
-					break;
-
-				in->Read(&validPassword);
-				delete in;
-				mtx.unlock();
-
-				if (!validPassword)
-					std::cout << "Write the password. Write exit to leave\n";
-
-			} while (!validPassword);
-		}
-	}
 }
 
 void GameManager::SetReady()
@@ -589,7 +555,7 @@ void GameManager::CreateGame(TcpSocket* serverSock)
 	std::cin >> num;
 	maxPlayers = num - '0';
 
-	while (maxPlayers <= 0 && maxPlayers >= 10)
+	while (maxPlayers < 2 && maxPlayers > 4)
 	{
 		std::cout << "Error setting the max number of players. Type again" << std::endl;
 		std::cin >> num;
@@ -638,20 +604,14 @@ void GameManager::JoinGame(OutputMemoryStream* out)
 	std::cin >> tmpOption;
 	int serverIdx = tmpOption - '0';
 
+	*currentGameID = serverIdx;
+
 	out->Write(serverIdx);
 }
 
 void GameManager::ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in)
 {
 	Status status;
-
-	in = serverSock->Receive(status);
-	if (status != Status::DONE)
-	{
-		delete in;
-		selector->Remove(serverSock);
-		return;
-	}
 
 	int playerNum;
 	in->Read(&playerNum);
@@ -684,7 +644,5 @@ void GameManager::ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMem
 	}
 
 	player->id = socks->size();
-
-	delete in;
 }
 

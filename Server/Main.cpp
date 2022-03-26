@@ -109,6 +109,8 @@ void ServerControl(std::vector<Game>* _games)
 							//Game Name
 							std::string gameName = in->ReadString();
 							game.gameName = gameName;
+
+							//Comprovar contrasenya correcta
 							
 							//Num players
 							int numPlayers;
@@ -186,12 +188,12 @@ void ServerControl(std::vector<Game>* _games)
 							int gameID;
 
 							in->Read(&gameID);
-							std::string msg = in->ReadString();
+							std::string password = in->ReadString();
 							bool valid = false;
 
 							for (size_t i = 0; i < _games->size(); i++)
 							{
-								if (gameID == _games->at(i).gameId && msg.compare(_games->at(i).pwd.c_str()) == 0)
+								if (gameID == _games->at(i).gameId && password.compare(_games->at(i).pwd.c_str()) == 0)
 								{
 									valid = true;
 								}
