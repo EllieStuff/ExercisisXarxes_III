@@ -782,7 +782,6 @@ void GameManager::AcceptConnections(int* _sceneState)
 				}
 			}
 		}
-		mtx.unlock();
 	}
 
 	listener.Close();
@@ -920,6 +919,7 @@ void GameManager::JoinGame(TcpSocket* _serverSock, bool& _aborted)
 				mtx.lock();
 				if (status != Status::DONE) {
 					_aborted = true;
+					mtx.unlock();
 					return;
 				}
 
