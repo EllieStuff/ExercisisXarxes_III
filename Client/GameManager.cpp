@@ -244,7 +244,32 @@ bool GameManager::Threatment()
 	}
 	if (player->hand.hand[card]->treatmentType == Card::TreatmentType::ROBER)
 	{
+		std::cout << "Choose an objective ('3' to go back)" << std::endl;
 
+		ListEnemiesWithTheirCards();
+
+		int objective;
+		std::cin >> objective;
+		if (objective >= 3)
+			return false;
+
+		OutputMemoryStream out;
+
+		out.Write((int)Commands::PLACE_TREATMENT);
+		out.Write(objective);
+		out.Write((int)Card::TreatmentType::ROBER);
+		out.Write(player->id);
+		out.Write(0);
+
+		for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
+		{
+			Status status;
+			TcpSocket& client = **it;
+			client.Send(&out, status);
+		}
+
+		player->hand.hand.erase(player->hand.hand.begin() + card);
+		return true;
 	}
 	else if (player->hand.hand[card]->treatmentType == Card::TreatmentType::TRANSPLANT)
 	{
@@ -695,7 +720,17 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 
 					break;
 				case (Card::TreatmentType::ROBER):
-
+					int playerToSend;
+					in1.Read(&playerToSend);
+					std::cout << "player: " << playerToSend << std::endl;
+					for (size_t i = 0; i < table->table.size(); i++)
+					{
+						for (size_t o = 0; o < table->table[i].size(); o++)
+						{
+							table->table[i].erase(table->table[i].begin() + o);
+							break;
+						}
+					}
 					break;
 				case (Card::TreatmentType::TRANSPLANT):
 
