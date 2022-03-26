@@ -37,7 +37,11 @@ public:
 
 	void ListEnemiesWithTheirCards();
 
+	bool Threatment();
+
 	bool PlaceInfection();
+
+	bool VaccineOrgan();
 
 	void CheckArray();
 

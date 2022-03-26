@@ -67,6 +67,7 @@ public:
 	TreatmentType treatmentType;
 	bool isWildcard = false;
 	int virusQuantity = 0;
+	int VaccineQuantity = 0;
 
 	Card(CardType _type, OrganType _organ, bool _isWildcard = false) 
 	{
