@@ -26,7 +26,11 @@ class GameManager
 	void AcceptConnections(Selector* selector, TcpListener* listener);
 	void SendReady();
 
-	void ConnectP2P(Selector* selector, TcpSocket* serverSock);
+	void JoinGame(OutputMemoryStream* out);
+	void SendPassword();
+
+	void ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in);
+	void ListCurrentGames(InputMemoryStream* in);
 
 public:
 	GameManager() {}
@@ -43,8 +47,6 @@ public:
 	void SetReady();
 
 	void CreateGame(TcpSocket* serverSock);
-	void ListCurrentGames(TcpSocket* serverSock);
-	void JoinGame(TcpSocket* serverSock);
 
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }

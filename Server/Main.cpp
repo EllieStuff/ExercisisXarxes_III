@@ -14,6 +14,7 @@ class TcpListener;
 
 void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, OutputMemoryStream* out)
 {
+	out->Write((int)Commands::PLAYER_LIST);
 	Status status;
 	std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << _games->at(_gameID).peers.size() << std::endl;
 	out->Write(_games->at(_gameID).peers.size());
@@ -135,6 +136,8 @@ void ServerControl(std::vector<Game>* _games)
 							for (size_t i = 0; i < _games->size(); i++)
 							{
 								out->Write(_games->at(i).gameId);
+								out->Write(_games->at(i).gameName);
+								out->Write(_games->at(i).gameSize);
 								out->Write((int)_games->at(i).peers.size());
 							}
 						}
