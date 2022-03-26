@@ -1,14 +1,19 @@
 #pragma once
 #include "Player.h"
 #include <mutex>
+#include <list>
+#include "../res/InputMemoryStream.h"
+#include "../res/TcpSocket.h"
+#include "../res/TcpListener.h"
 
 class TcpSocket;
 
 class GameManager
 {
+	TcpListener listener;
 	unsigned int localPort = 0;
 
-	std::vector<TcpSocket*>* socks = new std::vector<TcpSocket*>();
+	std::list<TcpSocket*>* socks = new std::list<TcpSocket*>();
 	Player* player = new Player();
 	Deck* deck = new Deck();
 	Table* table = new Table();
@@ -23,13 +28,21 @@ class GameManager
 	std::vector<Pair_Organ_Player> playerTurnOrder;
 
 	void UpdateTurn(bool plus);
-	void ReceiveMessages(TcpSocket* _sock, int* _sceneState);
+	void ReceiveMessages(InputMemoryStream in1);
 	void AcceptConnections(int* _sceneState);
 	void SendReady();
 
 public:
 	GameManager() {}
 	~GameManager();
+
+	void ListEnemiesWithTheirCards();
+
+	bool Threatment();
+
+	bool PlaceInfection();
+
+	bool VaccineOrgan();
 
 	void CheckArray();
 

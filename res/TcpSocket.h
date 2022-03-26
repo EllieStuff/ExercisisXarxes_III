@@ -10,7 +10,6 @@
 
 class TcpSocket {
 private:
-	std::mutex mtx;
 public:
 	sf::TcpSocket socket;
 	

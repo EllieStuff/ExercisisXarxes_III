@@ -11,7 +11,7 @@ void SceneManager::Start()
 	}
 	game.SetPort(serverSock.GetLocalPort());
 
-	sceneState = Scene::INIT;
+	sceneState = new int(1);
 }
 
 void SceneManager::EnterGame()
@@ -20,14 +20,40 @@ void SceneManager::EnterGame()
 
 	std::cout << "Waiting For your turn" << std::endl;
 
-	sceneState = Scene::GAME;
+	sceneState = new int(2);
+
+	while(true)
+	UpdateGame();
 }
 
 
 void SceneManager::ExitGame()
 {
-	sceneState = Scene::GAMEOVER;
+	sceneState = new int(3);
 
+}
+
+void SceneManager::Ready() 
+{
+	std::cout << "Waiting for players" << std::endl;
+
+	while (game.GetPlayersNum() < 3) {}
+
+	while (game.GetPlayersReady() < game.GetPlayersNum())
+	{
+		if (game.GetReady()) continue;
+		std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
+		std::string _ready;
+		std::cin >> _ready;
+
+		if (!(_ready == "Y" || _ready == "y")) continue;
+
+		game.SetReady();
+
+		std::cout << "I'm ready!!!!" << std::endl;
+	}
+
+	EnterGame();
 }
 
 void SceneManager::UpdateInit()
@@ -71,37 +97,10 @@ void SceneManager::UpdateInit()
 	}
 	//mtx.unlock();
 
-	if (option == Commands::CREATE_GAME || (option == Commands::JOIN_GAME && !aborted)) {
-		game.ConnectP2P(&serverSock, new int((int)sceneState));
-
-		std::cout << "Waiting for players" << std::endl;
-
-
-		while (game.GetPlayersNum() < game.GetGameSize()) {}
-
-		int lastPlayersReady = -1;
-		while (game.GetPlayersReady() < game.GetPlayersNum())
-		{
-			if (lastPlayersReady != game.GetPlayersReady())
-			{
-				lastPlayersReady = game.GetPlayersReady();
-				std::cout << "\nCurrent Players Ready: " << game.GetPlayersReady() << std::endl;
-			}
-			if (game.GetReady()) continue;
-
-			std::cout << "Are you ready? (Y/N) " << std::endl;
-			std::string _ready;
-			std::cin >> _ready;
-
-			if (!(_ready == "Y" || _ready == "y")) continue;
-
-			game.SetReady();
-
-			std::cout << "I'm ready!!!!" << std::endl;
-		}
-		std::cout << "\nAll Players Ready!\n" << std::endl;
-
-		EnterGame();
+	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) {
+		std::thread t(&SceneManager::Ready, this);
+		t.detach();
+		game.ConnectP2P(&serverSock, sceneState);
 	}
 }
 
@@ -125,7 +124,7 @@ void SceneManager::CheckPlayersReady()
 
 SceneManager::SceneManager()
 {
-	sceneState = Scene::START;
+	sceneState = new int(0);
 }
 
 SceneManager::~SceneManager()
@@ -134,18 +133,19 @@ SceneManager::~SceneManager()
 
 void SceneManager::Update()
 {
-	while (sceneState != Scene::GAMEOVER)
+	sceneState = new int(0);
+	while (*sceneState != 3)
 	{
 		/*system("cls");*/
-		switch (sceneState)
+		switch (*sceneState)
 		{
-		case Scene::START:
+		case 0:
 			Start();
 			break;
-		case Scene::INIT:
+		case 1:
 			UpdateInit();
 			break;
-		case Scene::GAME:
+		case 2:
 			UpdateGame();
 			break;
 		}
