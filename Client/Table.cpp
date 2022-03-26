@@ -79,7 +79,7 @@ void Table::ShowTable()
 				break;
 			}
 
-			std::cout << "Card: " + std::to_string(i) + " cardType: " + cardType + " OrganType: " + organType + " ThreatmentType: " + threatmentType << " Virus Quantity:" << table[j][i]->virusQuantity << std::endl;
+			std::cout << "Card: " + std::to_string(i) + " cardType: " + cardType + " OrganType: " + organType + " ThreatmentType: " + threatmentType << " Virus Quantity: " << table[j][i]->virusQuantity << std::endl;
 		}
 	}
 

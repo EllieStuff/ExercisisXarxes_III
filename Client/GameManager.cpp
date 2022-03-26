@@ -123,18 +123,20 @@ void GameManager::ListEnemiesWithTheirCards()
 	delete out;
 }
 
-void GameManager::PlaceInfection()
+bool GameManager::PlaceInfection()
 {
-	//list enemies
-	ListEnemiesWithTheirCards();
-	//____________
 	int objective;
-	std::cout << "Choose an objective" << std::endl;
+	std::cout << "Choose an objective ('3' to go back)" << std::endl;
+	ListEnemiesWithTheirCards();
 	std::cin >> objective;
+	if (objective >= 3)
+		return false;
 	int card;
 	player->hand.ListCards();
-	std::cout << "Choose your card" << std::endl;
+	std::cout << "Choose your card ('3' to go back)" << std::endl;
 	std::cin >> card;
+	if (card >= 3)
+		return false;
 
 	int organType = (int) player->hand.hand[card]->organType;
 
@@ -153,9 +155,11 @@ void GameManager::PlaceInfection()
 		client.Send(out, status);
 	}
 
+	player->hand.hand.erase(player->hand.hand.begin() + card);
+
+	return true;
+
 	delete out;
-
-
 }
 
 bool GameManager::Update()
@@ -166,61 +170,89 @@ bool GameManager::Update()
 	for (size_t i = 0; i < playerTurnOrder.size(); i++)
 		std::cout << "turn player: " << playerTurnOrder[i].playerID << std::endl;
 
-	player->ReceiveCards(MAX_CARDS - player->hand.hand.size(), deck);
+	bool finishedRound = false;
 
-	std::cout << "" << std::endl;
-	std::cout << "___________MENU___________" << std::endl;
-	std::cout << "1. Place Organ" << std::endl;
-	std::cout << "2. Infect Other Organ" << std::endl;
-	std::cout << "3. Vaccine Organ" << std::endl;
-	std::cout << "4. Discard card" << std::endl;
-	std::cout << "5. Deploy threatment card" << std::endl;
-	std::cout << "___________MENU___________" << std::endl;
-	std::cout << "" << std::endl;
-
-	std::cout << "___________TABLE___________" << std::endl;
-	table->ShowTable();
-	std::cout << "___________TABLE___________" << std::endl;
-	std::cout << "" << std::endl;
-
-	Commands option;
-	int tmpOption;
-	std::cin >> tmpOption;
-	tmpOption += 8;
-	option = (Commands)tmpOption;
-
-	int card;
-	
-	switch (option)
+	while (!finishedRound)
 	{
-	case Commands::PLACE_ORGAN:
+		player->ReceiveCards(MAX_CARDS - player->hand.hand.size(), deck);
+
+		system("CLS");
+
+		std::cout << "" << std::endl;
+		std::cout << "___________HAND___________" << std::endl;
 		player->hand.ListCards();
-		std::cout << "Choose a card: ";
-		
-		std::cin >> card;
+		std::cout << "___________HAND___________" << std::endl;
 
-		player->PlaceCard(card, Card::CardType::ORGAN, table, deck);
+		std::cout << "" << std::endl;
+		std::cout << "___________MENU___________" << std::endl;
+		std::cout << "1. Place Organ" << std::endl;
+		std::cout << "2. Infect Other Organ" << std::endl;
+		std::cout << "3. Vaccine Organ" << std::endl;
+		std::cout << "4. Discard card" << std::endl;
+		std::cout << "5. Deploy threatment card" << std::endl;
+		std::cout << "___________MENU___________" << std::endl;
+		std::cout << "" << std::endl;
 
-		std::cout << "Organ Placed!" << std::endl;
-		break;
-	case Commands::PLACE_INFECTION:
-		PlaceInfection();
-		break;
-	case Commands::PLACE_MEDICINE:
-		break;
-	case Commands::PLACE_TREATMENT:
-		break;
-	case Commands::DISCARD_CARD:
-		player->hand.ListCards();
-		std::cout << "Choose a card: ";
+		std::cout << "___________TABLE___________" << std::endl;
+		table->ShowTable();
+		std::cout << "___________TABLE___________" << std::endl;
+		std::cout << "" << std::endl;
 
-		std::cin >> card;
+		Commands option;
+		int tmpOption;
+		std::cin >> tmpOption;
+		tmpOption += 8;
+		option = (Commands)tmpOption;
 
-		player->hand.hand.erase(player->hand.hand.begin() + card);
-		std::cout << "Card Removed!" << std::endl;
-		break;
-	default:
-		break;
+		int card;
+
+		switch (option)
+		{
+		case Commands::PLACE_ORGAN:
+			player->hand.ListCards();
+			std::cout << "Choose a card: ('3' to go back)";
+
+			std::cin >> card;
+
+			if(card >= 3)
+				finishedRound = false;
+
+			if(card < 3 && player->PlaceCard(card, Card::CardType::ORGAN, table, deck) == true) 
+			{
+				finishedRound = true;
+				std::cout << "Organ Placed!" << std::endl;
+				break;
+			}
+
+			break;
+		case Commands::PLACE_INFECTION:
+			if(PlaceInfection() == true) 
+			{
+				finishedRound = true;
+				break;
+			}
+			finishedRound = false;
+			break;
+		case Commands::PLACE_MEDICINE:
+			break;
+		case Commands::PLACE_TREATMENT:
+			break;
+		case Commands::DISCARD_CARD:
+			player->hand.ListCards();
+			std::cout << "Choose a card: ('3' to go back)";
+
+			std::cin >> card;
+
+			if (card >= 3)
+				break;
+
+			player->hand.hand.erase(player->hand.hand.begin() + card);
+			std::cout << "Card Removed!" << std::endl;
+			finishedRound = true;
+			break;
+		default:
+			break;
+		}
 	}
 
 	std::cout << "waiting other players" << std::endl;
@@ -234,33 +266,11 @@ bool GameManager::Update()
 	std::cout << "Waiting For your turn" << std::endl;
 
 	return *endRound;
-
-	/*std::string msg;
-	std::cin >> msg;
-
-	OutputMemoryStream* out = new OutputMemoryStream();
-	out->WriteString(msg);
-	std::cout << _socks->size() << std::endl;
-	for (int i = 0; i < _socks->size(); i++) {
-		Status status;
-		_socks->at(i)->Send(out, status);
-		std::cout << (int)status << std::endl;
-	}
-	if (msg == "e") {
-		end = true;
-		for (int i = 0; i < _socks->size(); i++) {
-			_socks->at(i)->Disconnect();
-			delete _socks->at(i);
-		}
-		_socks->clear();
-	}
-	delete out;*/
 }
 
 void GameManager::Start()
 {
 	player->ReceiveCards(3, deck);
-	player->hand.ListCards();
 	CalculateOrganQuantity();
 	UpdateTurn(false);
 }
@@ -360,8 +370,6 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 			int playerID;
 			in1.Read(&playerID);
 
-			std::cout << playerID << " " << player->id << std::endl;
-
 			if(playerID == player->id) 
 			{
 				int organType;
@@ -374,6 +382,8 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 						if (table->table.at(i).at(o)->organType == (Card::OrganType)organType || organType == (int) Card::OrganType::NONE)
 						{
 							table->table.at(i).at(o)->virusQuantity += 1;
+							system("CLS");
+							std::cout << "Virus Received!!" << std::endl;
 							break;
 						}
 					}
@@ -449,42 +459,62 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 		{
 			int playerID;
 			in1.Read(&playerID);
-			//if(playerID != player->id) 
-			//{
-				int tableSize;
-				in1.Read(&tableSize);
-				std::cout << "CARDS FROM PLAYER: " << playerID << std::endl;
-				for (size_t i = 0; i < tableSize; i++)
+			int tableSize;
+			in1.Read(&tableSize);
+			for (size_t i = 0; i < tableSize; i++)
+			{
+				int cardType;
+				in1.Read(&cardType);
+
+				int organType;
+				in1.Read(&organType);
+
+				int virusQuantity;
+				in1.Read(&virusQuantity);
+
+				std::string _cardType;
+				std::string _organType;
+				std::string _threatmentType;
+
+				switch (cardType)
 				{
-					int cardType;
-					in1.Read(&cardType);
-
-					int organType;
-					in1.Read(&organType);
-
-					int virusQuantity;
-					in1.Read(&virusQuantity);
-
-					std::cout << "CARD: " << cardType << " ORGAN: " << organType << " VIRUS: " << virusQuantity << std::endl;
+				case 0:
+					_cardType = "ORGAN";
+					break;
+				case 1:
+					_cardType = "MEDICINE";
+					break;
+				case 2:
+					_cardType = "VIRUS";
+					break;
+				case 3:
+					_cardType = "TREATMENT";
+					break;
 				}
-				std::cout << "____________________________________________________" << std::endl;
-			//}
-		}
 
-		//std::string msg = in->ReadString();
-		//std::cout << msg << std::endl;
-		/*if (msg == "e" || status != Status::DONE) {
-			std::cout << "Socket with ip: " << _sock->GetRemoteAddress() << " and port: " << _sock->GetLocalPort() << " was disconnected" << std::endl;
-			for (auto it = _socks->begin(); it != _socks->end(); it++) {
-				if (*it == _sock) {
-					_socks->erase(it);
-					delete _sock;
-					delete in;
-					return;
+				switch (organType)
+				{
+				case 0:
+
+					_organType = "STOMACH";
+					break;
+				case 1:
+					_organType = "BRAIN";
+					break;
+				case 2:
+					_organType = "SKELETON";
+					break;
+				case 3:
+					_organType = "HEART";
+					break;
+				case 4:
+					_organType = "NONE";
+					break;
 				}
+
+				std::cout << "PLAYER: " << playerID << " | CARD: " << _cardType << " ORGAN: " << _organType << " VIRUS: " << virusQuantity << std::endl;
 			}
-		}*/
-	//}
+		}
 }
 
 void GameManager::AcceptConnections(int* _sceneState)
@@ -529,20 +559,6 @@ void GameManager::AcceptConnections(int* _sceneState)
 				}
 			}
 		}
-		/*sock = new TcpSocket();
-		Status status = listener.Accept(*sock);
-		if (status == Status::DONE) {
-			mtx.lock();
-			socks->push_back(sock);
-			listener.selector.add(sock->socket);
-			table->table.push_back(std::vector<Card*>());
-			std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;*/
-
-			/*TurnSystem(_socks);*/
-			/*std::thread tReceive(&GameManager::ReceiveMessages, this, sock, _sceneState);
-			tReceive.detach();
-			mtx.unlock();
-		}*/
 	}
 
 	listener.Close();
@@ -706,11 +722,6 @@ void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 		player->id = socks->size();
 		std::thread tAccept(&GameManager::AcceptConnections, this, _sceneState);
 		tAccept.detach();
-		/*for (int i = 0; i < socks->size(); i++)
-		{
-			std::thread tReceive(&GameManager::ReceiveMessages, this, socks->at(i), _sceneState);
-			tReceive.detach();
-		}*/
 		while(true) 
 		{
 			if (listener.selector.wait())

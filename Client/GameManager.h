@@ -37,7 +37,7 @@ public:
 
 	void ListEnemiesWithTheirCards();
 
-	void PlaceInfection();
+	bool PlaceInfection();
 
 	void CheckArray();
 
