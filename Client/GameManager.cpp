@@ -248,15 +248,29 @@ bool GameManager::Threatment()
 	}
 	else if (player->hand.hand[card]->treatmentType == Card::TreatmentType::TRANSPLANT)
 	{
-
+		//organ swap
 	}
 	else if (player->hand.hand[card]->treatmentType == Card::TreatmentType::LATEX_GLOVES)
 	{
+		OutputMemoryStream out;
 
+		out.Write((int)Commands::PLACE_TREATMENT);
+		out.Write(3);
+		out.Write((int)Card::TreatmentType::LATEX_GLOVES);
+
+		for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
+		{
+			Status status;
+			TcpSocket& client = **it;
+			client.Send(&out, status);
+		}
+
+		player->hand.hand.erase(player->hand.hand.begin() + card);
+		return true;
 	}
 	else if (player->hand.hand[card]->treatmentType == Card::TreatmentType::MEDICAL_ERROR)
 	{
-
+		//body swap
 	}
 }
 
@@ -640,7 +654,7 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 			int threatmentType;
 			in1.Read(&threatmentType);
 
-			if(playerID == player->id) 
+			if(playerID == player->id || playerID == 3) 
 			{
 				int virusQuantity;
 				in1.Read(&virusQuantity);
@@ -652,6 +666,7 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 					{
 						for (size_t o = 0; o < table->table.at(i).size(); o++)
 						{
+							std::cout << "Someone has sent you their viruses!!!!!" << std::endl;
 							while(virusQuantity > 0) 
 							{
 								if (table->table.at(i).at(o)->VaccineQuantity <= 0) 
@@ -670,7 +685,8 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 					}
 					break;
 				case (Card::TreatmentType::LATEX_GLOVES):
-
+					player->hand.hand.clear();
+					std::cout << "Your Hand Was Erased!!!!!" << std::endl;
 					break;
 				case (Card::TreatmentType::MEDICAL_ERROR):
 
