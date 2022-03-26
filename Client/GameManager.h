@@ -5,6 +5,7 @@
 #include "../res/InputMemoryStream.h"
 #include "../res/TcpSocket.h"
 #include "../res/TcpListener.h"
+#include "../res/Selector.h"
 
 class TcpSocket;
 
@@ -13,7 +14,9 @@ class GameManager
 	TcpListener listener;
 	unsigned int localPort = 0;
 
-	std::list<TcpSocket*>* socks = new std::list<TcpSocket*>();
+	int* currentGameID = new int(-1);
+
+	std::vector<TcpSocket*>* socks = new std::vector<TcpSocket*>();
 	Player* player = new Player();
 	Deck* deck = new Deck();
 	Table* table = new Table();
@@ -29,8 +32,12 @@ class GameManager
 
 	void UpdateTurn(bool plus);
 	void ReceiveMessages(InputMemoryStream in1);
-	void AcceptConnections(int* _sceneState);
+	void AcceptConnections(Selector* selector, TcpListener* listener);
 	void SendReady();
+
+	void ClientControl(TcpSocket* serverSock);
+
+	void SendPassword(OutputMemoryStream* out);
 
 public:
 	GameManager() {}
@@ -47,7 +54,7 @@ public:
 	void CheckArray();
 
 	void CalculateOrganQuantity();
-	void ConnectP2P(TcpSocket* _serverSock, int* _sceneState);
+	void ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in);
 
 	bool Update();
 	void Start();
@@ -55,8 +62,8 @@ public:
 	void SetReady();
 
 	void CreateGame(TcpSocket* _serverSock);
-	void ListCurrentGames(TcpSocket* _serverSock);
-	void JoinGame(TcpSocket* _serverSock, bool& _aborted);
+	void ListCurrentGames(InputMemoryStream* in);
+	void JoinGame(OutputMemoryStream* out, bool& _aborted);
 
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }

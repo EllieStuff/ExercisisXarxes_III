@@ -26,6 +26,9 @@
     <ClCompile Include="..\res\TcpSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\res\Selector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\InputMemoryStream.h" />
@@ -33,5 +36,6 @@
     <ClInclude Include="..\res\TcpListener.h" />
     <ClInclude Include="..\res\TcpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />
+    <ClInclude Include="..\res\Selector.h" />
   </ItemGroup>
 </Project>

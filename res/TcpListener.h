@@ -9,13 +9,11 @@ class TcpSocket;
 
 class TcpListener {
 private:
+	sf::TcpListener listener;
 
 public:
-	sf::TcpListener listener;
 	TcpListener();
 	~TcpListener();
-
-	sf::SocketSelector selector;
 
 	Status Accept(TcpSocket &_socket);
 	void Close();
@@ -27,5 +25,5 @@ public:
 	bool IsBlocking();
 	void SetBlocking(bool _blocking);
 
-
+	sf::TcpListener* GetListener() { return &listener; }
 };
