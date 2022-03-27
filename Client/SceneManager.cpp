@@ -77,7 +77,7 @@ void SceneManager::UpdateInit()
 	std::cout << "2. List P2P Games" << std::endl;
 	std::cout << "3. Join P2P Game" << std::endl;
 
-	std::cout << "\nSelect option: ";
+	std::cout << "\nSelect option: " << std::endl;
 
 	Commands option;
 	char tmpOption;
@@ -150,7 +150,8 @@ void SceneManager::Update()
 	sceneState = new int(0);
 	while (*sceneState != 3)
 	{
-		/*system("cls");*/
+		/*system("
+		");*/
 		switch (*sceneState)
 		{
 		case 0:

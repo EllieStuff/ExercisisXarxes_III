@@ -103,6 +103,21 @@ GameManager::~GameManager()
 	delete currentTurn;
 }
 
+void GameManager::sendMSG(std::string message)
+{
+	OutputMemoryStream outMSG;
+
+	outMSG.Write((int)Commands::LOG);
+	outMSG.WriteString(message);
+
+	for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
+	{
+		Status status;
+		TcpSocket& client = **it;
+		client.Send(&outMSG, status);
+	}
+}
+
 void GameManager::ListEnemiesWithTheirCards() 
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
@@ -155,6 +170,8 @@ bool GameManager::PlaceInfection()
 		client.Send(out, status);
 	}
 
+	sendMSG("Payer: " + std::to_string(player->id) + " has just infected an organ from the player " + std::to_string(objective));
+
 	player->hand.hand.erase(player->hand.hand.begin() + card);
 
 	return true;
@@ -179,6 +196,12 @@ bool GameManager::VaccineOrgan()
 			{
 				table->table[i][o]->VaccineQuantity += 1;
 				player->hand.hand.erase(player->hand.hand.begin() + card);
+				sendMSG("Payer: " + std::to_string(player->id) + " has just vaccined an organ");
+				if(table->table[i][o]->VaccineQuantity >= 2)
+				{
+					std::cout << "your organ has become invincible!!!!" << std::endl;
+					sendMSG("An organ from the player " + std::to_string(player->id) + " had become invincible!");
+				}
 				return true;
 			}
 		}
@@ -313,8 +336,6 @@ bool GameManager::Update()
 	{
 		player->ReceiveCards(MAX_CARDS - player->hand.hand.size(), deck);
 
-		system("CLS");
-
 		std::cout << "" << std::endl;
 		std::cout << "___________HAND___________" << std::endl;
 		player->hand.ListCards();
@@ -347,7 +368,7 @@ bool GameManager::Update()
 		{
 		case Commands::PLACE_ORGAN:
 			player->hand.ListCards();
-			std::cout << "Choose a card: ('3' to go back)";
+			std::cout << "Choose a card: ('3' to go back)" << std::endl;
 
 			std::cin >> card;
 
@@ -358,6 +379,7 @@ bool GameManager::Update()
 			{
 				finishedRound = true;
 				std::cout << "Organ Placed!" << std::endl;
+				sendMSG("Payer: " + std::to_string(player->id) + " has just placed an organ on the table");
 				break;
 			}
 
@@ -387,17 +409,35 @@ bool GameManager::Update()
 			finishedRound = false;
 			break;
 		case Commands::DISCARD_CARD:
-			player->hand.ListCards();
-			std::cout << "Choose a card: ('3' to go back)";
 
-			std::cin >> card;
+			if(true) 
+			{
+				int quantity = 0;
 
-			if (card >= 3)
-				break;
+				while (true)
+				{
+					player->hand.ListCards();
+					std::cout << "Choose a card: ('3' to accept)" << std::endl;
 
-			player->hand.hand.erase(player->hand.hand.begin() + card);
-			std::cout << "Card Removed!" << std::endl;
-			finishedRound = true;
+					std::cin >> card;
+
+					if (card >= 3 || card >= player->hand.hand.size())
+						break;
+
+					player->hand.hand.erase(player->hand.hand.begin() + card);
+					std::cout << "Card Removed!" << std::endl;
+					sendMSG("Payer: " + std::to_string(player->id) + " discarded one card");
+					quantity++;
+				}
+
+				if (quantity == 0)
+				{
+					finishedRound = false;
+					break;
+				}
+
+				finishedRound = true;
+			}
 			break;
 		default:
 			break;
@@ -462,8 +502,15 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 		in1.Read(&instruction);
 		//mtx.unlock();
 
+		if(instruction == (int)Commands::LOG) 
+		{
+			std::string msg = in1.ReadString();
+			std::cout << "___________________LOG___________________" << std::endl;
+			std::cout << msg << std::endl;
+			std::cout << "___________________LOG___________________" << std::endl;
+		}
 		//Turn system
-		if (instruction == (int)Commands::ORGAN_QUANTITY)
+		else if (instruction == (int)Commands::ORGAN_QUANTITY)
 		{
 			//mtx.lock();
 			int playerID, organQuantity;
@@ -530,14 +577,23 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 					{
 						if (table->table.at(i).at(o)->organType == (Card::OrganType)organType || organType == (int) Card::OrganType::NONE)
 						{
-							if(table->table.at(i).at(o)->VaccineQuantity <= 0)
-								table->table.at(i).at(o)->virusQuantity += 1;
-							else 
-								table->table.at(i).at(o)->VaccineQuantity -= 1;
+							if(table->table.at(i).at(o)->VaccineQuantity < 2) 
+							{
+								if (table->table.at(i).at(o)->VaccineQuantity <= 0)
+									table->table.at(i).at(o)->virusQuantity += 1;
+								else
+									table->table.at(i).at(o)->VaccineQuantity -= 1;
 
-							system("CLS");
-							std::cout << "Virus Received!!" << std::endl;
-							break;
+								std::cout << "Virus Received!!" << std::endl;
+
+								if (table->table.at(i).at(o)->virusQuantity >= 2)
+								{
+									table->table.at(i).erase(table->table.at(i).begin() + o);
+									sendMSG("Organ destroyed from player: " + std::to_string(player->id));
+									std::cout << "Organ Destroyed!!!!!" << std::endl;
+								}
+								break;
+							}
 						}
 					}
 				}
@@ -691,21 +747,31 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 					{
 						for (size_t o = 0; o < table->table.at(i).size(); o++)
 						{
-							std::cout << "Someone has sent you their viruses!!!!!" << std::endl;
-							while(virusQuantity > 0) 
+							if (table->table.at(i).at(o)->VaccineQuantity < 2)
 							{
-								if (table->table.at(i).at(o)->VaccineQuantity <= 0) 
+								std::cout << "Someone has sent you their viruses!!!!!" << std::endl;
+								while (virusQuantity > 0)
 								{
-									table->table.at(i).at(o)->virusQuantity += virusQuantity;
-									virusQuantity = 0;
+									if (table->table.at(i).at(o)->VaccineQuantity <= 0)
+									{
+										table->table.at(i).at(o)->virusQuantity += virusQuantity;
+										virusQuantity = 0;
+									}
+									else
+									{
+										table->table.at(i).at(o)->VaccineQuantity -= 1;
+										virusQuantity -= 1;
+									}
 								}
-								else 
+								if (table->table.at(i).at(o)->virusQuantity >= 2)
 								{
-									table->table.at(i).at(o)->VaccineQuantity -= 1;
-									virusQuantity -= 1;
+									table->table.at(i).erase(table->table.at(i).begin() + o);
+									sendMSG("Organ destroyed from player: " + std::to_string(player->id));
+									std::cout << "Organ Destroyed!!!!!" << std::endl;
 								}
+
+								break;
 							}
-							break;
 						}
 					}
 					break;
@@ -930,7 +996,7 @@ void GameManager::JoinGame(TcpSocket* _serverSock, bool& _aborted)
 				mtx.unlock();
 
 				if(!validPassword)
-					std::cout << "Write the password. Write exit to leave\n";
+					std::cout << "Write the password. Write exit to leave" << std::endl;
 
 			} while (!validPassword);
 

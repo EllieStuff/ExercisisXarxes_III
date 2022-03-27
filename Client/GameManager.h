@@ -46,6 +46,8 @@ public:
 
 	void CheckArray();
 
+	void sendMSG(std::string message);
+
 	void CalculateOrganQuantity();
 	void ConnectP2P(TcpSocket* _serverSock, int* _sceneState);
 
