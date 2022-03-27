@@ -125,13 +125,48 @@ void ClientMenu(TcpSocket* sock, std::vector<Game>* peerAddresses)
 		//search game
 		else if (menuOption == (int)Commands::GAME_LIST)
 		{
-			OutputMemoryStream* out = new OutputMemoryStream();
-			out->Write((int)peerAddresses->size());
+			Status status;
+			InputMemoryStream* in = sock->Receive(status);
+			int filter, numOfPlayersWanted;
+			bool wantsPwd;
+			in->Read(&filter);
+			if (filter == (int)Commands::PWD_FILTER) in->Read(&wantsPwd);
+			else if (filter == (int)Commands::NUM_PLAYERS_FILTER) in->Read(&numOfPlayersWanted);
+			delete in;
 
+			int actualSize = peerAddresses->size();
+			if (filter != (int)Commands::NO_FILTER) {
+				actualSize = 0;
+				for (size_t i = 0; i < peerAddresses->size(); i++)
+				{
+					Game currGame = peerAddresses->at(i);
+					if (filter == (int)Commands::PWD_FILTER) {
+						if (wantsPwd && currGame.pwd != "") actualSize++;
+						else if (!wantsPwd && currGame.pwd == "") actualSize++;
+					}
+					else if (filter == (int)Commands::NUM_PLAYERS_FILTER) {
+						if (numOfPlayersWanted == currGame.gameMaxSize) actualSize++;
+					}
+				}
+			}
+
+			OutputMemoryStream* out = new OutputMemoryStream();
+			out->Write(actualSize);
 			for (size_t i = 0; i < peerAddresses->size(); i++)
 			{
-				out->Write(peerAddresses->at(i).gameId);
-				out->Write((int)peerAddresses->at(i).peers.size());
+				Game currGame = peerAddresses->at(i);
+				if (filter == (int)Commands::PWD_FILTER) {
+					if (wantsPwd && currGame.pwd == "") continue;
+					else if (!wantsPwd && currGame.pwd != "") continue;
+				}
+				else if (filter == (int)Commands::NUM_PLAYERS_FILTER) {
+					if (numOfPlayersWanted != currGame.gameMaxSize) continue;
+				}
+
+				out->Write(currGame.gameId);
+				out->WriteString(currGame.gameName);
+				out->Write((int)currGame.peers.size());
+				out->Write((int)currGame.gameMaxSize);
 			}
 			sock->Send(out, status);
 			delete out;

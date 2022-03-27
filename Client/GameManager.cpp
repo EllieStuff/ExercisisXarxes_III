@@ -897,23 +897,73 @@ void GameManager::CreateGame(TcpSocket* _serverSock)
 void GameManager::ListCurrentGames(TcpSocket* _serverSock)
 {
 	Status status;
-	InputMemoryStream* inp = _serverSock->Receive(status);
+	Commands filter = Commands::DEFAULT;
+	bool wantsPwd;
+	int numOfPlayersWanted;
+	while (filter == Commands::DEFAULT)
+	{
+		std::cout << "Do you want to filter by password or number of players? (pwd/num/no) " << std::endl;
+		std::string tmpFilter;
+		std::cin >> tmpFilter;
+		if (tmpFilter == "pwd") {
+			filter = Commands::PWD_FILTER;
+			while (true) {
+				std::cout << "Do you want it to have a password or not? (y/n) " << std::endl;
+				std::string wantsPwdAns;
+				std::cin >> wantsPwdAns;
+				if (wantsPwdAns == "y" || wantsPwdAns == "Y") {
+					wantsPwd = true;
+					break;
+				}
+				else if (wantsPwdAns == "n" || wantsPwdAns == "N") {
+					wantsPwd = false;
+					break;
+				}
+			}
+		}
+		else if (tmpFilter == "num") {
+			filter = Commands::NUM_PLAYERS_FILTER;
+			while (true) {
+				std::cout << "What amount of players do you want to seek? " << std::endl;
+				int numOfPlayersAns;
+				std::cin >> numOfPlayersAns;
+				if (numOfPlayersAns >= 2 && numOfPlayersAns <= 4) {
+					numOfPlayersWanted = numOfPlayersAns;
+					break;
+				}
+			}
+		}
+		else if (tmpFilter == "no") filter = Commands::NO_FILTER;
+	}
+	OutputMemoryStream* out = new OutputMemoryStream();
+	out->Write((int)filter);
+	if (filter == Commands::PWD_FILTER) out->Write(wantsPwd);
+	else if (filter == Commands::NUM_PLAYERS_FILTER) out->Write(numOfPlayersWanted);
+	_serverSock->Send(out, status);
+	delete out;
 
+
+	InputMemoryStream* inp = _serverSock->Receive(status);
 	if (status == Status::DONE)
 	{
 		mtx.lock();
 		int size;
 		inp->Read(&size);
 		mtx.unlock();
+		if (size == 0) {
+			std::cout << "No games found\n";
+		}
 		for (int i = 0; i < size; i++)
 		{
 			mtx.lock();
-			int idx;
-			inp->Read(&idx);
-			int numOfPlayers;
+			int id, numOfPlayers, gameSize;
+			std::string gameName;
+			inp->Read(&id);
+			gameName = inp->ReadString();
 			inp->Read(&numOfPlayers);
+			inp->Read(&gameSize);
 			mtx.unlock();
-			std::cout << "Game number: " << idx << ", Players connected: " << numOfPlayers << std::endl;
+			std::cout << id << ". " << gameName << " -  " << numOfPlayers << "/" << gameSize << " players connected." << std::endl;
 		}
 
 		delete inp;
@@ -1001,10 +1051,10 @@ void GameManager::JoinGame(TcpSocket* _serverSock, bool& _aborted)
 			} while (!validPassword);
 
 			in = _serverSock->Receive(status);
-			int gameMaxSize;
-			in->Read(&gameMaxSize);
+			int gameSize;
+			in->Read(&gameSize);
 			delete in;
-			SetGameSize(gameMaxSize);
+			SetGameSize(gameSize);
 		}
 	}
 }
@@ -1028,7 +1078,7 @@ void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 		{
 			PeerAddress address;
 			TcpSocket* sock = new TcpSocket();
-			std::string msg;
+			std::string ip;
 			int num;
 			if (!started)
 			{
@@ -1038,11 +1088,11 @@ void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 				started = true;
 			}
 			mtx.lock();
-			msg = in.ReadString();
+			ip = in.ReadString();
 			in.Read(&address.port);
 			mtx.unlock();
-			std::cout << "Connected with ip: " << msg << " and port: " << address.port << std::endl;
-			status = sock->Connect(msg, address.port);
+			std::cout << "Connected with ip: " << ip << " and port: " << address.port << std::endl;
+			status = sock->Connect(ip, address.port);
 			if (status == Status::DONE)
 			{
 				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
