@@ -37,13 +37,13 @@ void SceneManager::Ready()
 {
 	std::cout << "Waiting for players" << std::endl;
 
-	int playersNum = -1;
-	int gameSize;
+	/*int playersNum = -1;
+	int gameSize;*/
 	while (game.GetPlayersNum() < game.GetGameSize()) {
-		if (playersNum != game.GetPlayersNum()) {
+		/*if (playersNum != game.GetPlayersNum()) {
 			playersNum = game.GetPlayersNum();
 			gameSize = game.GetGameSize();
-		}
+		}*/
 	}
 
 	int lastPlayersReady = -1;
