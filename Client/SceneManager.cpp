@@ -37,21 +37,35 @@ void SceneManager::Ready()
 {
 	std::cout << "Waiting for players" << std::endl;
 
-	while (game.GetPlayersNum() < 3) {}
+	int playersNum = -1;
+	int gameSize;
+	while (game.GetPlayersNum() < game.GetGameSize()) {
+		if (playersNum != game.GetPlayersNum()) {
+			playersNum = game.GetPlayersNum();
+			gameSize = game.GetGameSize();
+		}
+	}
 
+	int lastPlayersReady = -1;
 	while (game.GetPlayersReady() < game.GetPlayersNum())
 	{
+		if (lastPlayersReady != game.GetPlayersReady()) {
+			lastPlayersReady = game.GetPlayersReady();
+			std::cout << "\nCurrent Players Ready: " << game.GetPlayersReady() << std::endl;
+		}
 		if (game.GetReady()) continue;
-		std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
-		std::string _ready;
-		std::cin >> _ready;
 
-		if (!(_ready == "Y" || _ready == "y")) continue;
+		std::cout << "Are you ready? (Y/N) " << std::endl;
+		std::string ready;
+		std::cin >> ready;
+
+		if (!(ready == "Y" || ready == "y")) continue;
 
 		game.SetReady();
 
 		std::cout << "I'm ready!!!!" << std::endl;
 	}
+	std::cout << "\nAll Players Ready!\n" << std::endl;
 
 	EnterGame();
 }
@@ -97,7 +111,7 @@ void SceneManager::UpdateInit()
 	}
 	//mtx.unlock();
 
-	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) {
+	if (option == Commands::CREATE_GAME || (option == Commands::JOIN_GAME && !aborted)) {
 		std::thread t(&SceneManager::Ready, this);
 		t.detach();
 		game.ConnectP2P(&serverSock, sceneState);

@@ -20,10 +20,10 @@ class GameManager
 	int* currentTurn = new int(0);
 	bool* endRound = new bool(false);
 	std::mutex mtx;
-	int gameMaxSize = 3;
+	int* gameMaxSize = new int(0);
 
 	bool ready = false;
-	int* playersReady = new int(0);
+	int* playersReady = new int();
 
 	std::vector<Pair_Organ_Player> playerTurnOrder;
 
@@ -60,8 +60,9 @@ public:
 
 	void SetPort(unsigned int _port) { localPort = _port; };
 	void SetEndRound(bool _round) { *endRound = _round; }
+	void SetGameSize(int _gameMaxSize) { *gameMaxSize = _gameMaxSize; }
 	int GetPlayersNum() { return socks->size() + 1; };
-	int GetGameSize() { return gameMaxSize; }
+	int GetGameSize() { return *gameMaxSize; }
 
 	bool GetReady() { return ready; }
 	int GetPlayersReady() { return *playersReady; }

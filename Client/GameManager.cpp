@@ -107,7 +107,7 @@ void GameManager::ListEnemiesWithTheirCards()
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
 
-	out->Write((int)Commands::LISTCARDS);
+	out->Write((int)Commands::LIST_CARDS);
 	out->Write(player->id);
 
 	Status status;
@@ -556,14 +556,14 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 				playersReady = value;
 			}
 		}
-		else if(instruction == (int)Commands::LISTCARDS) 
+		else if(instruction == (int)Commands::LIST_CARDS) 
 		{
 			int playerID;
 			in1.Read(&playerID);
 
 			OutputMemoryStream out;
 
-			out.Write((int)Commands::SHOWCARDS);
+			out.Write((int)Commands::SHOW_CARDS);
 
 			out.Write(player->id);
 
@@ -609,7 +609,7 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 
 
 		}
-		else if(instruction == (int)Commands::SHOWCARDS) 
+		else if(instruction == (int)Commands::SHOW_CARDS) 
 		{
 			int playerID;
 			in1.Read(&playerID);
@@ -755,10 +755,10 @@ void GameManager::AcceptConnections(int* _sceneState)
 				Status status = listener.Accept(*sock);
 				if (status == Status::DONE)
 				{
+					std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 					socks->push_back(sock);
 					listener.selector.add(sock->socket);
 					table->table.push_back(std::vector<Card*>());
-					std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 				}
 				else
 				{
@@ -799,6 +799,8 @@ void GameManager::CreateGame(TcpSocket* _serverSock)
 		std::cin >> numOfPlayersChar;
 		numOfPlayers = numOfPlayersChar - '0';
 	} while (numOfPlayers < 2 || numOfPlayers > 4);
+	SetGameSize(numOfPlayers);
+
 	//mtx.lock();
 	bool passwordAssigned = false;
 	while(!passwordAssigned) {
@@ -931,6 +933,12 @@ void GameManager::JoinGame(TcpSocket* _serverSock, bool& _aborted)
 					std::cout << "Write the password. Write exit to leave\n";
 
 			} while (!validPassword);
+
+			in = _serverSock->Receive(status);
+			int gameMaxSize;
+			in->Read(&gameMaxSize);
+			delete in;
+			SetGameSize(gameMaxSize);
 		}
 	}
 }
@@ -971,12 +979,12 @@ void GameManager::ConnectP2P(TcpSocket* _serverSock, int* _sceneState)
 			status = sock->Connect(msg, address.port);
 			if (status == Status::DONE)
 			{
+				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 				mtx.lock();
 				socks->push_back(sock);
 				listener.selector.add(sock->socket);
 				table->table.push_back(std::vector<Card*>());
 				mtx.unlock();
-				std::cout << "Connected with ip: " << sock->GetRemoteAddress() << " and port: " << sock->GetLocalPort() << std::endl;
 			}
 		}
 		player->id = socks->size();
