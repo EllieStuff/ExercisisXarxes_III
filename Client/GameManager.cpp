@@ -118,11 +118,12 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 						in = socks->at(i)->Receive(status);
 						if (status != Status::DONE)
 						{
+							std::cout << "Error recieving something" << std::endl;
 							delete in;
 							selector.Remove(socks->at(i));
 							continue;
 						}
-						OutputMemoryStream* out = new OutputMemoryStream();
+						OutputMemoryStream* out = nullptr;
 
 						int instruction;
 						in->Read(&instruction);
@@ -180,13 +181,18 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 								int* newPlayersReady = new int(*playersReady + 1);
 								delete playersReady;
 								playersReady = newPlayersReady;
+
+								std::cout << "Another player is ready" << std::endl;
 							}
 						}
 
 						//---------------------------// END GAMELOOP //----------------------------//
 
-						socks->at(i)->Send(out, status);
-						delete in;
+						if (out != nullptr)
+						{
+							socks->at(i)->Send(out, status);
+							delete in;
+						}
 						delete out;
 					}
 				}
@@ -616,16 +622,18 @@ void GameManager::Start()
 void GameManager::SendReady()
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
-	out->Write(5);
+	
+	out->Write((int)Commands::PLAYER_READY);
 	out->Write(true);
 
 	Status status;
 
-	for (auto it = socks->begin(); it != socks->end(); ++it)
+	for (size_t i = 0; i < socks->size(); i++)
 	{
-		Status status;
-		TcpSocket& client = **it;
-		client.Send(out, status);
+		std::cout << "Sending true" << std::endl;
+		socks->at(i)->Send(out, status);
+		if(status != Status::DONE)
+			std::cout << "Error sending true" << std::endl;
 	}
 
 	delete out;
