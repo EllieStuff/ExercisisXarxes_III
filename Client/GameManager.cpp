@@ -207,24 +207,27 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 								int organType;
 								in->Read(&organType);
 
-								for (size_t i = 0; i < table->table.size(); i++)
+								for (size_t _player = 0; _player < table->table.size(); _player++)
 								{
-									for (size_t o = 0; o < table->table[i].size(); o++)
+									for (size_t cardID = 0; cardID < table->table[_player].size(); cardID++)
 									{
-										if (table->table.at(i).at(o)->organType == (Card::OrganType)organType || organType == (int)Card::OrganType::NONE)
+										if (table->table.at(_player).at(cardID)->organType == (Card::OrganType)organType || organType == (int)Card::OrganType::NONE)
 										{
-											if (table->table.at(i).at(o)->VaccineQuantity < 2)
+											if (table->table.at(_player).at(cardID)->VaccineQuantity < 2)
 											{
-												if (table->table.at(i).at(o)->VaccineQuantity <= 0)
-													table->table.at(i).at(o)->virusQuantity += 1;
+												if (table->table.at(_player).at(cardID)->VaccineQuantity <= 0)
+													table->table.at(_player).at(cardID)->virusQuantity += 1;
 												else
-													table->table.at(i).at(o)->VaccineQuantity -= 1;
+													table->table.at(_player).at(cardID)->VaccineQuantity -= 1;
 
 												std::cout << "Virus Received!!" << std::endl;
 
-												if (table->table.at(i).at(o)->virusQuantity >= 2)
+												if (table->table.at(_player).at(cardID)->virusQuantity >= 2)
 												{
-													table->table.at(i).erase(table->table.at(i).begin() + o);
+													Card* _card = table->table[_player][cardID];
+													deck->PushCard(_card);
+
+													table->table.at(_player).erase(table->table.at(_player).begin() + cardID);
 													sendMSG("Organ destroyed from player: " + std::to_string(player->id));
 													std::cout << "Organ Destroyed!!!!!" << std::endl;
 												}
@@ -854,6 +857,9 @@ bool GameManager::Update()
 
 					if (card >= 3 || card >= player->hand.hand.size())
 						break;
+
+					Card* _card = player->hand.hand[card];
+					deck->PushCard(_card);
 
 					player->hand.hand.erase(player->hand.hand.begin() + card);
 					std::cout << "Card Removed!" << std::endl;

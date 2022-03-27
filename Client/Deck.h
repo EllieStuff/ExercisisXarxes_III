@@ -12,5 +12,5 @@ public:
 	Deck();
 	~Deck();
 
-	
+	void PushCard(Card* _card);
 };

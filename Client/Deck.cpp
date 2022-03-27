@@ -114,3 +114,8 @@ Deck::~Deck()
 
 	deck.clear();
 }
+
+void Deck::PushCard(Card* _card)
+{
+	deck.push_back(_card);
+}
