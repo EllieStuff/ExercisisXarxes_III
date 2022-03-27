@@ -50,14 +50,17 @@ void SceneManager::UpdateInit()
 	std::cout << "2. List P2P Games" << std::endl;
 	std::cout << "3. Join P2P Game" << std::endl;
 
-	std::cout << "\nSelect option: ";
+	std::cout << "\nSelect option: " << std::endl;
 
 	Commands option;
-	char tmpOption;
-	
+	std::string tmpOption;
 	std::cin >> tmpOption;
-	tmpOption -= '0';
-	option = (Commands)tmpOption;
+	//tmpOption -= '0';
+	if (tmpOption == "1") option = Commands::CREATE_GAME;
+	else if (tmpOption == "2") option = Commands::GAME_LIST;
+	else if (tmpOption == "3") option = Commands::JOIN_GAME;
+	else return;
+	//option = (Commands)tmpOption;
 
 	if (option < Commands::CREATE_GAME || option > Commands::JOIN_GAME)
 		return;
@@ -141,7 +144,8 @@ void SceneManager::Update()
 	sceneState = new int(0);
 	while (*sceneState != 3)
 	{
-		/*system("cls");*/
+		/*system("
+		");*/
 		switch (*sceneState)
 		{
 		case 0:
