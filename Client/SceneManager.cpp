@@ -27,19 +27,12 @@ void SceneManager::EnterGame()
 
 	sceneState = new int(2);
 
-	while(true)
-	UpdateGame();
 }
 
 
 void SceneManager::ExitGame()
 {
 	sceneState = new int(3);
-
-}
-
-void SceneManager::Ready() 
-{
 
 }
 
@@ -93,6 +86,8 @@ void SceneManager::UpdateInit()
 		std::cout << "Waiting for players" << std::endl;
 
 		while (game.GetPlayersNum() < game.GetGameSize()) {}
+
+		std::cout << game.GetPlayersNum() << ", " << game.GetGameSize() << std::endl;
 
 		while (game.GetPlayersReady() < game.GetPlayersNum())
 		{

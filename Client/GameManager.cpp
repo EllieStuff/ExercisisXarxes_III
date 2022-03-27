@@ -11,7 +11,8 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 	while (true)
 	{
-		if (socks->size() >= gameMaxSize)
+		int maxSize = *gameMaxSize;
+		if (socks->size() >= maxSize)
 		{
 			selector.Remove(&listener);
 			listener.Close();
@@ -305,7 +306,7 @@ void GameManager::sendMSG(std::string message)
 	outMSG.Write((int)Commands::LOG);
 	outMSG.WriteString(message);
 
-	for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
+	for (std::vector<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
 	{
 		Status status;
 		TcpSocket& client = **it;
@@ -1119,8 +1120,10 @@ void GameManager::ConnectP2P(Selector* selector, InputMemoryStream* in)
 {
 	std::cout << "---------------Connect---------------" << std::endl;
 	Status status;
+	int maxSize;
+	in->Read(&maxSize);
 
-	in->Read(&gameMaxSize);
+	SetGameSize(maxSize);
 
 	int playerNum;
 	in->Read(&playerNum);
