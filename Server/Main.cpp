@@ -16,17 +16,18 @@ void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, Ou
 {
 	out->Write((int)Commands::PLAYER_LIST);
 	Status status;
-	std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << _games->at(_gameID).peers.size() << std::endl;
-	out->Write(_games->at(_gameID).peers.size());
-
+	
 	for (size_t i = 0; i < _games->size(); i++)
 	{
 		if (_games->at(i).gameId == _gameID)
-		{
+		{	
+			std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << _games->at(i).peers.size() << std::endl;
+			out->Write(_games->at(i).gameMaxSize);
+			out->Write((int)_games->at(i).peers.size());
 			for (size_t j = 0; j < _games->at(i).peers.size(); j++)
 			{
-				PeerAddress current = _games->at(_gameID).peers[j];
-				std::cout << _games->at(_gameID).peers[j].ip << ", " << _games->at(_gameID).peers[j].port << std::endl;
+				PeerAddress current = _games->at(i).peers[j];
+				std::cout << _games->at(i).peers[j].ip << ", " << _games->at(i).peers[j].port << std::endl;
 				out->WriteString(current.ip);
 				out->Write(current.port);
 			}
@@ -79,6 +80,8 @@ void ServerControl(std::vector<Game>* _games)
 					continue;
 				}
 				socks.push_back(sock);
+
+				std::cout << "Client connected: " << sock->GetRemoteAddress() << std::endl;
 			}
 			else
 			{
@@ -103,6 +106,7 @@ void ServerControl(std::vector<Game>* _games)
 						//--------------------------// CREATE GAME LOGIC //--------------------------//
 						if (menuOption == (int)Commands::CREATE_GAME)			//CREATE GAME
 						{
+							std::cout << "Create game asked. Num on games: " << _games->size() << std::endl;
 							Game game;
 							game.gameId = currGameId;
 
@@ -127,18 +131,21 @@ void ServerControl(std::vector<Game>* _games)
 
 							ConnectToServer(_games, socks[i], game.gameId, out);
 							currGameId++;
+							
 						}
 
 						//--------------------------// END CREATE GAME LOGIC //--------------------------//
 						else if (menuOption == (int)Commands::GAME_LIST)		//SEARCH GAME
 						{
+							std::cout << "Game list asked" << std::endl;
+							
 							out->Write(menuOption);
 							out->Write((int)_games->size());
 
 							for (size_t i = 0; i < _games->size(); i++)
 							{
 								out->Write(_games->at(i).gameId);
-								out->Write(_games->at(i).gameName);
+								out->WriteString(_games->at(i).gameName);
 								out->Write(_games->at(i).gameMaxSize);
 								out->Write((int)_games->at(i).peers.size());
 							}
@@ -147,7 +154,8 @@ void ServerControl(std::vector<Game>* _games)
 						//--------------------------// JOIN GAME LOGIC //--------------------------//
 						else if (menuOption == (int)Commands::JOIN_GAME)		//JOIN GAME
 						{
-							Game* game;
+							std::cout << "Join game asked" << std::endl;
+							Game* game = nullptr;
 							//Get game id
 							int gameID;
 
@@ -163,7 +171,7 @@ void ServerControl(std::vector<Game>* _games)
 								}
 							}
 
-							if (valid)
+							if (valid && game != nullptr)
 							{
 								if (game->pwd.compare("") > 0)
 								{

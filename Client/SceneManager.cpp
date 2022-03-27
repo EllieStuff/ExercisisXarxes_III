@@ -10,6 +10,10 @@ void SceneManager::Start()
 		return;
 	}
 	game.SetPort(serverSock.GetLocalPort());
+	std::cout << serverSock.GetLocalPort() << std::endl;
+
+	std::thread tClient(&GameManager::ClientControl, &game, &serverSock);
+	tClient.detach();
 
 	sceneState = new int(1);
 }
@@ -35,25 +39,7 @@ void SceneManager::ExitGame()
 
 void SceneManager::Ready() 
 {
-	std::cout << "Waiting for players" << std::endl;
 
-	while (game.GetPlayersNum() < 3) {}
-
-	while (game.GetPlayersReady() < game.GetPlayersNum())
-	{
-		if (game.GetReady()) continue;
-		std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
-		std::string _ready;
-		std::cin >> _ready;
-
-		if (!(_ready == "Y" || _ready == "y")) continue;
-
-		game.SetReady();
-
-		std::cout << "I'm ready!!!!" << std::endl;
-	}
-
-	EnterGame();
 }
 
 void SceneManager::UpdateInit()
@@ -78,29 +64,46 @@ void SceneManager::UpdateInit()
 	OutputMemoryStream* out = new OutputMemoryStream();
 	Status status;
 	out->Write(option);
-	serverSock.Send(out, status);
-	delete out;
 
-	//mtx.lock();
 	bool aborted = false;
 	if (option == Commands::CREATE_GAME)
 	{
-		game.CreateGame(&serverSock);
+		std::cout << "Create game asked" << std::endl;
+		game.CreateGame(out);
 	}
 	else if (option == Commands::GAME_LIST)
 	{
-		game.ListCurrentGames(&serverSock);
+		std::cout << "Game list asked" << std::endl;
 	}
 	else if (option == Commands::JOIN_GAME)
 	{
-		game.JoinGame(&serverSock, aborted);
+		std::cout << "Join game asked" << std::endl;
+		game.JoinGame(out, aborted);
 	}
-	//mtx.unlock();
+	
+	serverSock.Send(out, status);
 
-	if (option == Commands::CREATE_GAME || option == Commands::JOIN_GAME) {
-		std::thread t(&SceneManager::Ready, this);
-		t.detach();
-		game.ConnectP2P(&serverSock, sceneState);
+	if (option == Commands::CREATE_GAME || (option == Commands::JOIN_GAME && !aborted)) {
+		
+		std::cout << "Waiting for players" << std::endl;
+
+		while (game.GetPlayersNum() < game.GetGameSize()) {}
+
+		while (game.GetPlayersReady() < game.GetPlayersNum())
+		{
+			if (game.GetReady()) continue;
+			std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
+			std::string _ready;
+			std::cin >> _ready;
+
+			if (!(_ready == "Y" || _ready == "y")) continue;
+
+			game.SetReady();
+
+			std::cout << "I'm ready!!!!" << std::endl;
+		}
+
+		EnterGame();
 	}
 }
 

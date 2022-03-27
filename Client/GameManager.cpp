@@ -16,6 +16,12 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 	while (true)
 	{
+		if (socks->size() >= gameMaxSize)
+		{
+			selector.Remove(&listener);
+			listener.Close();
+		}
+
 		if (selector.Wait())
 		{
 			//Accept peers
@@ -42,14 +48,14 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 				//----------------------------// CREATE GAME //----------------------------//
 
 				//Adptar el connect game que hagi fet el Mateu	|| Check if the name is the same as one of the games name, if it is return INCORRECT_NAME
-				/*if (instruction == (int)Commands::CREATE_GAME)
+				if (instruction == (int)Commands::INCORRECT_NAME)
 				{
-
-				}*/
-
+					out->Write((int)Commands::CREATE_GAME);
+					CreateGame(out);
+				}
 				//----------------------------// SEARCH GAME //----------------------------//
 
-				if (instruction == (int)Commands::GAME_LIST)
+				else if (instruction == (int)Commands::GAME_LIST)
 				{
 					ListCurrentGames(in);
 				}
@@ -268,6 +274,11 @@ void GameManager::UpdateTurn(bool plus)
 	}
 
 	delete out;
+}
+
+GameManager::GameManager()
+{
+	
 }
 
 GameManager::~GameManager()
@@ -935,7 +946,7 @@ void GameManager::AcceptConnections(Selector* selector, TcpListener* listener)
 	selector->Add(sock);
 }
 
-void GameManager::CreateGame(TcpSocket* _serverSock)
+void GameManager::CreateGame(OutputMemoryStream* out)
 {
 	std::string gameName, gamePassword;
 	int numOfPlayers;
@@ -947,7 +958,7 @@ void GameManager::CreateGame(TcpSocket* _serverSock)
 		std::cin >> numOfPlayersChar;
 		numOfPlayers = numOfPlayersChar - '0';
 	} while (numOfPlayers < 2 || numOfPlayers > 4);
-	//mtx.lock();
+
 	bool passwordAssigned = false;
 	while(!passwordAssigned) {
 		std::string ans;
@@ -964,14 +975,11 @@ void GameManager::CreateGame(TcpSocket* _serverSock)
 		}
 	}
 
-	//mtx.unlock();
 	Status status;
-	OutputMemoryStream out;
-	out.Write((int)Commands::CREATE_GAME);
-	out.WriteString(gameName);
-	out.Write(numOfPlayers);
-	out.WriteString(gamePassword);
-	_serverSock->Send(&out, status);
+	/*out->Write((int)Commands::CREATE_GAME);*/
+	out->WriteString(gameName);
+	out->Write(numOfPlayers);
+	out->WriteString(gamePassword);
 }
 
 void GameManager::ListCurrentGames(InputMemoryStream* in)
@@ -1015,44 +1023,6 @@ void GameManager::JoinGame(OutputMemoryStream* out, bool& _aborted)
 	out->Write(serverIdx);
 }
 
-void GameManager::CreateGame(TcpSocket* serverSock)
-{
-	OutputMemoryStream* out = new OutputMemoryStream();
-	//GAME NAME
-	std::cout << "Set a Name for this Game" << std::endl;
-
-	std::string gameName;
-	std::cin >> gameName;
-	out->WriteString(gameName);
-
-	//GAME MAX PLAYERS
-	std::cout << "Set the Maximum of Players for this Game" << std::endl;
-
-	int maxPlayers;
-	char num;
-
-	std::cin >> num;
-	maxPlayers = num - '0';
-
-	while (maxPlayers < 2 && maxPlayers > 4)
-	{
-		std::cout << "Error setting the max number of players. Type again" << std::endl;
-		std::cin >> num;
-		maxPlayers = num - '0';
-	}
-	out->Write(maxPlayers);
-
-	//GAME PASSWORD
-	std::string password = "Set a Password for this Game (type '-' to leave it empty)";
-	std::cin >> password;
-	out->WriteString(password);
-
-	Status status;
-	serverSock->Send(out, status);
-
-	delete out;
-}
-
 void GameManager::SendPassword(OutputMemoryStream* out)
 {
 	int gameID = *currentGameID;
@@ -1068,6 +1038,8 @@ void GameManager::SendPassword(OutputMemoryStream* out)
 void GameManager::ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in)
 {
 	Status status;
+
+	in->Read(&gameMaxSize);
 
 	int playerNum;
 	in->Read(&playerNum);

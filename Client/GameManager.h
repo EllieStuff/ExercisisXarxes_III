@@ -11,7 +11,6 @@ class TcpSocket;
 
 class GameManager
 {
-	TcpListener listener;
 	unsigned int localPort = 0;
 
 	int* currentGameID = new int(-1);
@@ -23,7 +22,7 @@ class GameManager
 	int* currentTurn = new int(0);
 	bool* endRound = new bool(false);
 	std::mutex mtx;
-	int gameMaxSize = 3;
+	int gameMaxSize = 4;
 
 	bool ready = false;
 	int* playersReady = new int(0);
@@ -35,16 +34,16 @@ class GameManager
 	void AcceptConnections(Selector* selector, TcpListener* listener);
 	void SendReady();
 
-	void ClientControl(TcpSocket* serverSock);
 
 	void SendPassword(OutputMemoryStream* out);
 
 public:
-	GameManager() {}
+	GameManager();
 	~GameManager();
 
 	void ListEnemiesWithTheirCards();
 
+	void ClientControl(TcpSocket* serverSock);
 	bool Threatment();
 
 	bool PlaceInfection();
@@ -61,7 +60,7 @@ public:
 
 	void SetReady();
 
-	void CreateGame(TcpSocket* _serverSock);
+	void CreateGame(OutputMemoryStream* out);
 	void ListCurrentGames(InputMemoryStream* in);
 	void JoinGame(OutputMemoryStream* out, bool& _aborted);
 
