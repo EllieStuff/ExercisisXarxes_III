@@ -9,8 +9,9 @@ void SceneManager::Start()
 	if (status != Status::DONE) {
 		return;
 	}
+
 	game.SetPort(serverSock.GetLocalPort());
-	std::cout << serverSock.GetLocalPort() << std::endl;
+	std::cout << serverSock.GetRemoteAddress() << ", " << serverSock.GetLocalPort() << std::endl;
 
 	std::thread tClient(&GameManager::ClientControl, &game, &serverSock);
 	tClient.detach();
@@ -70,19 +71,20 @@ void SceneManager::UpdateInit()
 	{
 		std::cout << "Create game asked" << std::endl;
 		game.CreateGame(out);
+		serverSock.Send(out, status);
 	}
 	else if (option == Commands::GAME_LIST)
 	{
 		std::cout << "Game list asked" << std::endl;
+		serverSock.Send(out, status);
 	}
 	else if (option == Commands::JOIN_GAME)
 	{
 		std::cout << "Join game asked" << std::endl;
 		game.JoinGame(out, aborted);
+		serverSock.Send(out, status);
 	}
 	
-	serverSock.Send(out, status);
-
 	if (option == Commands::CREATE_GAME || (option == Commands::JOIN_GAME && !aborted)) {
 		
 		std::cout << "Waiting for players" << std::endl;

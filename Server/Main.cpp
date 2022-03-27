@@ -19,6 +19,7 @@ void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, Ou
 	
 	for (size_t i = 0; i < _games->size(); i++)
 	{
+		std::cout << "Checking game" << std::endl;
 		if (_games->at(i).gameId == _gameID)
 		{	
 			std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << _games->at(i).peers.size() << std::endl;
@@ -32,25 +33,20 @@ void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, Ou
 				out->Write(current.port);
 			}
 
-			if (_games->at(i).peers.size() < 3)
+			if (_games->at(i).peers.size() < _games->at(i).gameMaxSize)
 			{
 				PeerAddress address;
 				address.ip = sock->GetRemoteAddress();
 				address.port = sock->GetRemotePort();
-
 				_games->at(i).peers.push_back(address);
 
 			}
 			else
-			{
 				_games->erase(_games->begin() + i);
-			}
 
 			break;
 		}
 	}
-
-	sock->Disconnect();
 }
 
 void ServerControl(std::vector<Game>* _games)
@@ -69,6 +65,15 @@ void ServerControl(std::vector<Game>* _games)
 
 	while (true)
 	{
+		for (size_t i = 0; i < _games->size(); i++)
+		{
+			if (_games->at(i).peers.size() == 0)
+			{
+				_games->erase(_games->begin() + i);
+				i--;
+			}
+		}
+
 		if (selector.Wait())
 		{
 			if (selector.IsReady(&listener))
@@ -76,17 +81,19 @@ void ServerControl(std::vector<Game>* _games)
 				TcpSocket* sock = new TcpSocket();
 				status = listener.Accept(*sock);
 				if (status != Status::DONE) {
+					std::cout << "Error client connection: " << sock->GetRemoteAddress() << std::endl;
 					delete sock;
 					continue;
 				}
 				socks.push_back(sock);
-
+				selector.Add(sock);
 				std::cout << "Client connected: " << sock->GetRemoteAddress() << std::endl;
 			}
 			else
 			{
 				for (size_t i = 0; i < socks.size(); i++)
 				{
+					std::cout << "Sending something" << std::endl;
 					if (selector.IsReady(socks[i]))
 					{
 						Status status;
@@ -127,17 +134,15 @@ void ServerControl(std::vector<Game>* _games)
 
 							_games->push_back(game);
 							int size = _games->size() - 1;
-							std::cout << _games->size() << std::endl;
 
 							ConnectToServer(_games, socks[i], game.gameId, out);
 							currGameId++;
-							
 						}
 
 						//--------------------------// END CREATE GAME LOGIC //--------------------------//
 						else if (menuOption == (int)Commands::GAME_LIST)		//SEARCH GAME
 						{
-							std::cout << "Game list asked" << std::endl;
+							std::cout << "Game list asked. There are: " << (int)_games->size() << std::endl;
 							
 							out->Write(menuOption);
 							out->Write((int)_games->size());
@@ -175,13 +180,15 @@ void ServerControl(std::vector<Game>* _games)
 							{
 								if (game->pwd.compare("") > 0)
 								{
+									std::cout << "Game protected found" << std::endl;
 									// PROTECTED
 									out->Write((int)Commands::PROTECTED);
 								}
 								else
 								{
+									std::cout << "Game not protected found" << std::endl;
 									//NOT_PROTECTED
-									out->Write((int)Commands::NOT_PROTECTED);
+									ConnectToServer(_games, socks[i], gameID, out);
 								}
 							}
 							else
@@ -210,7 +217,6 @@ void ServerControl(std::vector<Game>* _games)
 							if (valid)
 							{
 								// CORRECT_PWD
-								out->Write((int)Commands::CORRECT_PWD);
 								ConnectToServer(_games, socks[i], gameID, out);
 							}
 							else
@@ -221,7 +227,6 @@ void ServerControl(std::vector<Game>* _games)
 
 						}
 						//--------------------------// END JOIN GAME LOGIC //--------------------------//
-
 						delete in;
 						socks[i]->Send(out, status);
 					}
@@ -236,20 +241,7 @@ void ServerControl(std::vector<Game>* _games)
 int main() {
 	std::vector<Game> games;
 
-	std::thread tServer(ServerControl, &games);
-	tServer.detach();
-
-	while (true)
-	{
-		for (size_t i = 0; i < games.size(); i++)
-		{
-			if (games[i].peers.size() == 0)
-			{
-				games.erase(games.begin() + i);
-				i--;
-			}
-		}
-	}
+	ServerControl(&games);
 
 	return 0;
 }

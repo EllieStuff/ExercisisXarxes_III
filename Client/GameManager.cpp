@@ -5,13 +5,8 @@
 void GameManager::ClientControl(TcpSocket* serverSock)
 {
 	Selector selector;
-
-	TcpListener listener;
-	Status status = listener.Listen(localPort);
-	if (status != Status::DONE)
-		return;
-
-	selector.Add(&listener);
+	Status status;
+	
 	selector.Add(serverSock);
 
 	while (true)
@@ -40,7 +35,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 					selector.Remove(serverSock);
 					continue;
 				}
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryStream* out = nullptr;
 
 				int instruction;
 				in->Read(&instruction);
@@ -50,6 +45,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 				//Adptar el connect game que hagi fet el Mateu	|| Check if the name is the same as one of the games name, if it is return INCORRECT_NAME
 				if (instruction == (int)Commands::INCORRECT_NAME)
 				{
+					out = new OutputMemoryStream();
 					out->Write((int)Commands::CREATE_GAME);
 					CreateGame(out);
 				}
@@ -64,15 +60,13 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 				// JOIN GAME
 				else if (instruction == (int)Commands::PROTECTED)
 				{
+					out = new OutputMemoryStream();
+					out->Write((int)Commands::PWD_CHECK);
 					SendPassword(out);
-				}
-				else if (instruction == (int)Commands::NOT_PROTECTED)
-				{
-					//Check ready
-
 				}
 				else if (instruction == (int)Commands::INCORRECT_ID)
 				{
+					out = new OutputMemoryStream();
 					bool aborted = false;
 					JoinGame(out, aborted);
 					
@@ -84,29 +78,34 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 						continue;
 					}
 				}
-				// PWD CHECK
-				else if (instruction == (int)Commands::CORRECT_PWD)
-				{
-					//Check ready
-
-				}
 				else if (instruction == (int)Commands::INCORRECT_PWD)
 				{
+					out = new OutputMemoryStream();
+					out->Write((int)Commands::PWD_CHECK);
 					SendPassword(out);
 				}
 				//------------------------// END JOIN GAME LOGIC //------------------------//
 				else if (instruction == (int)Commands::PLAYER_LIST)
 				{
-					ConnectP2P(&selector, serverSock, in);
+					out = new OutputMemoryStream();
+					selector.Remove(serverSock);
+					serverSock->Disconnect();
+					ConnectP2P(&selector, in);
+					SetListener();
+					selector.Add(&listener);
+
 					delete in;
 					delete out;
 
 					continue;
 				}
-
-				serverSock->Send(out, status);
 				delete in;
-				delete out;
+
+				if (out != nullptr)
+				{
+					serverSock->Send(out, status);
+					delete out;
+				}
 			}
 			//Peer receives
 			else
@@ -632,6 +631,13 @@ void GameManager::SendReady()
 	delete out;
 }
 
+void GameManager::SetListener()
+{
+	Status status = listener.Listen(localPort);
+	if (status != Status::DONE)
+		return;
+}
+
 void GameManager::SetReady()
 {
 	ready = true;
@@ -988,6 +994,8 @@ void GameManager::ListCurrentGames(InputMemoryStream* in)
 	int numOfGames;
 	in->Read(&numOfGames);
 
+	std::cout << "Getting List of Games. There are: " << numOfGames << std::endl;
+
 	for (int i = 0; i < numOfGames; i++)
 	{
 		int gameID;
@@ -1028,24 +1036,22 @@ void GameManager::SendPassword(OutputMemoryStream* out)
 	int gameID = *currentGameID;
 	out->Write(gameID);
 
+	std::cout << "Write the password" << std::endl;
 	std::string password;
 	std::cin >> password;
 
 	out->WriteString(password);
-
 }
 
-void GameManager::ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in)
+void GameManager::ConnectP2P(Selector* selector, InputMemoryStream* in)
 {
+	std::cout << "---------------Connect---------------" << std::endl;
 	Status status;
 
 	in->Read(&gameMaxSize);
 
 	int playerNum;
 	in->Read(&playerNum);
-
-	selector->Remove(serverSock);
-	serverSock->Disconnect();
 
 	table->table.push_back(std::vector<Card*>());
 
@@ -1060,6 +1066,7 @@ void GameManager::ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMem
 		status = peer->Connect(peerIp, peerPort);
 		if (status != Status::DONE)
 		{
+			std::cout << "Error connection with peer" << std::endl;
 			delete peer;
 			continue;
 		}

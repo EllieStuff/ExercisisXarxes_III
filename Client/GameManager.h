@@ -11,6 +11,7 @@ class TcpSocket;
 
 class GameManager
 {
+	TcpListener listener;
 	unsigned int localPort = 0;
 
 	int* currentGameID = new int(-1);
@@ -33,7 +34,7 @@ class GameManager
 	void ReceiveMessages(InputMemoryStream in1);
 	void AcceptConnections(Selector* selector, TcpListener* listener);
 	void SendReady();
-
+	void SetListener();
 
 	void SendPassword(OutputMemoryStream* out);
 
@@ -53,7 +54,7 @@ public:
 	void CheckArray();
 
 	void CalculateOrganQuantity();
-	void ConnectP2P(Selector* selector, TcpSocket* serverSock, InputMemoryStream* in);
+	void ConnectP2P(Selector* selector, InputMemoryStream* in);
 
 	bool Update();
 	void Start();
