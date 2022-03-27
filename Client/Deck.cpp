@@ -99,7 +99,8 @@ Deck::Deck()
 	newCard = new Card(Card::TreatmentType::MEDICAL_ERROR);
 	deck.push_back(newCard);
 
-	srand(time(NULL));
+	time_t* seed = new time_t(1);
+	srand(time(seed));
 	std::random_shuffle(deck.begin(), deck.end());
 	mtx.unlock();
 }

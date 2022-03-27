@@ -282,7 +282,6 @@ bool GameManager::Threatment()
 		out.Write(objective);
 		out.Write((int)Card::TreatmentType::ROBER);
 		out.Write(player->id);
-		out.Write(0);
 
 		for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
 		{
@@ -303,7 +302,7 @@ bool GameManager::Threatment()
 		OutputMemoryStream out;
 
 		out.Write((int)Commands::PLACE_TREATMENT);
-		out.Write(3);
+		out.Write((int)Commands::SEND_TO_ALL_PLAYERS);
 		out.Write((int)Card::TreatmentType::LATEX_GLOVES);
 
 		for (std::list<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
@@ -467,7 +466,7 @@ void GameManager::Start()
 void GameManager::SendReady()
 {
 	OutputMemoryStream* out = new OutputMemoryStream();
-	out->Write(5);
+	out->Write((int)Commands::PLAYER_READY);
 	out->Write(true);
 
 	Status status;
@@ -735,7 +734,7 @@ void GameManager::ReceiveMessages(InputMemoryStream in1)
 			int threatmentType;
 			in1.Read(&threatmentType);
 
-			if(playerID == player->id || playerID == 3) 
+			if(playerID == player->id || playerID == (int)Commands::SEND_TO_ALL_PLAYERS) 
 			{
 				int virusQuantity;
 				in1.Read(&virusQuantity);
