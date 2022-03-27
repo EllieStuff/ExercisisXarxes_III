@@ -172,6 +172,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 							*currentTurn = _currentTurn;
 						}
+						//Ready
 						else if (instruction == (int)Commands::PLAYER_READY)
 						{
 							bool isReady;
@@ -186,6 +187,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 								std::cout << "Another player is ready" << std::endl;
 							}
 						}
+						//Log
 						else if (instruction == (int)Commands::LOG)
 						{
 							std::string msg = in->ReadString();
@@ -194,6 +196,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 							std::cout << msg << std::endl;
 							std::cout << "___________________LOG___________________" << std::endl;
 						}
+						//Card logic
 						else if (instruction == (int)Commands::PLACE_INFECTION)
 						{
 							int playerID;

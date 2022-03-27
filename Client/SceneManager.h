@@ -11,12 +11,10 @@ public:
 
 private:
 	std::mutex mtx;
-	int* sceneState;
+	Scene sceneState;
 	TcpSocket serverSock;
 
 	GameManager game;
-
-	void Ready();
 
 	void Start();
 	void EnterGame();

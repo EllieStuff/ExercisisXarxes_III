@@ -11,12 +11,11 @@ void SceneManager::Start()
 	}
 
 	game.SetPort(serverSock.GetLocalPort());
-	std::cout << serverSock.GetRemoteAddress() << ", " << serverSock.GetLocalPort() << std::endl;
 
 	std::thread tClient(&GameManager::ClientControl, &game, &serverSock);
 	tClient.detach();
 
-	sceneState = new int(1);
+	sceneState = Scene::START;
 }
 
 void SceneManager::EnterGame()
@@ -25,14 +24,13 @@ void SceneManager::EnterGame()
 
 	std::cout << "Waiting For your turn" << std::endl;
 
-	sceneState = new int(2);
-
+	sceneState = Scene::GAME;
 }
 
 
 void SceneManager::ExitGame()
 {
-	sceneState = new int(3);
+	sceneState = Scene::GAMEOVER;
 
 }
 
@@ -49,6 +47,7 @@ void SceneManager::UpdateInit()
 	std::string tmpOption;
 	std::cin >> tmpOption;
 	//tmpOption -= '0';
+
 	if (tmpOption == "1") option = Commands::CREATE_GAME;
 	else if (tmpOption == "2") option = Commands::GAME_LIST;
 	else if (tmpOption == "3") option = Commands::JOIN_GAME;
@@ -127,7 +126,7 @@ void SceneManager::CheckPlayersReady()
 
 SceneManager::SceneManager()
 {
-	sceneState = new int(0);
+	sceneState = Scene::INIT;
 }
 
 SceneManager::~SceneManager()
@@ -136,20 +135,17 @@ SceneManager::~SceneManager()
 
 void SceneManager::Update()
 {
-	sceneState = new int(0);
-	while (*sceneState != 3)
+	while (sceneState != Scene::GAMEOVER)
 	{
-		/*system("
-		");*/
-		switch (*sceneState)
+		switch (sceneState)
 		{
-		case 0:
+		case Scene::INIT:
 			Start();
 			break;
-		case 1:
+		case Scene::START:
 			UpdateInit();
 			break;
-		case 2:
+		case Scene::GAME:
 			UpdateGame();
 			break;
 		}
