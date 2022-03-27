@@ -23,7 +23,7 @@ class GameManager
 	int* currentTurn = new int(0);
 	bool* endRound = new bool(false);
 	std::mutex mtx;
-	int* gameMaxSize = new int(0);
+	int* gameMaxSize = new int(-1);
 
 	bool ready = false;
 	int* playersReady = new int();
