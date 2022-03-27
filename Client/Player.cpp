@@ -26,7 +26,6 @@ bool Player::PlaceCard(int _pos, Card::CardType _cardType, Table* _table, Deck* 
 	{
 		_table->table[id].push_back(hand.hand[_pos]);
 		hand.hand.erase(hand.hand.begin() + _pos);
-		ReceiveCards(1, _deck);
 		return true;
 	}
 	else

@@ -186,7 +186,223 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 								std::cout << "Another player is ready" << std::endl;
 							}
 						}
+						else if (instruction == (int)Commands::LOG)
+						{
+							std::string msg = in->ReadString();
 
+							std::cout << "___________________LOG___________________" << std::endl;
+							std::cout << msg << std::endl;
+							std::cout << "___________________LOG___________________" << std::endl;
+						}
+						else if (instruction == (int)Commands::PLACE_INFECTION)
+						{
+							int playerID;
+							in->Read(&playerID);
+
+							if (playerID == player->id)
+							{
+								int organType;
+								in->Read(&organType);
+
+								for (size_t i = 0; i < table->table.size(); i++)
+								{
+									for (size_t o = 0; o < table->table[i].size(); o++)
+									{
+										if (table->table.at(i).at(o)->organType == (Card::OrganType)organType || organType == (int)Card::OrganType::NONE)
+										{
+											if (table->table.at(i).at(o)->VaccineQuantity < 2)
+											{
+												if (table->table.at(i).at(o)->VaccineQuantity <= 0)
+													table->table.at(i).at(o)->virusQuantity += 1;
+												else
+													table->table.at(i).at(o)->VaccineQuantity -= 1;
+
+												std::cout << "Virus Received!!" << std::endl;
+
+												if (table->table.at(i).at(o)->virusQuantity >= 2)
+												{
+													table->table.at(i).erase(table->table.at(i).begin() + o);
+													sendMSG("Organ destroyed from player: " + std::to_string(player->id));
+													std::cout << "Organ Destroyed!!!!!" << std::endl;
+												}
+												break;
+											}
+										}
+									}
+								}
+							}
+						}
+						else if (instruction == (int)Commands::LIST_CARDS)
+						{
+							out = new OutputMemoryStream();
+							int playerID;
+							in->Read(&playerID);
+
+							out->Write((int)Commands::SHOW_CARDS);
+
+							out->Write(player->id);
+
+							for (size_t i = 0; i < table->table.size(); i++)
+							{
+								if (table->table[i].size() > 0)
+								{
+									int size = table->table.at(i).size();
+									std::cout << size << std::endl;
+									out->Write(size);
+									break;
+								}
+							}
+
+							for (size_t i = 0; i < table->table.size(); i++)
+							{
+								if (table->table[i].size() > 0)
+								{
+									for (size_t o = 0; o < table->table.at(i).size(); o++)
+									{
+										out->Write((int)table->table[i][o]->cardType);
+										out->Write((int)table->table[i][o]->organType);
+										out->Write((int)table->table[i][o]->virusQuantity);
+										out->Write((int)table->table[i][o]->VaccineQuantity);
+									}
+								}
+							}
+						}
+						else if (instruction == (int)Commands::SHOW_CARDS)
+						{
+							int playerID;
+							in->Read(&playerID);
+							int tableSize;
+							in->Read(&tableSize);
+							for (size_t i = 0; i < tableSize; i++)
+							{
+								int cardType;
+								in->Read(&cardType);
+
+								int organType;
+								in->Read(&organType);
+
+								int virusQuantity;
+								in->Read(&virusQuantity);
+
+								int vaccineQuantity;
+								in->Read(&vaccineQuantity);
+
+								std::string _cardType;
+								std::string _organType;
+								std::string _threatmentType;
+
+								switch (cardType)
+								{
+								case 0:
+									_cardType = "ORGAN";
+									break;
+								case 1:
+									_cardType = "MEDICINE";
+									break;
+								case 2:
+									_cardType = "VIRUS";
+									break;
+								case 3:
+									_cardType = "TREATMENT";
+									break;
+								}
+
+								switch (organType)
+								{
+								case 0:
+
+									_organType = "STOMACH";
+									break;
+								case 1:
+									_organType = "BRAIN";
+									break;
+								case 2:
+									_organType = "SKELETON";
+									break;
+								case 3:
+									_organType = "HEART";
+									break;
+								case 4:
+									_organType = "NONE";
+									break;
+								}
+
+								std::cout << "PLAYER: " << playerID << " | CARD: " << _cardType << " ORGAN: " << _organType << " VIRUS: " << virusQuantity << " VACCINES: " << vaccineQuantity << std::endl;
+							}
+						}
+						else if (instruction == (int)Commands::PLACE_TREATMENT)
+						{
+							int playerID;
+							in->Read(&playerID);
+							int threatmentType;
+							in->Read(&threatmentType);
+
+							if (playerID == player->id || playerID == (int)Commands::SEND_TO_ALL_PLAYERS)
+							{
+								int virusQuantity;
+								in->Read(&virusQuantity);
+
+								switch ((Card::TreatmentType)threatmentType)
+								{
+								case (Card::TreatmentType::INFECTION):
+									for (size_t i = 0; i < table->table.size(); i++)
+									{
+										for (size_t o = 0; o < table->table.at(i).size(); o++)
+										{
+											if (table->table.at(i).at(o)->VaccineQuantity < 2)
+											{
+												std::cout << "Someone has sent you their viruses!!!!!" << std::endl;
+												while (virusQuantity > 0)
+												{
+													if (table->table.at(i).at(o)->VaccineQuantity <= 0)
+													{
+														table->table.at(i).at(o)->virusQuantity += virusQuantity;
+														virusQuantity = 0;
+													}
+													else
+													{
+														table->table.at(i).at(o)->VaccineQuantity -= 1;
+														virusQuantity -= 1;
+													}
+												}
+												if (table->table.at(i).at(o)->virusQuantity >= 2)
+												{
+													table->table.at(i).erase(table->table.at(i).begin() + o);
+													sendMSG("Organ destroyed from player: " + std::to_string(player->id));
+													std::cout << "Organ Destroyed!!!!!" << std::endl;
+												}
+
+												break;
+											}
+										}
+									}
+									break;
+								case (Card::TreatmentType::LATEX_GLOVES):
+									player->hand.hand.clear();
+									std::cout << "Your Hand Was Erased!!!!!" << std::endl;
+									break;
+								case (Card::TreatmentType::MEDICAL_ERROR):
+
+									break;
+								case (Card::TreatmentType::ROBER):
+									int playerToSend;
+									in->Read(&playerToSend);
+									std::cout << "player: " << playerToSend << std::endl;
+									for (size_t i = 0; i < table->table.size(); i++)
+									{
+										for (size_t o = 0; o < table->table[i].size(); o++)
+										{
+											table->table[i].erase(table->table[i].begin() + o);
+											break;
+										}
+									}
+									break;
+								case (Card::TreatmentType::TRANSPLANT):
+
+									break;
+								}
+							}
+						}
 						//---------------------------// END GAMELOOP //----------------------------//
 
 						if (out != nullptr)
@@ -306,7 +522,7 @@ void GameManager::sendMSG(std::string message)
 	outMSG.Write((int)Commands::LOG);
 	outMSG.WriteString(message);
 
-	for (std::vector<TcpSocket*>::iterator it = socks->begin(); it != socks->end(); ++it)
+	for (auto it = socks->begin(); it != socks->end(); ++it)
 	{
 		Status status;
 		TcpSocket& client = **it;
@@ -328,7 +544,6 @@ void GameManager::ListEnemiesWithTheirCards()
 		Status status;
 		TcpSocket& client = **it;
 		client.Send(out, status);
-		//break;
 	}
 
 	delete out;
@@ -551,11 +766,30 @@ bool GameManager::Update()
 		std::cout << "___________TABLE___________" << std::endl;
 		std::cout << "" << std::endl;
 
-		Commands option;
-		int tmpOption;
+		Commands option = Commands::COUNT;
+		std::string tmpOption;
 		std::cin >> tmpOption;
-		tmpOption += 8;
-		option = (Commands)tmpOption;
+
+		if (tmpOption == "1")
+		{
+			option = Commands::PLACE_ORGAN;
+		}
+		else if (tmpOption == "2")
+		{
+			option = Commands::PLACE_INFECTION;
+		}
+		else if (tmpOption == "3")
+		{
+			option = Commands::PLACE_MEDICINE;
+		}
+		else if (tmpOption == "4")
+		{
+			option = Commands::DISCARD_CARD;
+		}
+		else if (tmpOption == "5")
+		{
+			option = Commands::PLACE_TREATMENT;
+		}
 
 		int card;
 
@@ -575,12 +809,11 @@ bool GameManager::Update()
 				finishedRound = true;
 				std::cout << "Organ Placed!" << std::endl;
 				sendMSG("Payer: " + std::to_string(player->id) + " has just placed an organ on the table");
-				break;
 			}
 
 			break;
 		case Commands::PLACE_INFECTION:
-			if(PlaceInfection() == true) 
+			if(PlaceInfection()) 
 			{
 				finishedRound = true;
 				break;
@@ -588,7 +821,7 @@ bool GameManager::Update()
 			finishedRound = false;
 			break;
 		case Commands::PLACE_MEDICINE:
-			if(VaccineOrgan() == true) 
+			if(VaccineOrgan()) 
 			{
 				finishedRound = true;
 				break;
@@ -596,7 +829,7 @@ bool GameManager::Update()
 			finishedRound = false;
 			break;
 		case Commands::PLACE_TREATMENT:
-			if(Threatment() == true) 
+			if(Threatment()) 
 			{
 				finishedRound = true;
 				break;
@@ -694,319 +927,6 @@ void GameManager::SetReady()
 	playersReady = value;
 
 	SendReady();
-}
-
-void GameManager::ReceiveMessages(InputMemoryStream in1)
-{
-	//while (true) {
-
-		//mtx.lock();
-		int instruction = 0;
-		in1.Read(&instruction);
-		//mtx.unlock();
-
-		if(instruction == (int)Commands::LOG) 
-		{
-			std::string msg = in1.ReadString();
-			std::cout << "___________________LOG___________________" << std::endl;
-			std::cout << msg << std::endl;
-			std::cout << "___________________LOG___________________" << std::endl;
-		}
-		//Turn system
-		else if (instruction == (int)Commands::ORGAN_QUANTITY)
-		{
-			//mtx.lock();
-			int playerID, organQuantity;
-
-			in1.Read(&playerID);
-
-			in1.Read(&organQuantity);
-			//mtx.unlock();
-
-			if (playerTurnOrder.size() < socks->size() + 1) 
-			{
-				mtx.lock();
-				playerTurnOrder.push_back(Pair_Organ_Player(playerID, organQuantity));
-				mtx.unlock();
-			}
-			else
-			{
-				mtx.lock();
-				for (size_t i = 0; i < playerTurnOrder.size(); i++)
-				{
-					if (playerTurnOrder[i].playerID == playerID)
-					{
-						playerTurnOrder[i].numOrgans = organQuantity;
-						break;
-					}
-				}
-				mtx.unlock();
-			}
-
-			mtx.lock();
-			std::sort(playerTurnOrder.begin(), playerTurnOrder.end(), ComparePlayers);
-			mtx.unlock();
-		}
-		//Receive turn
-		else if (instruction == (int)Commands::UPDATE_TURN)
-		{
-			mtx.lock();
-			int turn;
-			in1.Read(&turn);
-			mtx.unlock();
-			if (turn >= playerTurnOrder.size())
-			{
-				turn = 0;
-				mtx.lock();
-				*endRound = true;
-				mtx.unlock();
-			}
-				
-			*currentTurn = turn;
-		}
-		else if (instruction == (int)Commands::PLACE_INFECTION)
-		{
-			int playerID;
-			in1.Read(&playerID);
-
-			if(playerID == player->id) 
-			{
-				int organType;
-				in1.Read(&organType);
-
-				for (size_t i = 0; i < table->table.size(); i++)
-				{
-					for (size_t o = 0; o < table->table[i].size(); o++)
-					{
-						if (table->table.at(i).at(o)->organType == (Card::OrganType)organType || organType == (int) Card::OrganType::NONE)
-						{
-							if(table->table.at(i).at(o)->VaccineQuantity < 2) 
-							{
-								if (table->table.at(i).at(o)->VaccineQuantity <= 0)
-									table->table.at(i).at(o)->virusQuantity += 1;
-								else
-									table->table.at(i).at(o)->VaccineQuantity -= 1;
-
-								std::cout << "Virus Received!!" << std::endl;
-
-								if (table->table.at(i).at(o)->virusQuantity >= 2)
-								{
-									table->table.at(i).erase(table->table.at(i).begin() + o);
-									sendMSG("Organ destroyed from player: " + std::to_string(player->id));
-									std::cout << "Organ Destroyed!!!!!" << std::endl;
-								}
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-		else if (instruction == (int)Commands::PLAYER_READY)
-		{
-			mtx.lock();
-			bool isReady;
-			in1.Read(&isReady);
-			mtx.unlock();
-			if (isReady)
-			{
-				int* value = new int(*playersReady + 1);
-				delete playersReady;
-				playersReady = value;
-			}
-		}
-		else if(instruction == (int)Commands::LIST_CARDS) 
-		{
-			int playerID;
-			in1.Read(&playerID);
-
-			OutputMemoryStream out;
-
-			out.Write((int)Commands::SHOW_CARDS);
-
-			out.Write(player->id);
-
-			mtx.lock();
-
-			for (size_t i = 0; i < table->table.size(); i++)
-			{
-				if (table->table[i].size() > 0)
-				{
-					int size = table->table.at(i).size();
-					std::cout << size << std::endl;
-					out.Write(size);
-					break;
-				}
-			}
-
-			for (size_t i = 0; i < table->table.size(); i++)
-			{
-				if (table->table[i].size() > 0)
-				{
-					for (size_t o = 0; o < table->table.at(i).size(); o++)
-					{
-						out.Write((int)table->table[i][o]->cardType);
-						out.Write((int)table->table[i][o]->organType);
-						out.Write((int)table->table[i][o]->virusQuantity);
-						out.Write((int)table->table[i][o]->VaccineQuantity);
-					}
-				}
-			}
-
-			mtx.unlock();
-
-			int index = 0;
-
-			for (auto it = socks->begin(); it != socks->end(); ++it)
-			{
-				Status status;
-				TcpSocket& client = **it;
-				client.Send(&out, status);
-				index++;
-				//break;
-			}
-
-
-		}
-		else if(instruction == (int)Commands::SHOW_CARDS) 
-		{
-			int playerID;
-			in1.Read(&playerID);
-			int tableSize;
-			in1.Read(&tableSize);
-			for (size_t i = 0; i < tableSize; i++)
-			{
-				int cardType;
-				in1.Read(&cardType);
-
-				int organType;
-				in1.Read(&organType);
-
-				int virusQuantity;
-				in1.Read(&virusQuantity);
-
-				int vaccineQuantity;
-				in1.Read(&vaccineQuantity);
-
-				std::string _cardType;
-				std::string _organType;
-				std::string _threatmentType;
-
-				switch (cardType)
-				{
-				case 0:
-					_cardType = "ORGAN";
-					break;
-				case 1:
-					_cardType = "MEDICINE";
-					break;
-				case 2:
-					_cardType = "VIRUS";
-					break;
-				case 3:
-					_cardType = "TREATMENT";
-					break;
-				}
-
-				switch (organType)
-				{
-				case 0:
-
-					_organType = "STOMACH";
-					break;
-				case 1:
-					_organType = "BRAIN";
-					break;
-				case 2:
-					_organType = "SKELETON";
-					break;
-				case 3:
-					_organType = "HEART";
-					break;
-				case 4:
-					_organType = "NONE";
-					break;
-				}
-
-				std::cout << "PLAYER: " << playerID << " | CARD: " << _cardType << " ORGAN: " << _organType << " VIRUS: " << virusQuantity << " VACCINES: " << vaccineQuantity << std::endl;
-			}
-		}
-		else if (instruction == (int)Commands::PLACE_TREATMENT)
-		{
-			int playerID;
-			in1.Read(&playerID);
-			int threatmentType;
-			in1.Read(&threatmentType);
-
-			if(playerID == player->id || playerID == (int)Commands::SEND_TO_ALL_PLAYERS) 
-			{
-				int virusQuantity;
-				in1.Read(&virusQuantity);
-
-				switch ((Card::TreatmentType)threatmentType)
-				{
-				case (Card::TreatmentType::INFECTION):
-					for (size_t i = 0; i < table->table.size(); i++)
-					{
-						for (size_t o = 0; o < table->table.at(i).size(); o++)
-						{
-							if (table->table.at(i).at(o)->VaccineQuantity < 2)
-							{
-								std::cout << "Someone has sent you their viruses!!!!!" << std::endl;
-								while (virusQuantity > 0)
-								{
-									if (table->table.at(i).at(o)->VaccineQuantity <= 0)
-									{
-										table->table.at(i).at(o)->virusQuantity += virusQuantity;
-										virusQuantity = 0;
-									}
-									else
-									{
-										table->table.at(i).at(o)->VaccineQuantity -= 1;
-										virusQuantity -= 1;
-									}
-								}
-								if (table->table.at(i).at(o)->virusQuantity >= 2)
-								{
-									table->table.at(i).erase(table->table.at(i).begin() + o);
-									sendMSG("Organ destroyed from player: " + std::to_string(player->id));
-									std::cout << "Organ Destroyed!!!!!" << std::endl;
-								}
-
-								break;
-							}
-						}
-					}
-					break;
-				case (Card::TreatmentType::LATEX_GLOVES):
-					player->hand.hand.clear();
-					std::cout << "Your Hand Was Erased!!!!!" << std::endl;
-					break;
-				case (Card::TreatmentType::MEDICAL_ERROR):
-
-					break;
-				case (Card::TreatmentType::NONE):
-
-					break;
-				case (Card::TreatmentType::ROBER):
-					int playerToSend;
-					in1.Read(&playerToSend);
-					std::cout << "player: " << playerToSend << std::endl;
-					for (size_t i = 0; i < table->table.size(); i++)
-					{
-						for (size_t o = 0; o < table->table[i].size(); o++)
-						{
-							table->table[i].erase(table->table[i].begin() + o);
-							break;
-						}
-					}
-					break;
-				case (Card::TreatmentType::TRANSPLANT):
-
-					break;
-				}
-			}
-		}
 }
 
 void GameManager::AcceptConnections(Selector* selector, TcpListener* listener)
