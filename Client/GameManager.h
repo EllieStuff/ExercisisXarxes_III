@@ -31,10 +31,10 @@ class GameManager
 	std::vector<Pair_Organ_Player> playerTurnOrder;
 
 	void UpdateTurn(bool plus);
-	void ReceiveMessages(InputMemoryStream in1);
 	void AcceptConnections(Selector* selector, TcpListener* listener);
 	void SendReady();
 	void SetListener();
+
 
 	void SendPassword(OutputMemoryStream* out);
 
@@ -43,6 +43,7 @@ public:
 	~GameManager();
 
 	void ListEnemiesWithTheirCards();
+	void ActivateFilters(OutputMemoryStream* out);
 
 	void ClientControl(TcpSocket* serverSock);
 	bool Threatment();

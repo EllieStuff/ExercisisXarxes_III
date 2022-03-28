@@ -990,6 +990,53 @@ void GameManager::CreateGame(OutputMemoryStream* out)
 	out->WriteString(gamePassword);
 }
 
+void GameManager::ActivateFilters(OutputMemoryStream* out)
+{
+	Status status;
+	Commands filter = Commands::DEFAULT;
+	bool wantsPwd;
+	int numOfPlayersWanted;
+	while (filter == Commands::DEFAULT)
+	{
+		std::cout << "Do you want to filter by password or number of players? (pwd/num/no) " << std::endl;
+		std::string tmpFilter;
+		std::cin >> tmpFilter;
+		if (tmpFilter == "pwd") {
+			filter = Commands::PWD_FILTER;
+			while (true) {
+				std::cout << "Do you want it to have a password or not? (y/n) " << std::endl;
+				std::string wantsPwdAns;
+				std::cin >> wantsPwdAns;
+				if (wantsPwdAns == "y" || wantsPwdAns == "Y") {
+					wantsPwd = true;
+					break;
+				}
+				else if (wantsPwdAns == "n" || wantsPwdAns == "N") {
+					wantsPwd = false;
+					break;
+				}
+			}
+		}
+		else if (tmpFilter == "num") {
+			filter = Commands::NUM_PLAYERS_FILTER;
+			while (true) {
+				std::cout << "What amount of players do you want to seek? " << std::endl;
+				int numOfPlayersAns;
+				std::cin >> numOfPlayersAns;
+				if (numOfPlayersAns >= 2 && numOfPlayersAns <= 4) {
+					numOfPlayersWanted = numOfPlayersAns;
+					break;
+				}
+			}
+		}
+		else if (tmpFilter == "no") filter = Commands::NO_FILTER;
+	}
+	out->Write((int)filter);
+	if (filter == Commands::PWD_FILTER) out->Write(wantsPwd);
+	else if (filter == Commands::NUM_PLAYERS_FILTER) out->Write(numOfPlayersWanted);
+}
+
+
 void GameManager::ListCurrentGames(InputMemoryStream* in)
 {
 	//Get Num of games
@@ -998,6 +1045,9 @@ void GameManager::ListCurrentGames(InputMemoryStream* in)
 
 	std::cout << "Getting List of Games. There are: " << numOfGames << std::endl;
 
+	if (numOfGames == 0) {
+		std::cout << "No games found!\n";
+	}
 	for (int i = 0; i < numOfGames; i++)
 	{
 		int gameID;

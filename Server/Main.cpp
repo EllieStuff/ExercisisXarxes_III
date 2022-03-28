@@ -49,6 +49,20 @@ void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, Ou
 	}
 }
 
+void SendGameList(std::vector<Game>* _gamesToSend, OutputMemoryStream* out)
+{
+	out->Write((int)Commands::GAME_LIST);
+	out->Write((int)_gamesToSend->size());
+
+	for (size_t i = 0; i < _gamesToSend->size(); i++)
+	{
+		out->Write(_gamesToSend->at(i).gameId);
+		out->WriteString(_gamesToSend->at(i).gameName);
+		out->Write(_gamesToSend->at(i).gameMaxSize);
+		out->Write((int)_gamesToSend->at(i).peers.size());
+	}
+}
+
 void ServerControl(std::vector<Game>* _games)
 {
 	int currGameId = 0;
@@ -108,11 +122,12 @@ void ServerControl(std::vector<Game>* _games)
 						int menuOption;
 
 						in->Read(&menuOption);
-						OutputMemoryStream* out = new OutputMemoryStream();
+						OutputMemoryStream* out = nullptr;
 
 						//--------------------------// CREATE GAME LOGIC //--------------------------//
 						if (menuOption == (int)Commands::CREATE_GAME)			//CREATE GAME
 						{
+							out = new OutputMemoryStream();
 							std::cout << "Create game asked. Num on games: " << _games->size() << std::endl;
 							Game game;
 							game.gameId = currGameId;
@@ -140,25 +155,58 @@ void ServerControl(std::vector<Game>* _games)
 						}
 
 						//--------------------------// END CREATE GAME LOGIC //--------------------------//
-						else if (menuOption == (int)Commands::GAME_LIST)		//SEARCH GAME
+						else if (menuOption == (int)Commands::GAME_LIST)
 						{
-							std::cout << "Game list asked. There are: " << (int)_games->size() << std::endl;
-							
-							out->Write(menuOption);
-							out->Write((int)_games->size());
+							out = new OutputMemoryStream();
+							int filter;
+							in->Read(&filter);
 
-							for (size_t i = 0; i < _games->size(); i++)
-							{
-								out->Write(_games->at(i).gameId);
-								out->WriteString(_games->at(i).gameName);
-								out->Write(_games->at(i).gameMaxSize);
-								out->Write((int)_games->at(i).peers.size());
+							bool wantsPwd;
+							int numOfPlayersWanted;
+
+							if (filter == (int)Commands::PWD_FILTER) in->Read(&wantsPwd);
+							else if (filter == (int)Commands::NUM_PLAYERS_FILTER) in->Read(&numOfPlayersWanted);
+							else if (filter == (int)Commands::NO_FILTER);
+
+							int actualSize = _games->size();
+							if (filter != (int)Commands::NO_FILTER) {
+								std::vector<Game> _filterGames;
+								actualSize = 0;
+								for (size_t i = 0; i < _games->size(); i++)
+								{
+									Game currGame = _games->at(i);
+									if (filter == (int)Commands::PWD_FILTER) {
+										if (wantsPwd && currGame.pwd != "")
+										{
+											_filterGames.push_back(_games->at(i));
+											actualSize++;
+										}
+										else if (!wantsPwd && currGame.pwd == "")
+										{
+											_filterGames.push_back(_games->at(i));
+											actualSize++;
+										}
+									}
+									else if (filter == (int)Commands::NUM_PLAYERS_FILTER)
+									{
+										if (numOfPlayersWanted == currGame.gameMaxSize)
+										{
+											_filterGames.push_back(_games->at(i));
+											actualSize++;
+										}
+									}
+								}
+								std::cout << "Sending filtered lists" << std::endl;
+								SendGameList(&_filterGames, out);
 							}
+							else
+								SendGameList(_games, out);
 						}
 
 						//--------------------------// JOIN GAME LOGIC //--------------------------//
 						else if (menuOption == (int)Commands::JOIN_GAME)		//JOIN GAME
 						{
+							out = new OutputMemoryStream();
 							std::cout << "Join game asked" << std::endl;
 							Game* game = nullptr;
 							//Get game id
@@ -199,6 +247,7 @@ void ServerControl(std::vector<Game>* _games)
 						}
 						else if (menuOption == (int)Commands::PWD_CHECK)			//GAME PWD CHECK
 						{
+							out = new OutputMemoryStream();
 							//Get game id
 							int gameID;
 
@@ -228,7 +277,11 @@ void ServerControl(std::vector<Game>* _games)
 						}
 						//--------------------------// END JOIN GAME LOGIC //--------------------------//
 						delete in;
-						socks[i]->Send(out, status);
+						if (out != nullptr)
+						{
+							socks[i]->Send(out, status);
+							delete out;
+						}
 					}
 				}
 			}

@@ -70,7 +70,8 @@ void SceneManager::UpdateInit()
 	}
 	else if (option == Commands::GAME_LIST)
 	{
-		std::cout << "Game list asked" << std::endl;
+		game.ActivateFilters(out);
+
 		serverSock.Send(out, status);
 	}
 	else if (option == Commands::JOIN_GAME)
