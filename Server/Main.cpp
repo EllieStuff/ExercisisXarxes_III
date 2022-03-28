@@ -19,7 +19,6 @@ void ConnectToServer(std::vector<Game>* _games, TcpSocket* sock, int _gameID, Ou
 	
 	for (size_t i = 0; i < _games->size(); i++)
 	{
-		std::cout << "Checking game" << std::endl;
 		if (_games->at(i).gameId == _gameID)
 		{	
 			std::cout << "Connected with " << sock->GetRemoteAddress() << ". Curr Size = " << _games->at(i).peers.size() << std::endl;
@@ -107,7 +106,6 @@ void ServerControl(std::vector<Game>* _games)
 			{
 				for (size_t i = 0; i < socks.size(); i++)
 				{
-					std::cout << "Sending something" << std::endl;
 					if (selector.IsReady(socks[i]))
 					{
 						Status status;

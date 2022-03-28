@@ -14,5 +14,4 @@ public:
 	~Table();
 
 	void ShowTable();
-
 };

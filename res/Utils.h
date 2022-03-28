@@ -7,8 +7,8 @@ const int MAX_CARDS = 3;
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
 
 enum class Commands {
-	DEFAULT = 0, LOG, GAME_ID, INCORRECT_NAME, INCORRECT_ID, CORRECT_PWD, SENDCARD, SHOWCARDS, LISTCARDS, CREATE_GAME, GAME_LIST, 
-	JOIN_GAME, INCORRECT_PWD, PWD_CHECK, PROTECTED, PLAYER_READY, PLAYER_LIST, ORGAN_QUANTITY, UPDATE_TURN, END_ROUND, PLACE_ORGAN, 
+	DEFAULT = 0, LOG, GAME_ID, PLAYER_ID, INCORRECT_NAME, INCORRECT_ID, CORRECT_PWD, SENDCARD, SHOWCARDS, LISTCARDS, CREATE_GAME, GAME_LIST, 
+	JOIN_GAME, INCORRECT_PWD, PWD_CHECK, PROTECTED, PLAYER_READY, PLAYER_LIST, ORGAN_QUANTITY, UPDATE_TURN, END_ROUND, PLACE_ORGAN, I_WON,
 	PLACE_INFECTION, PLACE_MEDICINE, DISCARD_CARD, PLACE_TREATMENT, LIST_CARDS, SHOW_CARDS, PWD_FILTER, NUM_PLAYERS_FILTER, NO_FILTER, SEND_TO_ALL_PLAYERS, ACTIVATE_FILTER, COUNT
 };
 
@@ -46,7 +46,11 @@ struct Pair_Organ_Player
 
 	bool operator>=(Pair_Organ_Player _other)
 	{
-		return numOrgans > _other.numOrgans || (numOrgans == _other.numOrgans && playerID < _other.playerID);
+		bool result = false;
+		result = numOrgans > _other.numOrgans;
+		if (!result) result = numOrgans == _other.numOrgans && playerID < _other.playerID;
+
+		return result;
 	}
 
 	bool operator<=(Pair_Organ_Player _other)

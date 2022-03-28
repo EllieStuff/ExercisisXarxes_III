@@ -31,7 +31,7 @@ void SceneManager::EnterGame()
 void SceneManager::ExitGame()
 {
 	sceneState = Scene::GAMEOVER;
-
+	system("pause");
 }
 
 void SceneManager::UpdateInit()
@@ -64,7 +64,6 @@ void SceneManager::UpdateInit()
 	bool aborted = false;
 	if (option == Commands::CREATE_GAME)
 	{
-		std::cout << "Create game asked" << std::endl;
 		game.CreateGame(out);
 		serverSock.Send(out, status);
 	}
@@ -76,7 +75,6 @@ void SceneManager::UpdateInit()
 	}
 	else if (option == Commands::JOIN_GAME)
 	{
-		std::cout << "Join game asked" << std::endl;
 		game.JoinGame(out, aborted);
 		serverSock.Send(out, status);
 	}
@@ -113,6 +111,9 @@ void SceneManager::UpdateGame()
 	{
 		game.CalculateOrganQuantity();
 		game.SetEndRound(false);
+
+		if (game.IsFinished())
+			ExitGame();
 	}
 }
 

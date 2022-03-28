@@ -25,6 +25,10 @@ class GameManager
 	std::mutex mtx;
 	int* gameMaxSize = new int(-1);
 
+	std::vector<int> _checkedIds;
+
+	bool* end = new bool(false);
+
 	bool ready = false;
 	int* playersReady = new int();
 
@@ -35,6 +39,7 @@ class GameManager
 	void SendReady();
 	void SetListener();
 
+	void DisconnectPlayer(int Id);
 
 	void SendPassword(OutputMemoryStream* out);
 
@@ -76,4 +81,6 @@ public:
 
 	bool GetReady() { return ready; }
 	int GetPlayersReady() { return *playersReady; }
+
+	bool IsFinished() { return *end; }
 };

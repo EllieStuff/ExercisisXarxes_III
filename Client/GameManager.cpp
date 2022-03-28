@@ -119,9 +119,32 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 						in = socks->at(i)->Receive(status);
 						if (status != Status::DONE)
 						{
-							std::cout << "Error recieving something" << std::endl;
 							delete in;
 							selector.Remove(socks->at(i));
+
+							if (socks->size() == 1)
+							{
+								delete socks->at(0);
+								socks->clear();
+								*end = true;
+								return;
+							}
+
+							_checkedIds.resize(socks->size());
+
+							int position = player->id - 1;
+							_checkedIds.erase(_checkedIds.begin() + position);
+
+							for (size_t j = 0; j < _checkedIds.size(); j++)
+							{
+								_checkedIds[j] = j + 1;
+							}
+							delete socks->at(i);
+							socks->erase(socks->begin() + i);
+
+
+							DisconnectPlayer(i);
+							
 							continue;
 						}
 						OutputMemoryStream* out = nullptr;
@@ -172,6 +195,14 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 							*currentTurn = _currentTurn;
 						}
+						else if (instruction == (int)Commands::PLAYER_ID)
+						{
+							int _id;
+							in->Read(&_id);
+
+							int position = _id - 1;
+							_checkedIds.erase(_checkedIds.begin() + position);
+						}
 						//Ready
 						else if (instruction == (int)Commands::PLAYER_READY)
 						{
@@ -195,6 +226,16 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 							std::cout << "___________________LOG___________________" << std::endl;
 							std::cout << msg << std::endl;
 							std::cout << "___________________LOG___________________" << std::endl;
+						}
+						else if (instruction == (int)Commands::I_WON)
+						{
+							int _playerID;
+							in->Read(&_playerID);
+							std::cout << "___________________LOG___________________" << std::endl;
+							std::cout << "Player " << _playerID << " won!! ----LOOOOSER----" << std::endl;
+							std::cout << "___________________LOG___________________" << std::endl;
+							*end = true;
+							return;
 						}
 						//Card logic
 						else if (instruction == (int)Commands::PLACE_INFECTION)
@@ -253,7 +294,6 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 								if (table->table[i].size() > 0)
 								{
 									int size = table->table.at(i).size();
-									std::cout << size << std::endl;
 									out->Write(size);
 									break;
 								}
@@ -393,7 +433,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 								case (Card::TreatmentType::ROBER):
 									int playerToSend;
 									in->Read(&playerToSend);
-									std::cout << "player: " << playerToSend << std::endl;
+
 									for (size_t i = 0; i < table->table.size(); i++)
 									{
 										for (size_t o = 0; o < table->table[i].size(); o++)
@@ -431,21 +471,16 @@ void GameManager::CalculateOrganQuantity()
 	int organQuantity = 0;
 	for (size_t i = 0; i < player->hand.hand.size(); i++)
 	{
-		mtx.lock();
 		if (player->hand.hand[i]->cardType == Card::CardType::ORGAN)
 			organQuantity++;
-		mtx.unlock();
 	}
 
 	if (playerTurnOrder.size() < socks->size() + 1) 
 	{
-		mtx.lock();
 		playerTurnOrder.push_back(Pair_Organ_Player(player->id, organQuantity));
-		mtx.unlock();
 	}
 	else
 	{
-		mtx.lock();
 		for (size_t i = 0; i < playerTurnOrder.size(); i++)
 		{
 			if (playerTurnOrder[i].playerID == player->id) 
@@ -454,12 +489,7 @@ void GameManager::CalculateOrganQuantity()
 				break;
 			}
 		}
-		mtx.unlock();
 	}
-
-	mtx.lock();
-	std::sort(playerTurnOrder.begin(), playerTurnOrder.end(), ComparePlayers);
-	mtx.unlock();
 
 	OutputMemoryStream* out = new OutputMemoryStream();
 	//instruction 0: receive the organ quantity to receive the turn
@@ -467,13 +497,10 @@ void GameManager::CalculateOrganQuantity()
 	out->Write(player->id);
 	out->Write(organQuantity);
 
-	std::cout << organQuantity << std::endl;
-
-	for (auto it = socks->begin(); it != socks->end(); ++it)
+	Status status;
+	for (size_t i = 0; i < socks->size(); i++)
 	{
-		Status status;
-		TcpSocket& client = **it;
-		client.Send(out, status);
+		socks->at(i)->Send(out, status);
 	}
 
 	delete(out);
@@ -511,6 +538,10 @@ GameManager::GameManager()
 
 GameManager::~GameManager()
 {
+	for (size_t i = 0; i < socks->size(); i++)
+	{
+		delete socks->at(i);
+	}
 	delete socks;
 
 	delete player;
@@ -641,7 +672,7 @@ bool GameManager::Threatment()
 		std::cout << "Choose your infected card ('3' to go back)" << std::endl;
 		std::cin >> cardI;
 
-		int tableIndex;
+		int tableIndex = -1;
 
 		for (size_t i = 0; i < table->table.size(); i++)
 		{
@@ -740,11 +771,50 @@ bool GameManager::Threatment()
 
 bool GameManager::Update()
 {
+	if (*end) return true;
+
+	for (size_t i = 0; i < table->table.size(); i++)
+	{
+		if (table->table[i].size() >= 4)
+		{
+			std::cout << "I won!!!!" << std::endl;
+			OutputMemoryStream* out = new OutputMemoryStream();
+			out->Write((int)Commands::I_WON);
+			out->Write(player->id);
+			Status status;
+			for (size_t j = 0; j < socks->size(); j++)
+			{
+				socks->at(j)->Send(out, status);
+			}
+			delete out;
+			*end = true;
+		}
+	}
+
+	//Check if a player quit
+	if (!_checkedIds.empty())
+	{
+		if (_checkedIds.size() == 1)
+		{
+			for (size_t i = 0; i < playerTurnOrder.size(); i++)
+			{
+				if (playerTurnOrder[i].playerID == _checkedIds.front())
+				{
+					playerTurnOrder.erase(playerTurnOrder.begin() + i);
+
+					_checkedIds.clear();
+					break;
+				}
+			}
+		}
+	}
+
+	//Check end round
 	if (*currentTurn == playerTurnOrder.size() || playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	for (size_t i = 0; i < playerTurnOrder.size(); i++)
-		std::cout << "turn player: " << playerTurnOrder[i].playerID << std::endl;
+		std::cout << "Turn player: " << playerTurnOrder[i].playerID << std::endl;
 
 	bool finishedRound = false;
 
@@ -771,6 +841,8 @@ bool GameManager::Update()
 		table->ShowTable();
 		std::cout << "___________TABLE___________" << std::endl;
 		std::cout << "" << std::endl;
+
+		if (*end) return true;
 
 		Commands option = Commands::COUNT;
 		std::string tmpOption;
@@ -881,8 +953,6 @@ bool GameManager::Update()
 		}
 	}
 
-	std::cout << "waiting other players" << std::endl;
-
 	UpdateTurn(true);
 
 	//Mostrar missatges de tota la ronda (events)
@@ -911,10 +981,7 @@ void GameManager::SendReady()
 
 	for (size_t i = 0; i < socks->size(); i++)
 	{
-		std::cout << "Sending true" << std::endl;
 		socks->at(i)->Send(out, status);
-		if(status != Status::DONE)
-			std::cout << "Error sending true" << std::endl;
 	}
 
 	delete out;
@@ -925,6 +992,25 @@ void GameManager::SetListener()
 	Status status = listener.Listen(localPort);
 	if (status != Status::DONE)
 		return;
+}
+
+void GameManager::DisconnectPlayer(int id)
+{
+	Status status;
+	OutputMemoryStream* out = new OutputMemoryStream();
+
+	out->Write((int)Commands::PLAYER_ID);
+	out->Write(player->id);
+
+	for (size_t i = 0; i < socks->size(); i++)
+	{
+		if (i != id)
+		{
+			socks->at(i)->Send(out, status);
+		}
+	}
+	
+	delete out;
 }
 
 void GameManager::SetReady()
@@ -984,7 +1070,6 @@ void GameManager::CreateGame(OutputMemoryStream* out)
 	}
 
 	Status status;
-	/*out->Write((int)Commands::CREATE_GAME);*/
 	out->WriteString(gameName);
 	out->Write(numOfPlayers);
 	out->WriteString(gamePassword);
