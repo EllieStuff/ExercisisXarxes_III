@@ -187,7 +187,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 							int _currentTurn;
 							in->Read(&_currentTurn);
 
-							if (_currentTurn >= playerTurnOrder.size() || *currentTurn >= playerTurnOrder.size())
+							if (_currentTurn >= playerTurnOrder.size())
 							{
 								_currentTurn = 0;
 								*endRound = true;
@@ -245,7 +245,6 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 							if (playerID == player->id)
 							{
-								mtx.lock();
 								int organType;
 								in->Read(&organType);
 
@@ -278,7 +277,6 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 										}
 									}
 								}
-								mtx.unlock();
 							}
 						}
 						else if (instruction == (int)Commands::LIST_CARDS)
@@ -524,6 +522,8 @@ void GameManager::UpdateTurn(bool plus)
 		currentTurn = value;
 	}
 
+	mtx.lock();
+
 	//instruction 1: send your turn to another player
 	out->Write((int)Commands::UPDATE_TURN);
 	out->Write(*currentTurn);
@@ -534,6 +534,12 @@ void GameManager::UpdateTurn(bool plus)
 		TcpSocket& client = **it;
 		client.Send(out, status);
 	}
+
+
+	mtx.unlock();
+
+	if (*currentTurn >= playerTurnOrder.size())
+		*currentTurn = 0;
 
 	delete out;
 }
@@ -830,11 +836,11 @@ bool GameManager::Update()
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	//Check end round
-	if (*currentTurn == playerTurnOrder.size() || playerTurnOrder[*currentTurn].playerID != player->id)
+	if (*currentTurn >= playerTurnOrder.size() || playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	for (size_t i = 0; i < playerTurnOrder.size(); i++)
-		std::cout << "Turn player: " << playerTurnOrder[i].playerID << std::endl;
+		std::cout << "Turn player: " << playerTurnOrder[i].playerID << " Organs: " << playerTurnOrder[i].numOrgans << std::endl;
 
 	std::cout << *currentTurn << std::endl;
 
