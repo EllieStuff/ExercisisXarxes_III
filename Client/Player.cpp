@@ -15,8 +15,8 @@ void Player::ReceiveCards(int _quantity, Deck* _deck)
 
 	for (size_t i = 0; i < _quantity; i++)
 	{
-		hand.hand.push_back(_deck->deck.back());
-		_deck->deck.pop_back();
+		hand.hand.push_back(_deck->deck.front());
+		_deck->deck.erase(_deck->deck.begin());
 	}
 }
 
