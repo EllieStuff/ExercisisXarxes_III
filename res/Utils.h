@@ -27,7 +27,7 @@ struct Game
 
 struct Pair_Organ_Player
 {
-	int playerID, numOrgans;
+	int playerID = 0, numOrgans = 0;
 
 	Pair_Organ_Player(int _playerID, int _numOrgans) : playerID(_playerID), numOrgans(_numOrgans)
 	{
@@ -46,11 +46,7 @@ struct Pair_Organ_Player
 
 	bool operator>=(Pair_Organ_Player _other)
 	{
-		bool result = false;
-		result = numOrgans > _other.numOrgans;
-		if (!result) result = numOrgans == _other.numOrgans && playerID < _other.playerID;
-
-		return result;
+		return numOrgans > _other.numOrgans || (numOrgans == _other.numOrgans && playerID > _other.playerID);
 	}
 
 	bool operator<=(Pair_Organ_Player _other)
@@ -61,7 +57,7 @@ struct Pair_Organ_Player
 
 inline bool ComparePlayers(Pair_Organ_Player _first, Pair_Organ_Player _second)
 {
-	return _first >= _second;
+	return _first <= _second;
 }
 
 struct Card {

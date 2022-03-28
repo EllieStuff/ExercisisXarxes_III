@@ -187,7 +187,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 							int _currentTurn;
 							in->Read(&_currentTurn);
 
-							if (_currentTurn >= playerTurnOrder.size())
+							if (_currentTurn >= playerTurnOrder.size() || *currentTurn >= playerTurnOrder.size())
 							{
 								_currentTurn = 0;
 								*endRound = true;
@@ -245,6 +245,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 
 							if (playerID == player->id)
 							{
+								mtx.lock();
 								int organType;
 								in->Read(&organType);
 
@@ -277,6 +278,7 @@ void GameManager::ClientControl(TcpSocket* serverSock)
 										}
 									}
 								}
+								mtx.unlock();
 							}
 						}
 						else if (instruction == (int)Commands::LIST_CARDS)
@@ -478,6 +480,7 @@ void GameManager::CalculateOrganQuantity()
 	if (playerTurnOrder.size() < socks->size() + 1) 
 	{
 		playerTurnOrder.push_back(Pair_Organ_Player(player->id, organQuantity));
+		std::sort(playerTurnOrder.begin(), playerTurnOrder.end(), ComparePlayers);
 	}
 	else
 	{
@@ -497,11 +500,15 @@ void GameManager::CalculateOrganQuantity()
 	out->Write(player->id);
 	out->Write(organQuantity);
 
+	mtx.lock();
+
 	Status status;
 	for (size_t i = 0; i < socks->size(); i++)
 	{
 		socks->at(i)->Send(out, status);
 	}
+
+	mtx.unlock();
 
 	delete(out);
 }
@@ -554,6 +561,8 @@ GameManager::~GameManager()
 
 void GameManager::sendMSG(std::string message)
 {
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+
 	OutputMemoryStream outMSG;
 
 	outMSG.Write((int)Commands::LOG);
@@ -565,6 +574,8 @@ void GameManager::sendMSG(std::string message)
 		TcpSocket& client = **it;
 		client.Send(&outMSG, status);
 	}
+
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void GameManager::ListEnemiesWithTheirCards() 
@@ -601,6 +612,9 @@ bool GameManager::PlaceInfection()
 	if (card >= 3)
 		return false;
 
+	if (player->hand.hand[card]->cardType != Card::CardType::VIRUS)
+		return false;
+
 	int organType = (int) player->hand.hand[card]->organType;
 
 	OutputMemoryStream* out = new OutputMemoryStream();
@@ -610,6 +624,8 @@ bool GameManager::PlaceInfection()
 	out->Write(organType);
 
 	Status status;
+
+	mtx.lock();
 
 	for (auto it = socks->begin(); it != socks->end(); ++it)
 	{
@@ -621,6 +637,8 @@ bool GameManager::PlaceInfection()
 	sendMSG("Payer: " + std::to_string(player->id) + " has just infected an organ from the player " + std::to_string(objective));
 
 	player->hand.hand.erase(player->hand.hand.begin() + card);
+
+	mtx.unlock();
 
 	return true;
 
@@ -809,12 +827,16 @@ bool GameManager::Update()
 		}
 	}
 
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+
 	//Check end round
 	if (*currentTurn == playerTurnOrder.size() || playerTurnOrder[*currentTurn].playerID != player->id)
 		return *endRound;
 
 	for (size_t i = 0; i < playerTurnOrder.size(); i++)
 		std::cout << "Turn player: " << playerTurnOrder[i].playerID << std::endl;
+
+	std::cout << *currentTurn << std::endl;
 
 	bool finishedRound = false;
 
