@@ -3,7 +3,6 @@
 #include <vector>
 #include <math.h>
 #include <string>
-//#include <SFML/Network.hpp>
 
 class OutputMemoryStream
 {
@@ -11,14 +10,7 @@ private:
 	char* mBuffer;
 	uint32_t mHead;
 	uint32_t mCapacity;
-	//sf::Packet pack;
-	//std::vector<sf::TcpSocket*>* _socks;
 	int localPort;
-
-	/*struct PeerAddress {
-		std::string ip;
-		unsigned short port;
-	};*/
 
 	void ReallocBuffer(uint32_t _newLength);
 
