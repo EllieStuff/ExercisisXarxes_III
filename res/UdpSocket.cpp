@@ -10,7 +10,7 @@ UdpSocket::~UdpSocket()
 
 void UdpSocket::Send(OutputMemoryStream* _out, Status& _status, IpAddress _address, unsigned short _port)
 {
-	_status = (Status)(int)sock.send(_out->GetBufferPtr(), _out->GetLength(), *_address.GetAddress(), _port);
+	_status = (Status)((int)sock.send(_out->GetBufferPtr(), _out->GetLength(), *_address.GetAddress(), _port));
 }
 
 InputMemoryStream* UdpSocket::Receive(Status& _status, IpAddress _address, unsigned short &_port)
@@ -20,7 +20,7 @@ InputMemoryStream* UdpSocket::Receive(Status& _status, IpAddress _address, unsig
 	std::size_t received;
 	InputMemoryStream* input = new InputMemoryStream((char*)bufferChar, size);
 
-	_status = (Status)(int)sock.receive(bufferChar, size, received, *_address.GetAddress(), _port);
+	_status = (Status)((int)sock.receive(bufferChar, size, received, *_address.GetAddress(), _port));
 
 	return input;
 }

@@ -9,6 +9,11 @@ IpAddress::IpAddress(sf::IpAddress _address)
 	address = _address;
 }
 
+IpAddress::IpAddress(std::string _address)
+{
+	address = sf::IpAddress(_address);
+}
+
 IpAddress::~IpAddress()
 {
 }

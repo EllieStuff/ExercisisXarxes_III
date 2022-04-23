@@ -11,6 +11,7 @@ class IpAddress
 public:
 	IpAddress();
 	IpAddress(sf::IpAddress _address);
+	IpAddress(std::string _address);
 	~IpAddress();
 
 	sf::IpAddress* GetAddress() { return &address; }
