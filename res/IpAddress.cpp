@@ -4,6 +4,11 @@ IpAddress::IpAddress()
 {
 }
 
+IpAddress::IpAddress(sf::IpAddress _address)
+{
+	address = _address;
+}
+
 IpAddress::~IpAddress()
 {
 }

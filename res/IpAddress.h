@@ -10,6 +10,7 @@ class IpAddress
 
 public:
 	IpAddress();
+	IpAddress(sf::IpAddress _address);
 	~IpAddress();
 
 	sf::IpAddress* GetAddress() { return &address; }
