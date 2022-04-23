@@ -12,6 +12,8 @@ public:
 	IpAddress();
 	~IpAddress();
 
+	sf::IpAddress* GetAddress() { return &address; }
+
 	std::string GetLocalAddress();
 	std::string GetPublicAddress();
 };
