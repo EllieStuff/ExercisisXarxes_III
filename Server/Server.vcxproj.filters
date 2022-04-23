@@ -26,6 +26,12 @@
     <ClCompile Include="GameManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\res\IpAddress.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\res\UdpSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\InputMemoryStream.h" />
@@ -33,5 +39,7 @@
     <ClInclude Include="..\res\Utils.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="GameManager.h" />
+    <ClInclude Include="..\res\IpAddress.h" />
+    <ClInclude Include="..\res\UdpSocket.h" />
   </ItemGroup>
 </Project>

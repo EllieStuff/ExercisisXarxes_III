@@ -1,6 +1,4 @@
 #include "SceneManager.h"
-#include "../res/IpAddress.h"
-#include "../res/Utils.h"
 #include <iostream>
 #include <thread>
 
@@ -31,7 +29,7 @@ SceneManager::SceneManager()
 	clientReceive.detach();
 }
 
-void UpdateInit() 
+void SceneManager::UpdateInit() 
 {
 
 }

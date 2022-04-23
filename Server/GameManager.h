@@ -1,10 +1,6 @@
 #pragma once
 #include "../res/UdpSocket.h"
 
-class UdpSocket;
-enum class Status;
-class IpAdress;
-
 class GameManager
 {
 

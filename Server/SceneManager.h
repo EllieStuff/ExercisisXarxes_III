@@ -1,9 +1,6 @@
 #pragma once
 #include "GameManager.h"
 
-enum class Status;
-class IpAdress;
-
 class SceneManager
 {
 	enum class State {INIT, GAME, END};
