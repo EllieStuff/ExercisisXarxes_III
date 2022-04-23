@@ -14,7 +14,8 @@ public:
 	~UdpSocket();
 
 	void Send(OutputMemoryStream* _out, Status& _status, IpAddress _address, unsigned short _port);
-	InputMemoryStream* Receive(Status &_status, IpAddress _address, unsigned short &_port);
+	InputMemoryStream* Receive(Status& _status, std::pair<IpAddress, unsigned short> &_client);
+	InputMemoryStream* Receive(Status& _status, IpAddress _address, unsigned short& _port);
 
 	void Bind(unsigned int _port, Status& _status);
 	void Unbind();

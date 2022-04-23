@@ -144,12 +144,16 @@
   <ItemGroup>
     <ClCompile Include="..\res\InputMemoryStream.cpp" />
     <ClCompile Include="..\res\OutputMemoryStream.cpp" />
+    <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\InputMemoryStream.h" />
     <ClInclude Include="..\res\OutputMemoryStream.h" />
     <ClInclude Include="..\res\Utils.h" />
+    <ClInclude Include="GameManager.h" />
+    <ClInclude Include="SceneManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

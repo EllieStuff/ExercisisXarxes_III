@@ -19,3 +19,8 @@ public:
 	std::string GetLocalAddress();
 	std::string GetPublicAddress();
 };
+
+inline bool operator == (IpAddress _first, IpAddress _second) 
+{
+	return *_first.GetAddress() == *_second.GetAddress();
+}

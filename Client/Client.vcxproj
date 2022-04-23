@@ -146,6 +146,7 @@
     <ClCompile Include="..\res\IpAddress.cpp" />
     <ClCompile Include="..\res\OutputMemoryStream.cpp" />
     <ClCompile Include="..\res\UdpSocket.cpp" />
+    <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="SceneManager.cpp" />
   </ItemGroup>
@@ -155,6 +156,7 @@
     <ClInclude Include="..\res\OutputMemoryStream.h" />
     <ClInclude Include="..\res\UdpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />
+    <ClInclude Include="GameManager.h" />
     <ClInclude Include="SceneManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
