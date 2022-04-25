@@ -22,6 +22,9 @@ void SceneManager::UpdateInit()
 {
 	bool connect = false;
 
+	game->address.SetAdress("127.0.0.1");
+	game->port = 5000;
+
 	std::cout << "Write your username" << std::endl;
 	std::cin >> game->userName;
 

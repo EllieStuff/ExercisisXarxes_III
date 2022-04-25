@@ -18,6 +18,11 @@ IpAddress::~IpAddress()
 {
 }
 
+void IpAddress::SetAdress(std::string _address)
+{
+	address = sf::IpAddress(_address);
+}
+
 std::string IpAddress::GetLocalAddress()
 {
 	return address.getLocalAddress().toString();

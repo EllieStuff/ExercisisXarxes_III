@@ -18,6 +18,7 @@ SceneManager::SceneManager()
 	game = new GameManager();
 	Status status;
 	game->sock.Bind(5000, status);
+	game->clients = new std::vector<std::pair<IpAddress, unsigned short>>;
 
 	if(status != Status::DONE) 
 	{
@@ -49,7 +50,7 @@ void SceneManager::ReceiveMessages()
 			std::string msg = message->ReadString();
 
 
-			if(msg.find("hello")) 
+			if(msg.find("Hello_") != std::string::npos) 
 			{
 				bool clientExists = false;
 				for (size_t i = 0; i < game->clients->size(); i++)

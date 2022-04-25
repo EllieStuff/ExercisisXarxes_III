@@ -2,8 +2,8 @@
 
 int main()
 {
-	SceneManager scene;
+	SceneManager* scene = new SceneManager();
 
-	scene.Update();
+	scene->Update();
 	return 0;
 }
