@@ -2,6 +2,8 @@
 
 int main()
 {
+	srand(time(NULL));
+
 	SceneManager* scene = new SceneManager();
 
 	scene->Update();
