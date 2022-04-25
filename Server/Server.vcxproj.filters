@@ -32,6 +32,9 @@
     <ClCompile Include="..\res\UdpSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ClientData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\InputMemoryStream.h" />
@@ -41,5 +44,6 @@
     <ClInclude Include="GameManager.h" />
     <ClInclude Include="..\res\IpAddress.h" />
     <ClInclude Include="..\res\UdpSocket.h" />
+    <ClInclude Include="ClientData.h" />
   </ItemGroup>
 </Project>
