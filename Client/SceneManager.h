@@ -6,7 +6,7 @@ class SceneManager
 	enum class State {INIT, GAME, END};
 	State gameState;
 
-	GameManager* game;
+	GameManager* client;
 
 	void UpdateInit();
 

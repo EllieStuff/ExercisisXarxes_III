@@ -15,34 +15,43 @@ void SceneManager::UpdateGame()
 SceneManager::SceneManager()
 {
 	gameState = State::INIT;
-	game = new GameManager();
+	client = new GameManager();
 }
 
 void SceneManager::UpdateInit()
 {
 	bool connect = false;
 
-	game->address.SetAdress("127.0.0.1");
-	game->port = 5000;
+	client->SetAddress("127.0.0.1");
+	client->BindPort(Client_Initial_Port);
 
 	std::cout << "Write your username" << std::endl;
-	std::cin >> game->userName;
+	std::string clientName;
+	std::cin >> clientName;
+	client->SetName(clientName);
+	Status status;
 
 	while (!connect)
 	{
 		std::cout << " Connecting to the server" << std::endl;
 
 		OutputMemoryStream* out = new OutputMemoryStream();
-		out->WriteString("Hello_"+game->userName);
-		Status status;
+		out->WriteString("Hello_"+client->GetName());
 		
-		game->sock.Send(out, status, *game->address.GetAddress(), game->port);
+		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 
 		if (status == Status::DONE)
 			connect = true;
 		else
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
+
+	std::pair<IpAddress, unsigned short> _server;
+	InputMemoryStream* inp = client->GetSocket()->Receive(status, _server);
+
+	
+
+	client->SetServerData(_server);
 }
 
 SceneManager::~SceneManager()

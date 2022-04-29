@@ -17,8 +17,8 @@ SceneManager::SceneManager()
 	gameState = State::INIT;
 	game = new GameManager();
 	Status status;
-	game->sock.Bind(5000, status);
-	game->clients = new std::vector<std::pair<IpAddress, unsigned short>>;
+	game->sock.Bind(Server_Port, status);
+	game->clients = new std::vector<std::pair<IpAddress, unsigned short>>();
 
 	if(status != Status::DONE) 
 	{
@@ -42,13 +42,12 @@ void SceneManager::ReceiveMessages()
 		Status status;
 
 		std::pair<IpAddress, unsigned short> _client;
-			
+		
 		InputMemoryStream* message = game->sock.Receive(status, _client);
 
 		if(status == Status::DONE) 
 		{
 			std::string msg = message->ReadString();
-
 
 			if(msg.find("Hello_") != std::string::npos) 
 			{
@@ -66,7 +65,7 @@ void SceneManager::ReceiveMessages()
 			}
 
 			OutputMemoryStream* out = new OutputMemoryStream();
-			out->WriteString("Welcome! " + game->GetClientId(_client));
+			out->WriteString("Welcome_" + game->GetClientId(_client));
 
 			game->sock.Send(out, status, *_client.first.GetAddress(), _client.second);
 		}

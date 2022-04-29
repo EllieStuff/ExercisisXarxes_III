@@ -14,7 +14,7 @@ public:
 	IpAddress(std::string _address);
 	~IpAddress();
 
-	void SetAdress(std::string _address);
+	void SetAddress(std::string _address);
 
 	sf::IpAddress* GetAddress() { return &address; }
 

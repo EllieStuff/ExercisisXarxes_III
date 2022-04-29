@@ -18,7 +18,7 @@ IpAddress::~IpAddress()
 {
 }
 
-void IpAddress::SetAdress(std::string _address)
+void IpAddress::SetAddress(std::string _address)
 {
 	address = sf::IpAddress(_address);
 }
