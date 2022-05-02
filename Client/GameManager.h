@@ -1,14 +1,13 @@
 #pragma once
 #include "../res/UdpSocket.h"
+#include "ClientData.h"
 
 class GameManager
 {
-	unsigned short port;
-	IpAddress address;
-	std::string userName; 
+	ClientData* client = nullptr;
 	UdpSocket sock;
 
-	std::pair<IpAddress, unsigned short> serverData;
+	void BindPort(unsigned short& _OutPort);
 public:
 	GameManager();
 	GameManager(std::string _address, unsigned short _port);
@@ -18,19 +17,16 @@ public:
 
 	void SafeSend(OutputMemoryStream* out);
 
-	void SetServerData(std::pair<IpAddress, unsigned short>);
-	void SetServerData(IpAddress, unsigned short);
-
-	std::pair<IpAddress, unsigned short> GetServerData() { return serverData; }
-
 	UdpSocket* GetSocket() { return &sock; }
 
-	void SetAddress(std::string);
-	IpAddress GetAddress() { return address; }
+	void InitClient(std::string _name, std::string _address);
 
-	void BindPort(unsigned short _port);
-	unsigned short GetPort() { return port; }
+	IpAddress GetAddress() { return client->GetAddress(); }
 
-	void SetName(std::string _name) { userName = _name; }
-	std::string GetName() { return userName; }
+	int GetSalt() { return client->GetSalt(); };
+	void SetServerSalt(int _salt) { client->SetServerSalt(_salt); }
+	void SetClientID(int _id) { client->SetClientID(_id); }
+
+	unsigned short GetPort() { return client->GetPort(); }
+	std::string GetName() { return client->GetName(); }
 };

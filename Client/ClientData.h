@@ -8,9 +8,6 @@ class ClientData
 	IpAddress address;
 	std::string name;
 	int clientSALT, serverSALT, clientID;
-	clock_t timeStamp;
-
-	int tries;
 
 	void GenerateSALT(int &value, int numOfBytes);
 
@@ -18,13 +15,16 @@ public:
 	ClientData() {}
 	ClientData(unsigned short _port, IpAddress _address, std::string _name);
 
-	bool CheckChallengeResult(int _salt);
+	int CalculateChallenge(int _salt);
 
-	void SetClientID(int _id) { clientID = _id; }
+	void SetClientID(int _id);
+	void SetServerSalt(int _salt);
 
 	IpAddress GetAddress() { return address; }
 
 	unsigned short GetPort() { return port; }
+
+	int GetSalt() { return clientSALT; };
 
 	std::string GetName() { return name; }
 };

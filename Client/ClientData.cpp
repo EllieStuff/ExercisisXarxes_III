@@ -11,17 +11,20 @@ void ClientData::GenerateSALT(int& value, int numOfBytes = 4)
 
 ClientData::ClientData(unsigned short _port, IpAddress _address, std::string _name): port(_port), address(_address), name(_name)
 {
-	timeStamp = clock();
-
-	GenerateSALT(serverSALT);
+	GenerateSALT(clientSALT);
 }
 
-bool ClientData::CheckChallengeResult(int _saltresult)
+int ClientData::CalculateChallenge(int _salt)
 {
-	int result = serverSALT & clientSALT;
+	return _salt & serverSALT;
+}
 
-	if (result == _saltresult)
-		return true;
+void ClientData::SetClientID(int _id)
+{
+	clientID = _id;
+}
 
-	return false;
+void ClientData::SetServerSalt(int _salt)
+{
+	serverSALT = _salt;
 }

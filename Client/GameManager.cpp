@@ -5,11 +5,6 @@ GameManager::GameManager()
 
 }
 
-GameManager::GameManager(std::string _address, unsigned short _port)
-{
-	address = IpAddress(_address);
-}
-
 GameManager::~GameManager()
 {
 
@@ -19,10 +14,6 @@ void GameManager::Update()
 {
 
 }
-void GameManager::SetAddress(std::string _address)
-{
-	address.SetAddress(_address);
-}
 
 void GameManager::SafeSend(OutputMemoryStream* out)
 {
@@ -30,8 +21,9 @@ void GameManager::SafeSend(OutputMemoryStream* out)
 	sock.Send(out, status, Server_Ip, Server_Port);
 }
 
-void GameManager::BindPort(unsigned short _port)
+void GameManager::BindPort(unsigned short &_OutPort)
 {
+	unsigned short _port = Client_Initial_Port;
 	Status status;
 	
 	sock.Bind(_port, status);
@@ -41,16 +33,14 @@ void GameManager::BindPort(unsigned short _port)
 		sock.Bind(_port, status);
 	}
 
-	port = _port;
+	_OutPort = _port;
 }
 
-void GameManager::SetServerData(std::pair<IpAddress, unsigned short> _server)
+void GameManager::InitClient(std::string _name, std::string _address)
 {
-	serverData = _server;
-}
+	unsigned short port;
 
-void GameManager::SetServerData(IpAddress _address, unsigned short _port)
-{
-	serverData.first = _address;
-	serverData.second = _port;
+	BindPort(port);
+
+	client = new ClientData(port, _address, _name);
 }

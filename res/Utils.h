@@ -11,7 +11,7 @@ const std::string Server_Ip = "localhost";
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
 
 enum class Commands {
-	DEFAULT,
+	DEFAULT, WELCOME, HELLO, PLAYER_ID, SALT, CHALLENGE, 
 
 	COUNT
 };
