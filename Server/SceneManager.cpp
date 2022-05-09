@@ -17,8 +17,7 @@ SceneManager::SceneManager()
 	gameState = State::INIT;
 	game = new GameManager();
 	Status status;
-	game->sock.Bind(Server_Port, status);
-	game->clients = new std::vector<std::pair<IpAddress, unsigned short>>();
+	status = game->BindSocket();
 
 	if(status != Status::DONE) 
 	{
@@ -43,31 +42,49 @@ void SceneManager::ReceiveMessages()
 
 		std::pair<IpAddress, unsigned short> _client;
 		
-		InputMemoryStream* message = game->sock.Receive(status, _client);
+		unsigned int count = 5000;
+		char* buffer = new char[count];
+
+		InputMemoryStream* message = new InputMemoryStream(buffer, count); 
+		
+		status = game->ReceiveMSG(message, _client);
 
 		if(status == Status::DONE) 
 		{
-			std::string msg = message->ReadString();
+			Commands commandNum;
+			int num;
 
-			if(msg.find("Hello_") != std::string::npos) 
+			message->Read(&num);
+
+			commandNum = (Commands) num;
+
+			switch (commandNum)
 			{
-				bool clientExists = false;
-				for (size_t i = 0; i < game->clients->size(); i++)
+			case Commands::WELCOME:
+				break;
+			case Commands::HELLO: 
 				{
-					if (game->clients->at(i) == _client)
-					{
-						clientExists = true;
-						break;
-					}
+					OutputMemoryStream* out = new OutputMemoryStream();
+					std::string name = message->ReadString();
+					int salt;
+					message->Read(&salt);
+
+					int id = game->CreateClient(_client.second, _client.first, name, salt);
+					out->Write(id);
+					out->Write(game->GetSalt(id));
 				}
-				if (!clientExists)
-					game->clients->push_back(_client);
+				break;
+			case Commands::PLAYER_ID:
+				break;
+			case Commands::SALT:
+				break;
+			case Commands::CHALLENGE:
+				break;
 			}
-
-			OutputMemoryStream* out = new OutputMemoryStream();
-			out->WriteString("Welcome_" + game->GetClientId(_client));
-
-			game->sock.Send(out, status, *_client.first.GetAddress(), _client.second);
+		}
+		else 
+		{
+			delete message;
 		}
 	}
 }

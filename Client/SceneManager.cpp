@@ -1,6 +1,5 @@
 #include "SceneManager.h"
 #include <iostream>
-#include <thread>
 
 void SceneManager::EnterGame()
 {
@@ -20,8 +19,6 @@ SceneManager::SceneManager()
 
 void SceneManager::UpdateInit()
 {
-	bool connect = false;
-
 	std::cout << "Write your username" << std::endl;
 	std::string clientName;
 	std::cin >> clientName;
@@ -29,39 +26,64 @@ void SceneManager::UpdateInit()
 	client->InitClient(clientName, "127.0.0.1");
 
 	Status status;
-	InputMemoryStream* in;
 
-	while (!connect)
+	std::thread tReceive(&SceneManager::ReceiveMessages, this);
+	tReceive.detach();
+
+	while (!connected)
 	{
 		std::cout << " Connecting to the server" << std::endl;
 
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::HELLO);
-		out->Write(client->GetName());
+		out->WriteString(client->GetName());
 		out->Write(client->GetSalt());
 		
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 
 		if (status != Status::DONE)
 			continue;
+	}
+}
 
-		unsigned short _port;	//trash variable
+void SceneManager::ReceiveMessages()
+{
+	Status status;
+	unsigned short _port;
 
-		in = client->GetSocket()->Receive(status, Server_Ip, _port);
-
+	while(true) 
+	{
+		InputMemoryStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
 
 		int command;
 		in->Read(&command);
 
-		int id;
-		in->Read(&id);
-		client->SetClientID(id);
+		Commands _com = (Commands)command;
 
-		int salt;
-		in->Read(&salt);
-		client->SetServerSalt(salt);
+		switch (_com)
+		{
+		case Commands::WELCOME:
+			int id;
+			in->Read(&id);
+			client->SetClientID(id);
 
-		connect = true;
+			int salt;
+			in->Read(&salt);
+			client->SetServerSalt(salt);
+
+			*connected = true;
+			break;
+		case Commands::HELLO:
+			break;
+		case Commands::PLAYER_ID:
+			break;
+		case Commands::SALT:
+			break;
+		case Commands::CHALLENGE:
+			break;
+		}
+
+		delete in;
 	}
 }
 

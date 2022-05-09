@@ -16,7 +16,7 @@ class ClientData
 
 public:
 	ClientData() {}
-	ClientData(unsigned short _port, IpAddress _address, std::string _name);
+	ClientData(unsigned short _port, IpAddress _address, std::string _name, int _salt);
 
 	bool CheckChallengeResult(int _salt);
 
@@ -25,6 +25,8 @@ public:
 	IpAddress GetAddress() { return address; }
 
 	unsigned short GetPort() { return port; }
+
+	int GetSalt() { return serverSALT; }
 
 	std::string GetName() { return name; }
 };

@@ -6,7 +6,7 @@
 const unsigned short Client_Initial_Port = 500;
 
 const unsigned short Server_Port = 5000;
-const std::string Server_Ip = "localhost";
+const std::string Server_Ip = "127.0.0.1";
 
 enum class Status { DONE, NOT_READY, PARTIAL, DISCONNECTED, ERROR };
 
