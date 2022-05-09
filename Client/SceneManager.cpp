@@ -34,7 +34,7 @@ void SceneManager::UpdateInit()
 	{
 		std::cout << " Connecting to the server" << std::endl;
 
-		OutputMemoryStream* out = new OutputMemoryStream();
+		OutputMemoryStream* out = new OutputMemoryStream;
 		out->Write((int)Commands::HELLO);
 		out->WriteString(client->GetName());
 		out->Write(client->GetSalt());

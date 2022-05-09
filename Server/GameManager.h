@@ -22,7 +22,7 @@ public:
 	int GetSalt(int _id) { return clients[_id]->GetSalt(); };
 
 	Status BindSocket();
-	Status ReceiveMSG(InputMemoryStream* in, std::pair<IpAddress, unsigned short> client);
+	InputMemoryStream* ReceiveMSG(std::pair<IpAddress*, unsigned short*>* client, Status& status);
 
 	int CreateClient(unsigned short _port, IpAddress _address, std::string _name, int _salt);
 	Status SendClient(int _id, OutputMemoryStream* out);

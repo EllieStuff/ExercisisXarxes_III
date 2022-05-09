@@ -33,13 +33,11 @@ Status GameManager::BindSocket()
 	return status;
 }
 
-Status GameManager::ReceiveMSG(InputMemoryStream* in, std::pair<IpAddress, unsigned short> client)
+InputMemoryStream* GameManager::ReceiveMSG(std::pair<IpAddress*, unsigned short*>* client, Status& status)
 {
-	Status status;
+	InputMemoryStream* in = sock.Receive(status, *client->first, *client->second);
 
-	in = sock.Receive(status, client.first, client.second);
-
-	return status;
+	return in;
 }
 
 int GameManager::CreateClient(unsigned short _port ,IpAddress _address, std::string _name, int _salt)

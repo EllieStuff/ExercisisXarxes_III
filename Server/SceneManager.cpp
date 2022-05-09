@@ -38,16 +38,15 @@ void SceneManager::ReceiveMessages()
 {
 	while (gameState != State::END)
 	{
-		Status status;
+		Status status = Status::NOT_READY;
 
-		std::pair<IpAddress, unsigned short> _client;
-		
-		unsigned int count = 5000;
-		char* buffer = new char[count];
+		std::pair<IpAddress*, unsigned short*>* _client = new std::pair<IpAddress*, unsigned short*>;
 
-		InputMemoryStream* message = new InputMemoryStream(buffer, count); 
-		
-		status = game->ReceiveMSG(message, _client);
+		std::string ip = "127.0.0.1";
+		_client->first = new IpAddress(ip);
+		_client->second = new unsigned short;
+
+		InputMemoryStream* message = game->ReceiveMSG(_client, status);
 
 		if(status == Status::DONE) 
 		{
@@ -69,9 +68,11 @@ void SceneManager::ReceiveMessages()
 					int salt;
 					message->Read(&salt);
 
-					int id = game->CreateClient(_client.second, _client.first, name, salt);
+					int id = game->CreateClient(*_client->second, *_client->first, name, salt);
 					out->Write(id);
 					out->Write(game->GetSalt(id));
+
+					game->SendClient(id, out);
 				}
 				break;
 			case Commands::PLAYER_ID:
@@ -98,5 +99,6 @@ void SceneManager::Update()
 {
 	while (gameState != State::END)
 	{
+		ReceiveMessages();
 	}
 }
