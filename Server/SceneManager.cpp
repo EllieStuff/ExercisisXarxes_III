@@ -69,6 +69,7 @@ void SceneManager::ReceiveMessages()
 					message->Read(&salt);
 
 					int id = game->CreateClient(*_client->second, *_client->first, name, salt);
+					out->Write(Commands::CHALLENGE);
 					out->Write(id);
 					out->Write(game->GetSalt(id));
 
@@ -78,6 +79,26 @@ void SceneManager::ReceiveMessages()
 			case Commands::PLAYER_ID:
 				break;
 			case Commands::SALT:
+				{
+					int id;
+					int salt;
+					message->Read(&id);
+					message->Read(&salt);
+
+					OutputMemoryStream* out = new OutputMemoryStream();
+
+					if(game->GetSalt(id) == salt) 
+					{
+						out->Write((int) Commands::WELCOME);
+						out->WriteString("Welcome!");
+					}
+					else 
+					{
+						out->Write((int) Commands::SALT);
+					}
+
+					game->SendClient(id, out);
+				}
 				break;
 			case Commands::CHALLENGE:
 				break;

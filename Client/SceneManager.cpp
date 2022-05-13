@@ -59,6 +59,10 @@ void SceneManager::UpdateInit()
 
 	client->InitClient(clientName, "127.0.0.1");
 
+	int salt = client->GenerateSalt();
+
+	client->SetClientSalt(salt);
+
 	Status status;
 
 	std::thread tReceive(&SceneManager::ReceiveMessages, this);
@@ -83,6 +87,8 @@ void SceneManager::UpdateInit()
 		if (status != Status::DONE)
 			continue;
 	}
+
+	while(true) { }
 }
 
 void SceneManager::ReceiveMessages()
@@ -102,14 +108,11 @@ void SceneManager::ReceiveMessages()
 		switch (_com)
 		{
 		case Commands::WELCOME:
-			int id;
-			in->Read(&id);
-			client->SetClientID(id);
-
-			int salt;
-			in->Read(&salt);
-			client->SetServerSalt(salt);
-
+			{
+				std::string msg = in->ReadString();
+				std::cout << msg;
+				connected = new bool(true);
+			}
 			//*connected = true;
 			break;
 		case Commands::HELLO:
@@ -117,8 +120,38 @@ void SceneManager::ReceiveMessages()
 		case Commands::PLAYER_ID:
 			break;
 		case Commands::SALT:
+			{
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				out->Write((int) Commands::SALT);
+				out->Write(client->GetClientID());
+				out->Write(client->GetSalt());
+
+				auto startTime = std::chrono::system_clock::now();
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+				SavePacketToTable(out, std::chrono::system_clock::to_time_t(startTime));
+			}
 			break;
 		case Commands::CHALLENGE:
+			{
+				int id;
+				in->Read(&id);
+				client->SetClientID(id);
+
+				int salt;
+				in->Read(&salt);
+				client->SetServerSalt(salt);
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				out->Write((int) Commands::SALT);
+				out->Write(id);
+				out->Write(salt);
+
+				auto startTime2 = std::chrono::system_clock::now();
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+				SavePacketToTable(out, std::chrono::system_clock::to_time_t(startTime2));
+			}
 			break;
 		}
 

@@ -23,8 +23,12 @@ public:
 
 	IpAddress GetAddress() { return client->GetAddress(); }
 
+	int GenerateSalt() { return client->CreateSALT(); }
+
+	int GetClientID() { return client->GetClientID(); };
 	int GetSalt() { return client->GetSalt(); };
 	void SetServerSalt(int _salt) { client->SetServerSalt(_salt); }
+	void SetClientSalt(int _salt) { client->SetClientSalt(_salt); }
 	void SetClientID(int _id) { client->SetClientID(_id); }
 
 	unsigned short GetPort() { return client->GetPort(); }
