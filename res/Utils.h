@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "IpAddress.h"
 
 //Usar puerto inicial para el cliente y si el status de bindear a este es negativo, incrementar este puerto inicial
 const unsigned short Client_Initial_Port = 500;
@@ -17,20 +18,20 @@ enum class Commands {
 };
 
 struct CriticalMessages {
-	IpAddress ip;
+	std::string _ip;
 	unsigned short port;
-	float timeout;
-	float secondTimeout;
+	std::time_t timeout;
+	std::time_t secondTimeout;
 	OutputMemoryStream* message;
 
-	CriticalMessages() {};
-	CriticalMessages(IpAddress _ip, unsigned short _port, float _timeout, OutputMemoryStream* _message)
-	{
-		ip = _ip;
-		port = _port;
-		timeout = _timeout;
-		message = _message;
-	};
+	//CriticalMessages(IpAddress _ip, unsigned short _port, std::time_t _timeout, std::time_t _secondTimeout, OutputMemoryStream* _message)
+	//{
+	//	ip = _ip;
+	//	port = _port;
+	//	timeout = _timeout;
+	//	secondTimeout = _secondTimeout;
+	//	message = _message;
+	//};
 	~CriticalMessages() 
 	{
 		delete message;

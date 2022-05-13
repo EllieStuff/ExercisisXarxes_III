@@ -18,23 +18,35 @@ SceneManager::SceneManager()
 	packetId = 0;
 }
 
-void SceneManager::SavePacketToTable(OutputMemoryStream* out) 
+void SceneManager::SavePacketToTable(OutputMemoryStream* out, std::time_t time)
 {
-	criticalMessages[packetId] = CriticalMessages(client->GetAddress(), client->GetPort(), 0, out);
+	auto endTime = std::chrono::system_clock::now();
+	CriticalMessages message = CriticalMessages();
+	message._ip = client->GetAddress().GetLocalAddress();
+	message.port = client->GetPort();
+	message.timeout = time;
+	message.secondTimeout = std::chrono::system_clock::to_time_t(endTime);
+	message.message = out;
+
+	criticalMessages[packetId] = message;
 	packetId++;
 }
 
 void SceneManager::CheckMessageTimeout()
 {
-	if (criticalMessages.size() == 0) return;
-
-	Status status;
-	for (auto it = criticalMessages.begin(); it != criticalMessages.end(); it++)
+	while(true) 
 	{
-		if (it->second.timeout < 0)
+		if (criticalMessages.size() == 0) return;
+
+		Status status;
+		for (auto it = criticalMessages.begin(); it != criticalMessages.end(); it++)
 		{
-			client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
-			it->second.timeout = 0;
+			float time = it->second.timeout - it->second.secondTimeout;
+			if (time > 1)
+			{
+				client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
+				it->second.timeout = 0;
+			}
 		}
 	}
 }
@@ -52,6 +64,9 @@ void SceneManager::UpdateInit()
 	std::thread tReceive(&SceneManager::ReceiveMessages, this);
 	tReceive.detach();
 
+	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
+	tCheck.detach();
+
 	while (!connected)
 	{
 		std::cout << " Connecting to the server" << std::endl;
@@ -61,7 +76,9 @@ void SceneManager::UpdateInit()
 		out->WriteString(client->GetName());
 		out->Write(client->GetSalt());
 		
+		auto startTime = std::chrono::system_clock::now();
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+		SavePacketToTable(out, std::chrono::system_clock::to_time_t(startTime));
 
 		if (status != Status::DONE)
 			continue;
@@ -93,7 +110,7 @@ void SceneManager::ReceiveMessages()
 			in->Read(&salt);
 			client->SetServerSalt(salt);
 
-			*connected = true;
+			//*connected = true;
 			break;
 		case Commands::HELLO:
 			break;
@@ -104,8 +121,6 @@ void SceneManager::ReceiveMessages()
 		case Commands::CHALLENGE:
 			break;
 		}
-
-		
 
 		delete in;
 	}

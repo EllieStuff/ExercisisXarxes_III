@@ -18,7 +18,7 @@ class SceneManager
 	void EnterGame();
 	void UpdateGame();
 	void ReceiveMessages();
-	void SavePacketToTable(OutputMemoryStream* out);
+	void SavePacketToTable(OutputMemoryStream* out, std::time_t time);
 	void CheckMessageTimeout();
 
 public:
