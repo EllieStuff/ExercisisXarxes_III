@@ -15,6 +15,28 @@ SceneManager::SceneManager()
 {
 	gameState = State::INIT;
 	client = new GameManager();
+	packetId = 0;
+}
+
+void SceneManager::SavePacketToTable(OutputMemoryStream* out) 
+{
+	criticalMessages[packetId] = CriticalMessages(client->GetAddress(), client->GetPort(), 0, out);
+	packetId++;
+}
+
+void SceneManager::CheckMessageTimeout()
+{
+	if (criticalMessages.size() == 0) return;
+
+	Status status;
+	for (auto it = criticalMessages.begin(); it != criticalMessages.end(); it++)
+	{
+		if (it->second.timeout < 0)
+		{
+			client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
+			it->second.timeout = 0;
+		}
+	}
 }
 
 void SceneManager::UpdateInit()
@@ -34,7 +56,7 @@ void SceneManager::UpdateInit()
 	{
 		std::cout << " Connecting to the server" << std::endl;
 
-		OutputMemoryStream* out = new OutputMemoryStream;
+		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::HELLO);
 		out->WriteString(client->GetName());
 		out->Write(client->GetSalt());
@@ -82,6 +104,8 @@ void SceneManager::ReceiveMessages()
 		case Commands::CHALLENGE:
 			break;
 		}
+
+		
 
 		delete in;
 	}

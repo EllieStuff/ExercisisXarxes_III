@@ -6,6 +6,8 @@ class SceneManager
 	enum class State {INIT, GAME, END};
 	State gameState;
 
+	std::vector<CriticalMessages> criticalMessages;
+
 	GameManager* game;
 
 	void UpdateInit();

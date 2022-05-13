@@ -7,6 +7,9 @@ class SceneManager
 	enum class State {INIT, GAME, END};
 	State gameState;
 	bool* connected;
+	int packetId;
+
+	std::map<int, CriticalMessages> criticalMessages;
 
 	GameManager* client;
 
@@ -15,6 +18,8 @@ class SceneManager
 	void EnterGame();
 	void UpdateGame();
 	void ReceiveMessages();
+	void SavePacketToTable(OutputMemoryStream* out);
+	void CheckMessageTimeout();
 
 public:
 	SceneManager();

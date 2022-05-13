@@ -16,6 +16,28 @@ enum class Commands {
 	COUNT
 };
 
+struct CriticalMessages {
+	IpAddress ip;
+	unsigned short port;
+	float timeout;
+	float secondTimeout;
+	OutputMemoryStream* message;
+
+	CriticalMessages() {};
+	CriticalMessages(IpAddress _ip, unsigned short _port, float _timeout, OutputMemoryStream* _message)
+	{
+		ip = _ip;
+		port = _port;
+		timeout = _timeout;
+		message = _message;
+	};
+	~CriticalMessages() 
+	{
+		delete message;
+	};
+
+};
+
 //Codigo antiguo de TCP
 
 //enum class Commands {
