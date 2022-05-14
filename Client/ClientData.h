@@ -9,13 +9,14 @@ class ClientData
 	std::string name;
 	int clientSALT, serverSALT, clientID;
 
+	void GenerateSALT(int &value, int numOfBytes);
 
 public:
 	ClientData() {}
-	ClientData(unsigned short _port, IpAddress _address, std::string _name);
 
 	int CalculateChallenge(int _salt);
-	void GenerateSALT(int &value, int numOfBytes);
+
+	void Start(unsigned short _port, IpAddress _address, std::string _name);
 
 	void SetClientID(int _id);
 	void SetServerSalt(int _salt);
@@ -27,11 +28,10 @@ public:
 
 	unsigned short GetPort() { return port; }
 
-	int GetSalt() { return clientSALT; };
+	int GetServerSalt() { return serverSALT; }
+	int GetClientSalt() { return clientSALT; }
 
 	void SetSalt(int salt) { clientSALT = salt; };
-
-	int CreateSALT();
 
 	std::string GetName() { return name; }
 

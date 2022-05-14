@@ -9,7 +9,7 @@ class SceneManager
 	bool* connected;
 	int packetId;
 
-	std::map<int, CriticalMessages> criticalMessages;
+	std::map<Commands, CriticalMessages>* criticalMessages;
 
 	GameManager* client;
 
@@ -18,8 +18,10 @@ class SceneManager
 	void EnterGame();
 	void UpdateGame();
 	void ReceiveMessages();
-	void SavePacketToTable(OutputMemoryStream* out, std::time_t time);
+	void SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time);
 	void CheckMessageTimeout();
+
+	void MessageReceived(Commands _message);
 
 public:
 	SceneManager();

@@ -2,7 +2,7 @@
 
 GameManager::GameManager()
 {
-
+	client = new ClientData();
 }
 
 GameManager::~GameManager()
@@ -42,5 +42,5 @@ void GameManager::InitClient(std::string _name, std::string _address)
 
 	BindPort(port);
 
-	client = new ClientData(port, _address, _name);
+	client->Start(port, _address, _name);
 }

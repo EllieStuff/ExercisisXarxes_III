@@ -26,7 +26,8 @@ public:
 
 	unsigned short GetPort() { return port; }
 
-	int GetSalt() { return serverSALT; }
+	int GetServerSalt() { return serverSALT; }
+	int GetClientSalt() { return clientSALT; }
 
 	std::string GetName() { return name; }
 };

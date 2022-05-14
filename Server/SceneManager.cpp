@@ -40,13 +40,12 @@ void SceneManager::ReceiveMessages()
 	{
 		Status status = Status::NOT_READY;
 
-		std::pair<IpAddress*, unsigned short*>* _client = new std::pair<IpAddress*, unsigned short*>;
+		std::pair<IpAddress, unsigned short> _client ;
 
 		std::string ip = "127.0.0.1";
-		_client->first = new IpAddress(ip);
-		_client->second = new unsigned short;
+		_client.first = ip;
 
-		InputMemoryStream* message = game->ReceiveMSG(_client, status);
+		InputMemoryStream* message = game->ReceiveMSG(&_client, status);
 
 		if(status == Status::DONE) 
 		{
@@ -68,10 +67,10 @@ void SceneManager::ReceiveMessages()
 					int salt;
 					message->Read(&salt);
 
-					int id = game->CreateClient(*_client->second, *_client->first, name, salt);
+					int id = game->CreateClient(_client.second, _client.first, name, salt);
 					out->Write(Commands::CHALLENGE);
 					out->Write(id);
-					out->Write(game->GetSalt(id));
+					out->Write(game->GetServerSalt(id));
 
 					game->SendClient(id, out);
 				}
@@ -87,7 +86,11 @@ void SceneManager::ReceiveMessages()
 
 					OutputMemoryStream* out = new OutputMemoryStream();
 
-					if(game->GetSalt(id) == salt) 
+					int _result = game->GetServerSalt(id) & game->GetClientSalt(id);
+					
+					std::cout << "Server SALT: " << game->GetServerSalt(id) << ", Client SALT: " << game->GetClientSalt(id) << ", Result: " << _result << std::endl;
+
+					if(salt == _result)
 					{
 						out->Write((int) Commands::WELCOME);
 						out->WriteString("Welcome!");

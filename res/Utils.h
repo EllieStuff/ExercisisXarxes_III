@@ -18,24 +18,21 @@ enum class Commands {
 };
 
 struct CriticalMessages {
-	std::string _ip;
+	IpAddress ip;
 	unsigned short port;
-	std::time_t timeout;
-	std::time_t secondTimeout;
+	std::time_t startTime;
+	std::time_t currentTime;
 	OutputMemoryStream* message;
 
-	//CriticalMessages(IpAddress _ip, unsigned short _port, std::time_t _timeout, std::time_t _secondTimeout, OutputMemoryStream* _message)
-	//{
-	//	ip = _ip;
-	//	port = _port;
-	//	timeout = _timeout;
-	//	secondTimeout = _secondTimeout;
-	//	message = _message;
-	//};
-	~CriticalMessages() 
+	CriticalMessages() {}
+	CriticalMessages(IpAddress _ip, unsigned short _port, std::time_t _timeout, OutputMemoryStream* _message)
 	{
-		delete message;
+		ip = _ip;
+		port = _port;
+		startTime = _timeout;
+		message = _message;
 	};
+
 
 };
 
