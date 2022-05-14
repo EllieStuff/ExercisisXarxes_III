@@ -1,153 +1,202 @@
 #include "SceneManager.h"
-#include "../res/OutputMemoryStream.h"
-#include "../res/InputMemoryStream.h"
-
-void SceneManager::Start()
-{
-	//Connect to server
-	Status status = serverSock.Connect("127.0.0.1", 50000);
-	if (status != Status::DONE) {
-		return;
-	}
-
-	game.SetPort(serverSock.GetLocalPort());
-
-	std::thread tClient(&GameManager::ClientControl, &game, &serverSock);
-	tClient.detach();
-
-	sceneState = Scene::START;
-}
+#include <iostream>
 
 void SceneManager::EnterGame()
 {
-	game.Start();
 
-	std::cout << "Waiting For your turn" << std::endl;
-
-	sceneState = Scene::GAME;
-}
-
-
-void SceneManager::ExitGame()
-{
-	sceneState = Scene::GAMEOVER;
-	system("pause");
-}
-
-void SceneManager::UpdateInit()
-{
-	std::cout << "\nWelcome!" << std::endl;
-	std::cout << "1. Create P2P Game" << std::endl;
-	std::cout << "2. List P2P Games" << std::endl;
-	std::cout << "3. Join P2P Game" << std::endl;
-
-	std::cout << "\nSelect option: " << std::endl;
-
-	Commands option;
-	std::string tmpOption;
-	std::cin >> tmpOption;
-	//tmpOption -= '0';
-
-	if (tmpOption == "1") option = Commands::CREATE_GAME;
-	else if (tmpOption == "2") option = Commands::GAME_LIST;
-	else if (tmpOption == "3") option = Commands::JOIN_GAME;
-	else return;
-	//option = (Commands)tmpOption;
-
-	if (option < Commands::CREATE_GAME || option > Commands::JOIN_GAME)
-		return;
-
-	OutputMemoryStream* out = new OutputMemoryStream();
-	Status status;
-	out->Write(option);
-
-	bool aborted = false;
-	if (option == Commands::CREATE_GAME)
-	{
-		game.CreateGame(out);
-		serverSock.Send(out, status);
-	}
-	else if (option == Commands::GAME_LIST)
-	{
-		game.ActivateFilters(out);
-
-		serverSock.Send(out, status);
-	}
-	else if (option == Commands::JOIN_GAME)
-	{
-		game.JoinGame(out, aborted);
-		serverSock.Send(out, status);
-	}
-	
-	if (option == Commands::CREATE_GAME || (option == Commands::JOIN_GAME && !aborted)) {
-		
-		std::cout << "Waiting for players" << std::endl;
-
-		while (game.GetGameSize() < 0 ||( game.GetPlayersNum() < game.GetGameSize())) {}
-
-		std::cout << game.GetPlayersNum() << ", " << game.GetGameSize() << std::endl;
-
-		while (game.GetPlayersReady() < game.GetPlayersNum())
-		{
-			if (game.GetReady()) continue;
-			std::cout << "Are you ready? (Y/N) " << game.GetPlayersReady() << std::endl;
-			std::string _ready;
-			std::cin >> _ready;
-
-			if (!(_ready == "Y" || _ready == "y")) continue;
-
-			game.SetReady();
-
-			std::cout << "I'm ready!!!!" << std::endl;
-		}
-
-		EnterGame();
-	}
 }
 
 void SceneManager::UpdateGame()
-{
-	if (game.Update())
-	{
-		game.CalculateOrganQuantity();
-		game.SetEndRound(false);
-
-		if (game.IsFinished())
-			ExitGame();
-	}
-}
-
-void SceneManager::UpdateGameOver()
-{
-}
-
-void SceneManager::CheckPlayersReady()
 {
 
 }
 
 SceneManager::SceneManager()
 {
-	sceneState = Scene::INIT;
+	criticalMessages = new std::map<Commands, CriticalMessages>();
+
+	gameState = State::INIT;
+	client = new GameManager();
+	connected = new bool(false);
+	packetId = 0;
+}
+
+void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time)
+{
+	CriticalMessages message = CriticalMessages(client->GetAddress().GetLocalAddress(), client->GetPort(), time, out);
+
+	auto mapPosition = criticalMessages->find(_packetId);
+
+	if (mapPosition != criticalMessages->end())
+	{
+		mapPosition->second = message;
+	}
+	else
+	{
+		criticalMessages->insert(std::pair<Commands, CriticalMessages>(_packetId, message));
+	}
+}
+
+void SceneManager::CheckMessageTimeout()
+{
+	while(true) 
+	{
+		if (criticalMessages->size() == 0) continue;
+		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+		Status status;
+		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
+		{
+			float time = currentTime - it->second.startTime;
+			if (time > 1)
+			{
+				client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
+				it->second.startTime = currentTime;
+			}
+		}
+	}
+}
+
+void SceneManager::MessageReceived(Commands _message)
+{
+	auto mapPosition = criticalMessages->find(_message);
+
+	if (mapPosition != criticalMessages->end())
+	{
+		delete mapPosition->second.message;
+		criticalMessages->erase(mapPosition);
+	}
+}
+
+void SceneManager::UpdateInit()
+{
+	std::cout << "Write your username" << std::endl;
+	std::string clientName;
+	std::cin >> clientName;
+
+	client->InitClient(clientName, "127.0.0.1");
+
+	Status status;
+
+	std::thread tReceive(&SceneManager::ReceiveMessages, this);
+	tReceive.detach();
+
+	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
+	tCheck.detach();
+
+	std::cout << " Connecting to the server" << std::endl;
+
+	OutputMemoryStream* out = new OutputMemoryStream();
+	out->Write((int)Commands::HELLO);
+	out->WriteString(client->GetName());
+	out->Write(client->GetClientSalt());
+		
+	auto startTime = std::chrono::system_clock::now();
+	client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+	SavePacketToTable(Commands::HELLO, out, std::chrono::system_clock::to_time_t(startTime));
+
+	while (!(*connected)) { }
+
+	gameState = State::GAME;
+}
+
+void SceneManager::ReceiveMessages()
+{
+	Status status;
+	unsigned short _port;
+
+	while(true) 
+	{
+		InputMemoryStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
+
+		int command;
+		in->Read(&command);
+
+		Commands _com = (Commands)command;
+
+		switch (_com)
+		{
+		case Commands::WELCOME:
+			{
+				MessageReceived(Commands::SALT);
+	
+				std::string msg = in->ReadString();
+				std::cout << msg;
+				connected = new bool(true);
+			}
+			//*connected = true;
+			break;
+		case Commands::HELLO:
+			break;
+		case Commands::PLAYER_ID:
+			break;
+		case Commands::SALT:
+			{
+			std::cout << "Salt error" << std::endl;
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				out->Write((int) Commands::SALT);
+				out->Write(client->GetClientID());
+
+				int _result = client->GetServerSalt() & client->GetClientSalt();
+
+				out->Write(_result);
+
+				auto startTime = std::chrono::system_clock::now();
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+				SavePacketToTable(Commands::SALT, out, std::chrono::system_clock::to_time_t(startTime));
+			}
+			break;
+		case Commands::CHALLENGE:
+			{
+			std::cout << "Challenge operation" << std::endl;
+
+				MessageReceived(Commands::HELLO);
+
+				int id;
+				in->Read(&id);
+				client->SetClientID(id);
+
+				int salt;
+				in->Read(&salt);
+				client->SetServerSalt(salt);
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				int _result = salt & client->GetClientSalt();
+
+				std::cout << "Server SALT: " << client->GetServerSalt() << ", Client SALT: " << client->GetClientSalt() << ", Result: " << _result << std::endl;
+				
+				out->Write((int) Commands::SALT);
+				out->Write(id);
+				out->Write(_result);
+
+				auto startTime2 = std::chrono::system_clock::now();
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+				SavePacketToTable(Commands::SALT, out, std::chrono::system_clock::to_time_t(startTime2));
+			}
+			break;
+		}
+
+		delete in;
+	}
 }
 
 SceneManager::~SceneManager()
 {
+	delete connected;
 }
 
 void SceneManager::Update()
 {
-	while (sceneState != Scene::GAMEOVER)
+	while (gameState != State::END)
 	{
-		switch (sceneState)
+		switch (gameState)
 		{
-		case Scene::INIT:
-			Start();
-			break;
-		case Scene::START:
+		case SceneManager::State::INIT:
 			UpdateInit();
 			break;
-		case Scene::GAME:
+		case SceneManager::State::GAME:
 			UpdateGame();
 			break;
 		}

@@ -1,31 +1,27 @@
 #pragma once
-#include "../res/TcpSocket.h"
-#include "../res/TcpListener.h"
 #include "GameManager.h"
 #include <thread>
 
 class SceneManager
 {
-public:
-	enum class Scene { START, INIT, GAME, GAMEOVER };
+	enum class State {INIT, GAME, END};
+	State gameState;
+	bool* connected;
+	int packetId;
 
-private:
-	std::mutex mtx;
-	Scene sceneState;
-	TcpSocket serverSock;
+	std::map<Commands, CriticalMessages>* criticalMessages;
 
-	GameManager game;
-
-	void Start();
-	void EnterGame();
-
-	void ExitGame();
+	GameManager* client;
 
 	void UpdateInit();
-	void UpdateGame();
-	void UpdateGameOver();
 
-	void CheckPlayersReady();
+	void EnterGame();
+	void UpdateGame();
+	void ReceiveMessages();
+	void SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time);
+	void CheckMessageTimeout();
+
+	void MessageReceived(Commands _message);
 
 public:
 	SceneManager();

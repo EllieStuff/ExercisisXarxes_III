@@ -20,22 +20,30 @@
     <ClCompile Include="..\res\OutputMemoryStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\res\TcpListener.cpp">
+    <ClCompile Include="SceneManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\res\TcpSocket.cpp">
+    <ClCompile Include="GameManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\res\Selector.cpp">
+    <ClCompile Include="..\res\IpAddress.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\res\UdpSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\res\InputMemoryStream.h" />
     <ClInclude Include="..\res\OutputMemoryStream.h" />
-    <ClInclude Include="..\res\TcpListener.h" />
-    <ClInclude Include="..\res\TcpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />
-    <ClInclude Include="..\res\Selector.h" />
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="GameManager.h" />
+    <ClInclude Include="..\res\IpAddress.h" />
+    <ClInclude Include="..\res\UdpSocket.h" />
+    <ClInclude Include="ClientData.h" />
   </ItemGroup>
 </Project>

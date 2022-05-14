@@ -1,86 +1,37 @@
 #pragma once
-#include "Player.h"
-#include <mutex>
-#include <list>
-#include "../res/InputMemoryStream.h"
-#include "../res/TcpSocket.h"
-#include "../res/TcpListener.h"
-#include "../res/Selector.h"
-
-class TcpSocket;
+#include "../res/UdpSocket.h"
+#include "ClientData.h"
 
 class GameManager
 {
-	TcpListener listener;
-	unsigned int localPort = 0;
+	ClientData* client = nullptr;
+	UdpSocket sock;
 
-	int* currentGameID = new int(-1);
-
-	std::vector<TcpSocket*>* socks = new std::vector<TcpSocket*>();
-	Player* player = new Player();
-	Deck* deck = new Deck();
-	Table* table = new Table();
-	int* currentTurn = new int(0);
-	bool* endRound = new bool(false);
-	std::mutex mtx;
-	int* gameMaxSize = new int(-1);
-
-	std::vector<int> _checkedIds;
-
-	bool* end = new bool(false);
-
-	bool ready = false;
-	int* playersReady = new int();
-
-	std::vector<Pair_Organ_Player> playerTurnOrder;
-
-	void UpdateTurn(bool plus);
-	void AcceptConnections(Selector* selector, TcpListener* listener);
-	void SendReady();
-	void SetListener();
-
-	void DisconnectPlayer(int Id);
-
-	void SendPassword(OutputMemoryStream* out);
-
+	void BindPort(unsigned short& _OutPort);
 public:
 	GameManager();
+	GameManager(std::string _address, unsigned short _port);
 	~GameManager();
 
-	void ListEnemiesWithTheirCards();
-	void ActivateFilters(OutputMemoryStream* out);
+	void Update();
 
-	void ClientControl(TcpSocket* serverSock);
-	bool Threatment();
+	void SafeSend(OutputMemoryStream* out);
 
-	bool PlaceInfection();
+	UdpSocket* GetSocket() { return &sock; }
 
-	bool VaccineOrgan();
+	void InitClient(std::string _name, std::string _address);
 
-	void CheckArray();
+	IpAddress GetAddress() { return client->GetAddress(); }
 
-	void sendMSG(std::string message);
+	int GetClientID() { return client->GetClientID(); };
+	int GetServerSalt() { return client->GetServerSalt(); };
+	int GetClientSalt() { return client->GetClientSalt(); };
 
-	void CalculateOrganQuantity();
-	void ConnectP2P(Selector* selector, InputMemoryStream* in);
+	void SetServerSalt(int _salt) { client->SetServerSalt(_salt); }
+	void SetClientSalt(int _salt) { client->SetClientSalt(_salt); }
 
-	bool Update();
-	void Start();
+	void SetClientID(int _id) { client->SetClientID(_id); }
 
-	void SetReady();
-
-	void CreateGame(OutputMemoryStream* out);
-	void ListCurrentGames(InputMemoryStream* in);
-	void JoinGame(OutputMemoryStream* out, bool& _aborted);
-
-	void SetPort(unsigned int _port) { localPort = _port; };
-	void SetEndRound(bool _round) { *endRound = _round; }
-	void SetGameSize(int _gameMaxSize) { *gameMaxSize = _gameMaxSize; }
-	int GetPlayersNum() { return socks->size() + 1; };
-	int GetGameSize() { return *gameMaxSize; }
-
-	bool GetReady() { return ready; }
-	int GetPlayersReady() { return *playersReady; }
-
-	bool IsFinished() { return *end; }
+	unsigned short GetPort() { return client->GetPort(); }
+	std::string GetName() { return client->GetName(); }
 };
