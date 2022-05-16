@@ -19,6 +19,8 @@ SceneManager::SceneManager()
 	Status status;
 	status = game->BindSocket();
 
+	criticalMessages = new std::map<int, std::map<Commands, CriticalMessages>*>();
+
 	if(status != Status::DONE) 
 	{
 		std::cout << "ERROR!!" << std::endl;
@@ -27,6 +29,63 @@ SceneManager::SceneManager()
 
 	std::thread clientReceive(&SceneManager::ReceiveMessages, this);
 	clientReceive.detach();
+}
+
+void SceneManager::MessageReceived(Commands _message, int _id)
+{
+	auto clientPosition = criticalMessages->find(_id);
+	if (clientPosition == criticalMessages->end()) return;
+
+	auto mapPosition = clientPosition->second->find(_message);
+	if (mapPosition != clientPosition->second->end())
+	{
+		delete mapPosition->second.message;
+		clientPosition->second->erase(mapPosition);
+	}
+}
+
+void SceneManager::CheckMessageTimeout()
+{
+	while (true)
+	{
+		if (criticalMessages->size() == 0) continue;
+		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+		Status status;
+		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
+		{
+			if (it->second->size() == 0) continue;
+			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
+			{
+				float time = currentTime - it2->second.startTime;
+				if (time > 1)
+				{
+					game->SendClient(it->first, it2->second.message);
+					it2->second.startTime = currentTime;
+				}
+			}
+		}
+	}
+}
+
+void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time, int _id)
+{
+	auto clientPos = criticalMessages->find(_id);
+
+	if (clientPos == criticalMessages->end()) return;
+
+	CriticalMessages message = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
+
+	auto mapPosition = clientPos->second->find(_packetId);
+
+	if (mapPosition != clientPos->second->end())
+	{
+		mapPosition->second = message;
+	}
+	else
+	{
+		clientPos->second->insert(std::pair<Commands, CriticalMessages>(_packetId, message));
+	}
 }
 
 void SceneManager::UpdateInit() 
@@ -72,7 +131,12 @@ void SceneManager::ReceiveMessages()
 					out->Write(id);
 					out->Write(game->GetServerSalt(id));
 
+					criticalMessages->insert(std::pair<int, std::map<Commands, CriticalMessages>*>(id, new std::map<Commands, CriticalMessages>()));
+
+					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
 					game->SendClient(id, out);
+					SavePacketToTable(commandNum, out, currentTime, id);
 				}
 				break;
 			case Commands::PLAYER_ID:
@@ -83,6 +147,9 @@ void SceneManager::ReceiveMessages()
 					int salt;
 					message->Read(&id);
 					message->Read(&salt);
+
+					MessageReceived(Commands::SALT, id);
+					MessageReceived(Commands::CHALLENGE, id);
 
 					OutputMemoryStream* out = new OutputMemoryStream();
 
@@ -100,7 +167,10 @@ void SceneManager::ReceiveMessages()
 						out->Write((int) Commands::SALT);
 					}
 
+					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
 					game->SendClient(id, out);
+					SavePacketToTable(commandNum, out, currentTime, id);
 				}
 				break;
 			case Commands::CHALLENGE:
@@ -116,11 +186,18 @@ void SceneManager::ReceiveMessages()
 
 SceneManager::~SceneManager()
 {
-
+	for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
+	{
+		delete it->second;
+	}
+	delete criticalMessages;
 }
 
 void SceneManager::Update()
 {
+	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
+	tCheck.detach();
+
 	while (gameState != State::END)
 	{
 		ReceiveMessages();
