@@ -8,7 +8,7 @@ class ClientData
 	IpAddress address;
 	std::string name;
 	int clientSALT, serverSALT, clientID;
-	clock_t timeStamp;
+	clock_t timeout;
 
 	int tries;
 
@@ -30,4 +30,6 @@ public:
 	int GetClientSalt() { return clientSALT; }
 
 	std::string GetName() { return name; }
+
+	void ResetTimeOut() { timeout = clock(); }
 };

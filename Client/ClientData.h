@@ -9,6 +9,8 @@ class ClientData
 	std::string name;
 	int clientSALT, serverSALT, clientID;
 
+	clock_t timeout;
+
 	void GenerateSALT(int &value, int numOfBytes);
 
 public:
@@ -35,4 +37,5 @@ public:
 
 	std::string GetName() { return name; }
 
+	void ResetTimeOut() { timeout = clock(); }
 };
