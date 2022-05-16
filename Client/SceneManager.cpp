@@ -118,10 +118,15 @@ void SceneManager::ReceiveMessages()
 		{
 		case Commands::WELCOME:
 			{
+				std::cout << "Welcome! " << client->GetName() << std::endl;
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				out->Write((int)Commands::ACK_WELCOME);
+				out->Write(client->GetClientID());
+
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
-	
-				std::string msg = in->ReadString();
-				std::cout << msg;
+
 				connected = new bool(true);
 			}
 			//*connected = true;
@@ -151,7 +156,6 @@ void SceneManager::ReceiveMessages()
 			{
 			std::cout << "Challenge operation" << std::endl;
 
-				MessageReceived(Commands::HELLO);
 
 				int id;
 				in->Read(&id);
@@ -174,6 +178,7 @@ void SceneManager::ReceiveMessages()
 				auto startTime2 = std::chrono::system_clock::now();
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				SavePacketToTable(Commands::SALT, out, std::chrono::system_clock::to_time_t(startTime2));
+				MessageReceived(Commands::HELLO);
 			}
 			break;
 		}

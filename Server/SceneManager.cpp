@@ -136,7 +136,7 @@ void SceneManager::ReceiveMessages()
 					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
-					SavePacketToTable(commandNum, out, currentTime, id);
+					SavePacketToTable(Commands::CHALLENGE, out, currentTime, id);
 				}
 				break;
 			case Commands::PLAYER_ID:
@@ -148,32 +148,40 @@ void SceneManager::ReceiveMessages()
 					message->Read(&id);
 					message->Read(&salt);
 
-					MessageReceived(Commands::SALT, id);
-					MessageReceived(Commands::CHALLENGE, id);
 
 					OutputMemoryStream* out = new OutputMemoryStream();
 
 					int _result = game->GetServerSalt(id) & game->GetClientSalt(id);
 					
 					std::cout << "Server SALT: " << game->GetServerSalt(id) << ", Client SALT: " << game->GetClientSalt(id) << ", Result: " << _result << std::endl;
+					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					if(salt == _result)
 					{
 						out->Write((int) Commands::WELCOME);
-						out->WriteString("Welcome!");
+						SavePacketToTable(Commands::WELCOME, out, currentTime, id);
 					}
 					else 
 					{
 						out->Write((int) Commands::SALT);
+						SavePacketToTable(Commands::SALT, out, currentTime, id);
 					}
 
-					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
-					SavePacketToTable(commandNum, out, currentTime, id);
+					MessageReceived(Commands::SALT, id);
+					MessageReceived(Commands::CHALLENGE, id);
 				}
 				break;
 			case Commands::CHALLENGE:
+				break;
+			case Commands::ACK_WELCOME:
+				{
+				std::cout << "client connected" << std::endl;
+					int id;
+					message->Read(&id);
+					MessageReceived(Commands::WELCOME, id);
+				}
 				break;
 			}
 		}
