@@ -11,8 +11,6 @@ void ClientData::GenerateSALT(int& value, int numOfBytes = 4)
 
 ClientData::ClientData(unsigned short _port, IpAddress _address, std::string _name, int _salt): port(_port), address(_address), name(_name), clientSALT(_salt)
 {
-	timeStamp = clock();
-
 	GenerateSALT(serverSALT);
 }
 
