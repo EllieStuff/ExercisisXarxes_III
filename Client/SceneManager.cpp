@@ -188,9 +188,14 @@ void SceneManager::ReceiveMessages()
 		case Commands::WELCOME:
 			{
 				std::cout << "Welcome! " << client->GetName() << std::endl;
-				OutputMemoryStream* out = new OutputMemoryStream();
 
+				float rttKey;
+				in->Read(&rttKey);
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+				
 				out->Write((int)Commands::ACK_WELCOME);
+				out->Write(rttKey);
 				out->Write(client->GetClientID());
 
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
@@ -206,10 +211,15 @@ void SceneManager::ReceiveMessages()
 			break;
 		case Commands::SALT:
 			{
-			std::cout << "Salt error" << std::endl;
+				std::cout << "Salt error" << std::endl;
+
+				float rttKey;
+				in->Read(&rttKey);
+
 				OutputMemoryStream* out = new OutputMemoryStream();
 
 				out->Write((int) Commands::SALT);
+				out->Write(rttKey);
 				out->Write(client->GetClientID());
 
 				int _result = client->GetServerSalt() & client->GetClientSalt();
@@ -223,8 +233,10 @@ void SceneManager::ReceiveMessages()
 			break;
 		case Commands::CHALLENGE:
 			{
-			std::cout << "Challenge operation" << std::endl;
-
+				std::cout << "Challenge operation" << std::endl;
+				
+				float rttKey;
+				in->Read(&rttKey);
 
 				int id;
 				in->Read(&id);
@@ -241,6 +253,7 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Server SALT: " << client->GetServerSalt() << ", Client SALT: " << client->GetClientSalt() << ", Result: " << _result << std::endl;
 				
 				out->Write((int) Commands::SALT);
+				out->Write(rttKey);
 				out->Write(id);
 				out->Write(_result);
 

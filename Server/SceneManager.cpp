@@ -31,10 +31,14 @@ SceneManager::SceneManager()
 	clientReceive.detach();
 }
 
-void SceneManager::MessageReceived(Commands _message, int _id)
+void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 {
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
+
+	float rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	float realRtt = rttMaxTime - _rttKey;
+	game->SetClientRtt(_id, _rttKey, realRtt);
 
 	auto mapPosition = clientPosition->second->find(_message);
 	if (mapPosition != clientPosition->second->end())
@@ -42,6 +46,7 @@ void SceneManager::MessageReceived(Commands _message, int _id)
 		delete mapPosition->second.message;
 		clientPosition->second->erase(mapPosition);
 	}
+
 }
 
 void SceneManager::CheckMessageTimeout()
@@ -84,17 +89,21 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 
 	if (clientPos == criticalMessages->end()) return;
 
-	CriticalMessages message = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
+	CriticalMessages criticalMessage = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
 
 	auto mapPosition = clientPos->second->find(_packetId);
 
+	// Es posa com a 0 perquè no ho tingui en compte al càlcul si encara no ha arribat
+	game->SetClientRtt(_id, time, 0);
+
 	if (mapPosition != clientPos->second->end())
 	{
-		mapPosition->second = message;
+		//delete mapPosition->second.message;
+		mapPosition->second = criticalMessage;
 	}
 	else
 	{
-		clientPos->second->insert(std::pair<Commands, CriticalMessages>(_packetId, message));
+		clientPos->second->insert(std::pair<Commands, CriticalMessages>(_packetId, criticalMessage));
 	}
 }
 
@@ -125,10 +134,10 @@ void SceneManager::ReceiveMessages()
 
 			commandNum = (Commands) num;
 
+			float currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
 			switch (commandNum)
 			{
-			case Commands::WELCOME:
-				break;
 			case Commands::HELLO: 
 				{
 					OutputMemoryStream* out = new OutputMemoryStream();
@@ -138,6 +147,7 @@ void SceneManager::ReceiveMessages()
 
 					int id = game->CreateClient(_client.second, _client.first, name, salt);
 					out->Write(Commands::CHALLENGE);
+					out->Write(currentTime);
 					out->Write(id);
 					out->Write(game->GetServerSalt(id));
 
@@ -149,12 +159,11 @@ void SceneManager::ReceiveMessages()
 					SavePacketToTable(Commands::CHALLENGE, out, currentTime, id);
 				}
 				break;
-			case Commands::PLAYER_ID:
-				break;
 			case Commands::SALT:
 				{
-					int id;
-					int salt;
+					float rttKey;
+					int id, salt;
+					message->Read(&rttKey);
 					message->Read(&id);
 					message->Read(&salt);
 
@@ -164,7 +173,9 @@ void SceneManager::ReceiveMessages()
 					int _result = game->GetServerSalt(id) & game->GetClientSalt(id);
 					
 					std::cout << "Server SALT: " << game->GetServerSalt(id) << ", Client SALT: " << game->GetClientSalt(id) << ", Result: " << _result << std::endl;
-					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+					MessageReceived(Commands::SALT, id, rttKey);
+					MessageReceived(Commands::CHALLENGE, id, rttKey);
 
 					if(salt == _result)
 					{
@@ -176,21 +187,20 @@ void SceneManager::ReceiveMessages()
 						out->Write((int) Commands::SALT);
 						SavePacketToTable(Commands::SALT, out, currentTime, id);
 					}
+					out->Write(currentTime);
 
 
 					game->SendClient(id, out);
-					MessageReceived(Commands::SALT, id);
-					MessageReceived(Commands::CHALLENGE, id);
 				}
-				break;
-			case Commands::CHALLENGE:
 				break;
 			case Commands::ACK_WELCOME:
 				{
 					std::cout << "client connected" << std::endl;
+					float rttKey;
 					int id;
+					message->Read(&rttKey);
 					message->Read(&id);
-					MessageReceived(Commands::WELCOME, id);
+					MessageReceived(Commands::WELCOME, id, rttKey);
 				}
 				break;
 			case Commands::PING_PONG:
@@ -201,6 +211,7 @@ void SceneManager::ReceiveMessages()
 
 
 					out->Write((int)Commands::PING_PONG);
+					out->Write(currentTime);
 
 					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 

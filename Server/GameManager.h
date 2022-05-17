@@ -20,10 +20,13 @@ public:
 	void Update();
 	bool ExistClient(int _id);
 
+	void SetClientRtt(int _id, float _rttKey, float _realRtt) { clients[_id]->SetClientRtt(_rttKey, _realRtt); }
+
 	int GetServerSalt(int _id) { return clients[_id]->GetServerSalt(); };
 	int GetClientSalt(int _id) { return clients[_id]->GetClientSalt(); };
 	IpAddress GetClientAddress(int _id) { return clients[_id]->GetAddress(); };
 	unsigned short GetClientPort(int _id) { return clients[_id]->GetPort(); };
+	float GetClientRtt(int _id, float _rttKey) { return clients[_id]->GetPort(); };
 
 	Status BindSocket();
 	InputMemoryStream* ReceiveMSG(std::pair<IpAddress, unsigned short>* client, Status& status);
