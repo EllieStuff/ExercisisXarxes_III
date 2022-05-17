@@ -47,6 +47,10 @@ int GameManager::CreateClient(unsigned short _port ,IpAddress _address, std::str
 	return currentId;
 }
 
+void GameManager::DeleteClient(int _id)
+{
+}
+
 Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 {
 	Status status;

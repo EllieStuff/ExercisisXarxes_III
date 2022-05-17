@@ -8,7 +8,39 @@ void SceneManager::EnterGame()
 
 void SceneManager::UpdateGame()
 {
+	std::cout << "1. Matchmaking" << std::endl;
+	std::cout << "2. Exit" << std::endl;
+	std::cout << "OPTION: ";
+	int option;
+	std::cin >> option;
 
+	std::cout << "" << std::endl;
+
+	switch (option)
+	{
+	case 1:
+	{
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write((int)Commands::SEARCH_MATCH);
+		out->Write((int)client->GetClientID());
+
+		Status status;
+
+		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+		std::cout << "Waiting for match" << std::endl;
+
+		while (!(*match)) { }
+
+		break;
+	}
+
+	case 2: 
+	{
+		exit(0);
+		break;
+	}
+	}
 }
 
 SceneManager::SceneManager()
@@ -34,6 +66,39 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	else
 	{
 		criticalMessages->insert(std::pair<Commands, CriticalMessages>(_packetId, message));
+	}
+}
+
+void SceneManager::Ping() 
+{
+	while(true) 
+	{
+		pong = new bool(false);
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write((int)Commands::PING_PONG);
+		out->Write(client->GetClientID());
+
+		unsigned short port;
+
+		Status status;
+
+		auto startTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+		while(*pong != true) 
+		{
+			endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			int time = endTime - startTime;
+			if(time > 5)
+			{
+				std::cout << "Disconnected!!!!!" << std::endl;
+				exit(0);
+			}
+		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 }
 
@@ -84,6 +149,7 @@ void SceneManager::UpdateInit()
 	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
 	tCheck.detach();
 
+
 	std::cout << " Connecting to the server" << std::endl;
 
 	OutputMemoryStream* out = new OutputMemoryStream();
@@ -96,6 +162,9 @@ void SceneManager::UpdateInit()
 	SavePacketToTable(Commands::HELLO, out, std::chrono::system_clock::to_time_t(startTime));
 
 	while (!(*connected)) { }
+
+	std::thread tPing(&SceneManager::Ping, this);
+	tPing.detach();
 
 	gameState = State::GAME;
 }
@@ -118,10 +187,15 @@ void SceneManager::ReceiveMessages()
 		{
 		case Commands::WELCOME:
 			{
+				std::cout << "Welcome! " << client->GetName() << std::endl;
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				out->Write((int)Commands::ACK_WELCOME);
+				out->Write(client->GetClientID());
+
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
-	
-				std::string msg = in->ReadString();
-				std::cout << msg;
+
 				connected = new bool(true);
 			}
 			//*connected = true;
@@ -151,7 +225,6 @@ void SceneManager::ReceiveMessages()
 			{
 			std::cout << "Challenge operation" << std::endl;
 
-				MessageReceived(Commands::HELLO);
 
 				int id;
 				in->Read(&id);
@@ -174,6 +247,12 @@ void SceneManager::ReceiveMessages()
 				auto startTime2 = std::chrono::system_clock::now();
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				SavePacketToTable(Commands::SALT, out, std::chrono::system_clock::to_time_t(startTime2));
+				MessageReceived(Commands::HELLO);
+			}
+			break;
+			case Commands::PING_PONG:
+			{
+				pong = new bool(true);
 			}
 			break;
 		}
