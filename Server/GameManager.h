@@ -29,6 +29,7 @@ public:
 	InputMemoryStream* ReceiveMSG(std::pair<IpAddress, unsigned short>* client, Status& status);
 
 	int CreateClient(unsigned short _port, IpAddress _address, std::string _name, int _salt);
+	void DeleteClient(int _id);
 	Status SendClient(int _id, OutputMemoryStream* out);
 
 };

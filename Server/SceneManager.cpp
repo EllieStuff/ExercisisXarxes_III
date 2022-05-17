@@ -54,16 +54,26 @@ void SceneManager::CheckMessageTimeout()
 		Status status;
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
+			bool erased = false;
 			if (it->second->size() == 0) continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
 				float time = currentTime - it2->second.startTime;
+				if(time > 5) 
+				{
+					criticalMessages->erase(it->first);
+					std::cout << "Player Disconnected!!!!!" << std::endl;
+					erased = true;
+					break;
+				}
 				if (time > 1)
 				{
 					game->SendClient(it->first, it2->second.message);
-					it2->second.startTime = currentTime;
+					//it2->second.startTime = currentTime;
 				}
 			}
+			if (erased)
+				break;
 		}
 	}
 }
@@ -177,10 +187,26 @@ void SceneManager::ReceiveMessages()
 				break;
 			case Commands::ACK_WELCOME:
 				{
-				std::cout << "client connected" << std::endl;
+					std::cout << "client connected" << std::endl;
 					int id;
 					message->Read(&id);
 					MessageReceived(Commands::WELCOME, id);
+				}
+				break;
+			case Commands::PING_PONG:
+				{
+					int id;
+					message->Read(&id);
+					OutputMemoryStream* out = new OutputMemoryStream();
+
+					MessageReceived(Commands::PING_PONG, id);
+
+					out->Write((int)Commands::PING_PONG);
+
+					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+					game->SendClient(id, out);
+					SavePacketToTable(Commands::WELCOME, out, currentTime, id);
 				}
 				break;
 			}

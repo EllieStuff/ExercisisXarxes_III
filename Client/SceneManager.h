@@ -9,6 +9,10 @@ class SceneManager
 	bool* connected;
 	int packetId;
 
+	bool* pong;
+
+	bool startedThreadsAlready;
+
 	std::map<Commands, CriticalMessages>* criticalMessages;
 
 	GameManager* client;
@@ -20,6 +24,7 @@ class SceneManager
 	void ReceiveMessages();
 	void SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time);
 	void CheckMessageTimeout();
+	void Ping();
 
 	void MessageReceived(Commands _message);
 

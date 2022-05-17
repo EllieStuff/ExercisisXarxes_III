@@ -37,6 +37,38 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	}
 }
 
+void SceneManager::Ping() 
+{
+	while(true) 
+	{
+		pong = new bool(false);
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write((int)Commands::PING_PONG);
+		out->Write(client->GetClientID());
+
+		unsigned short port;
+
+		Status status;
+
+		auto startTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+		while(*pong != true) 
+		{
+			endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			int time = endTime - startTime;
+			if(time > 5)
+			{
+				std::cout << "Disconnected!!!!!" << std::endl;
+				exit(0);
+			}
+		}
+		std::cout << "PONG!" << std::endl;
+	}
+}
+
 void SceneManager::CheckMessageTimeout()
 {
 	while(true) 
@@ -84,6 +116,7 @@ void SceneManager::UpdateInit()
 	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
 	tCheck.detach();
 
+
 	std::cout << " Connecting to the server" << std::endl;
 
 	OutputMemoryStream* out = new OutputMemoryStream();
@@ -96,6 +129,9 @@ void SceneManager::UpdateInit()
 	SavePacketToTable(Commands::HELLO, out, std::chrono::system_clock::to_time_t(startTime));
 
 	while (!(*connected)) { }
+
+	std::thread tPing(&SceneManager::Ping, this);
+	tPing.detach();
 
 	gameState = State::GAME;
 }
@@ -181,6 +217,10 @@ void SceneManager::ReceiveMessages()
 				MessageReceived(Commands::HELLO);
 			}
 			break;
+			case Commands::PING_PONG:
+			{
+				pong = new bool(true);
+			}
 		}
 
 		delete in;
