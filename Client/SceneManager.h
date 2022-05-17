@@ -10,6 +10,7 @@ class SceneManager
 	int packetId;
 
 	bool* pong;
+	bool* match;
 
 	bool startedThreadsAlready;
 

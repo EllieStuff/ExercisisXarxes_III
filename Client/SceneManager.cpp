@@ -8,7 +8,39 @@ void SceneManager::EnterGame()
 
 void SceneManager::UpdateGame()
 {
+	std::cout << "1. Matchmaking" << std::endl;
+	std::cout << "2. Exit" << std::endl;
+	std::cout << "OPTION: ";
+	int option;
+	std::cin >> option;
 
+	std::cout << "" << std::endl;
+
+	switch (option)
+	{
+	case 1:
+	{
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write((int)Commands::SEARCH_MATCH);
+		out->Write((int)client->GetClientID());
+
+		Status status;
+
+		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+		std::cout << "Waiting for match" << std::endl;
+
+		while (!(*match)) { }
+
+		break;
+	}
+
+	case 2: 
+	{
+		exit(0);
+		break;
+	}
+	}
 }
 
 SceneManager::SceneManager()
@@ -65,7 +97,8 @@ void SceneManager::Ping()
 				exit(0);
 			}
 		}
-		std::cout << "PONG!" << std::endl;
+
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 }
 
@@ -221,6 +254,7 @@ void SceneManager::ReceiveMessages()
 			{
 				pong = new bool(true);
 			}
+			break;
 		}
 
 		delete in;

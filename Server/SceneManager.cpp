@@ -199,14 +199,13 @@ void SceneManager::ReceiveMessages()
 					message->Read(&id);
 					OutputMemoryStream* out = new OutputMemoryStream();
 
-					MessageReceived(Commands::PING_PONG, id);
 
 					out->Write((int)Commands::PING_PONG);
 
 					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
-					SavePacketToTable(Commands::WELCOME, out, currentTime, id);
+					SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
 				}
 				break;
 			}
