@@ -35,4 +35,8 @@ public:
 	std::string GetName() { return name; }
 
 	void ResetTimeOut() { timeout = clock(); }
+
+	bool searchingForMatch;
+	int matchID;
+	int playerQuantity;
 };

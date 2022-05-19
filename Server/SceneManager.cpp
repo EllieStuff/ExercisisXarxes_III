@@ -49,6 +49,61 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 
 }
 
+void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
+{
+	bool matchFound = false;
+	game->GetClientsMap()[_id]->matchID = _matchID;
+	game->GetClientsMap()[_id]->searchingForMatch = _createOrSearch;
+	
+	if(!_createOrSearch) 
+	{
+		std::map<int, ClientData*> _clients = game->GetClientsMap();
+
+		_clients[_id]->playerQuantity = 1;
+
+		while (_clients[_id]->playerQuantity < 4)
+		{
+			mtx.lock();
+			_clients = game->GetClientsMap();
+			for (auto it = _clients.begin(); it != _clients.end(); it++)
+			{
+				if (it->first == _id) continue;
+
+				if (it->second->searchingForMatch && it->second->matchID == -1)
+				{
+					it->second->matchID = _clients[_id]->matchID;
+					_clients[_id]->playerQuantity++;
+					it->second->searchingForMatch = false;
+					std::cout << "Match Found!!!!!" << std::endl;
+					OutputMemoryStream* out = new OutputMemoryStream();
+					out->Write((int)Commands::MATCH_FOUND);
+					out->Write(_clients[_id]->matchID);
+					game->SendClient(_id, out);
+				}
+			}
+			mtx.unlock();
+		}
+	}
+	else 
+	{
+		while(!matchFound) 
+		{
+			if (!game->GetClientsMap()[_id]->searchingForMatch)
+			{
+				matchFound = true;
+			}
+		}
+
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write((int)Commands::MATCH_FOUND);
+		out->Write(game->GetClientsMap()[_id]->matchID);
+
+		std::cout << "Match Joined!!!!!" << std::endl;
+
+		game->SendClient(_id, out);
+	}
+}
+
 void SceneManager::CheckMessageTimeout()
 {
 	while (true)
@@ -114,6 +169,7 @@ void SceneManager::UpdateInit()
 
 void SceneManager::ReceiveMessages()
 {
+	matchID = 0;
 	while (gameState != State::END)
 	{
 		Status status = Status::NOT_READY;
@@ -217,6 +273,26 @@ void SceneManager::ReceiveMessages()
 
 					game->SendClient(id, out);
 					SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
+				}
+				break;
+			case Commands::SEARCH_MATCH:
+				{
+					int id;
+					message->Read(&id);
+					bool createOrSearch;
+					message->Read(&createOrSearch);
+					matchID++;
+
+					if (createOrSearch)
+					{
+						std::thread tSearch(&SceneManager::SearchMatch, this, id, -1, createOrSearch);
+						tSearch.detach();
+					}
+					else
+					{
+						std::thread tCreate(&SceneManager::SearchMatch, this, id, matchID, createOrSearch);
+						tCreate.detach();
+					}
 				}
 				break;
 			}

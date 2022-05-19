@@ -20,9 +20,21 @@ void SceneManager::UpdateGame()
 	{
 	case 1:
 	{
+		std::cout << "1. Create match" << std::endl;
+		std::cout << "2. Join match" << std::endl;
+
+		int option;
+
+		std::cin >> option;
+
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::SEARCH_MATCH);
 		out->Write((int)client->GetClientID());
+		
+		if(option == 1)
+			out->Write(false);
+		if (option == 2)
+			out->Write(true);
 
 		Status status;
 
@@ -31,6 +43,10 @@ void SceneManager::UpdateGame()
 		std::cout << "Waiting for match" << std::endl;
 
 		while (!(*match)) { }
+
+		std::cout << "Match Found!" << std::endl;
+
+		while (true) {  }
 
 		break;
 	}
@@ -173,6 +189,7 @@ void SceneManager::ReceiveMessages()
 {
 	Status status;
 	unsigned short _port;
+	match = new bool(false);
 
 	while(true) 
 	{
@@ -266,6 +283,14 @@ void SceneManager::ReceiveMessages()
 			case Commands::PING_PONG:
 			{
 				pong = new bool(true);
+			}
+			break;
+			case Commands::MATCH_FOUND:
+			{
+				std::cout << "New Player Joined!" << std::endl;
+				int matchID;
+				in->Read(&matchID);
+				match = new bool(true);
 			}
 			break;
 		}

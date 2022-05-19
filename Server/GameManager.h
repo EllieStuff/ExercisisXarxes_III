@@ -22,6 +22,8 @@ public:
 
 	void SetClientRtt(int _id, float _rttKey, float _realRtt) { clients[_id]->SetClientRtt(_rttKey, _realRtt); }
 
+	std::map<int, ClientData*> GetClientsMap() { return clients; }
+
 	int GetServerSalt(int _id) { return clients[_id]->GetServerSalt(); };
 	int GetClientSalt(int _id) { return clients[_id]->GetClientSalt(); };
 	IpAddress GetClientAddress(int _id) { return clients[_id]->GetAddress(); };
