@@ -55,6 +55,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 	game->GetClientsMap()[_id]->matchID = _matchID;
 	game->GetClientsMap()[_id]->searchingForMatch = _createOrSearch;
 	
+	//GAME CREATED AND POLLING FOR PLAYERS
 	if(!_createOrSearch) 
 	{
 		std::map<int, ClientData*> _clients = game->GetClientsMap();
@@ -84,14 +85,13 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 			mtx.unlock();
 		}
 	}
+	//WAITING TO JOIN A GAME
 	else 
 	{
 		while(!matchFound) 
 		{
 			if (!game->GetClientsMap()[_id]->searchingForMatch)
-			{
 				matchFound = true;
-			}
 		}
 
 		OutputMemoryStream* out = new OutputMemoryStream();
