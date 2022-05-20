@@ -102,6 +102,7 @@ void SceneManager::Ping()
 		auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+		delete out;
 
 		while(*pong != true) 
 		{

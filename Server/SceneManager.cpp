@@ -153,7 +153,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 
 	if (mapPosition != clientPos->second->end())
 	{
-		//delete mapPosition->second.message;
+		delete mapPosition->second.message;
 		mapPosition->second = criticalMessage;
 	}
 	else
@@ -264,7 +264,10 @@ void SceneManager::ReceiveMessages()
 					int id;
 					message->Read(&id);
 					OutputMemoryStream* out = new OutputMemoryStream();
-
+					
+					//
+					//MessageReceived(Commands::PING_PONG, id, rttKey);
+					//
 
 					out->Write((int)Commands::PING_PONG);
 					out->Write(currentTime);
