@@ -209,6 +209,7 @@ void SceneManager::ReceiveMessages()
 
 		switch (_com)
 		{
+		//---------------Connection---------------
 		case Commands::WELCOME:
 			{
 				std::cout << "Welcome! " << client->GetName() << std::endl;
@@ -227,11 +228,6 @@ void SceneManager::ReceiveMessages()
 
 				connected = new bool(true);
 			}
-			//*connected = true;
-			break;
-		case Commands::HELLO:
-			break;
-		case Commands::PLAYER_ID:
 			break;
 		case Commands::SALT:
 			{
@@ -287,12 +283,18 @@ void SceneManager::ReceiveMessages()
 				MessageReceived(Commands::HELLO);
 			}
 			break;
-			case Commands::PING_PONG:
+		//--------------- Connection ---------------
+			
+		//--------------- Ping-Pong ---------------
+		case Commands::PING_PONG:
 			{
 				pong = new bool(true);
 			}
 			break;
-			case Commands::MATCH_FOUND:
+		//--------------- Ping-Pong ---------------
+			
+		//--------------- Ingame Receives -----------
+		case Commands::MATCH_FOUND:
 			{
 				std::cout << "New Player Joined!" << std::endl;
 				int matchID;
@@ -300,6 +302,7 @@ void SceneManager::ReceiveMessages()
 				match = new bool(true);
 			}
 			break;
+		//--------------- Ingame Receives -----------
 		}
 
 		delete in;
