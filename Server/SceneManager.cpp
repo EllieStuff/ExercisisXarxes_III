@@ -150,6 +150,8 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 
 	if (clientPos == criticalMessages->end()) return;
 
+	mtx.lock();
+
 	CriticalMessages criticalMessage = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
 
 	auto mapPosition = clientPos->second->find(_packetId);
@@ -166,6 +168,8 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	{
 		clientPos->second->insert(std::pair<Commands, CriticalMessages>(_packetId, criticalMessage));
 	}
+
+	mtx.unlock();
 }
 
 void SceneManager::UpdateInit() 

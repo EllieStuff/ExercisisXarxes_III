@@ -9,6 +9,7 @@ class SceneManager
 	State gameState;
 	bool* connected;
 	int packetId;
+	int saltTries;
 
 	std::mutex mtx;
 
