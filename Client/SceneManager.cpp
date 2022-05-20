@@ -211,6 +211,7 @@ void SceneManager::ReceiveMessages()
 
 		switch (_com)
 		{
+		//---------------Connection---------------
 		case Commands::WELCOME:
 			{
 				std::cout << "Welcome! " << client->GetName() << std::endl;
@@ -221,19 +222,14 @@ void SceneManager::ReceiveMessages()
 				OutputMemoryStream* out = new OutputMemoryStream();
 				
 				out->Write((int)Commands::ACK_WELCOME);
-				out->Write(rttKey);
 				out->Write(client->GetClientID());
+				out->Write(rttKey);
 
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
 
 				connected = new bool(true);
 			}
-			//*connected = true;
-			break;
-		case Commands::HELLO:
-			break;
-		case Commands::PLAYER_ID:
 			break;
 		case Commands::SALT:
 			{
@@ -245,8 +241,8 @@ void SceneManager::ReceiveMessages()
 				OutputMemoryStream* out = new OutputMemoryStream();
 
 				out->Write((int) Commands::SALT);
-				out->Write(rttKey);
 				out->Write(client->GetClientID());
+				out->Write(rttKey);
 
 				int _result = client->GetServerSalt() & client->GetClientSalt();
 
@@ -281,8 +277,8 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Server SALT: " << client->GetServerSalt() << ", Client SALT: " << client->GetClientSalt() << ", Result: " << _result << std::endl;
 				
 				out->Write((int) Commands::SALT);
-				out->Write(rttKey);
 				out->Write(id);
+				out->Write(rttKey);
 				out->Write(_result);
 
 				saltTries++;
@@ -293,12 +289,18 @@ void SceneManager::ReceiveMessages()
 				MessageReceived(Commands::HELLO);
 			}
 			break;
-			case Commands::PING_PONG:
+		//--------------- Connection ---------------
+			
+		//--------------- Ping-Pong ---------------
+		case Commands::PING_PONG:
 			{
 				pong = new bool(true);
 			}
 			break;
-			case Commands::MATCH_FOUND:
+		//--------------- Ping-Pong ---------------
+			
+		//--------------- Ingame Receives -----------
+		case Commands::MATCH_FOUND:
 			{
 				std::cout << "New Player Joined!" << std::endl;
 				int matchID;
@@ -306,6 +308,7 @@ void SceneManager::ReceiveMessages()
 				match = new bool(true);
 			}
 			break;
+		//--------------- Ingame Receives -----------
 		}
 
 		delete in;

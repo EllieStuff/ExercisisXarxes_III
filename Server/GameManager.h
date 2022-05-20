@@ -8,7 +8,8 @@ class GameManager
 	unsigned short port;
 	IpAddress address;
 	std::string userName;
-	std::map<int, ClientData*> clients;
+	std::map<int, ClientData*> waitingClients;
+	std::map<int, ClientData*> connectedClients;
 	int currentId;
 	UdpSocket sock;
 
@@ -20,15 +21,15 @@ public:
 	void Update();
 	bool ExistClient(int _id);
 
-	void SetClientRtt(int _id, float _rttKey, float _realRtt) { clients[_id]->SetClientRtt(_rttKey, _realRtt); }
+	void ClientConnected(int _id);
 
-	std::map<int, ClientData*> GetClientsMap() { return clients; }
+	void SetClientRtt(int _id, float _rttKey, float _realRtt) { waitingClients[_id]->SetClientRtt(_rttKey, _realRtt); }
 
-	int GetServerSalt(int _id) { return clients[_id]->GetServerSalt(); };
-	int GetClientSalt(int _id) { return clients[_id]->GetClientSalt(); };
-	IpAddress GetClientAddress(int _id) { return clients[_id]->GetAddress(); };
-	unsigned short GetClientPort(int _id) { return clients[_id]->GetPort(); };
-	float GetClientRtt(int _id, float _rttKey) { return clients[_id]->GetPort(); };
+	int GetServerSalt(int _id) { return waitingClients[_id]->GetServerSalt(); };
+	int GetClientSalt(int _id) { return waitingClients[_id]->GetClientSalt(); };
+	IpAddress GetClientAddress(int _id) { return waitingClients[_id]->GetAddress(); };
+	unsigned short GetClientPort(int _id) { return waitingClients[_id]->GetPort(); };
+	float GetClientRtt(int _id, float _rttKey) { return waitingClients[_id]->GetPort(); };
 
 	Status BindSocket();
 	InputMemoryStream* ReceiveMSG(std::pair<IpAddress, unsigned short>* client, Status& status);
@@ -37,4 +38,9 @@ public:
 	void DeleteClient(int _id);
 	Status SendClient(int _id, OutputMemoryStream* out);
 
+	std::map<int, ClientData*> GetClientsMap() { return connectedClients; }
+	ClientData* GetConnectedClient(int _id);
+
+	std::map<int, ClientData*> GetConnectingClientsMap() { return waitingClients; }
+	ClientData* GetConnectingClient(int _id);
 };
