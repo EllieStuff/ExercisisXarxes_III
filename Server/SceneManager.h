@@ -19,8 +19,9 @@ class SceneManager
 	void EnterGame();
 	void UpdateGame();
 	void CheckMessageTimeout();
-	void MessageReceived(Commands message, int _id, float _rttKey);
+	void MessageReceived(Commands message, int _id, double _rttKey);
 	void SearchMatch(int _id, int _matchID, bool _createOrSearch);
+	void PrintRttAverage();
 
 	void ReceiveConnectionMessages();
 

@@ -23,7 +23,7 @@ public:
 
 	void ClientConnected(int _id);
 
-	void SetClientRtt(int _id, float _rttKey, float _realRtt) { waitingClients[_id]->SetClientRtt(_rttKey, _realRtt); }
+	void AddClientRtt(int _id, double _rttTime) { waitingClients[_id]->AddClientRtt(_rttTime); }
 
 	int GetServerSalt(int _id) { return waitingClients[_id]->GetServerSalt(); };
 	int GetClientSalt(int _id) { return waitingClients[_id]->GetClientSalt(); };

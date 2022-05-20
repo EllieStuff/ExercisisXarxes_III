@@ -216,14 +216,14 @@ void SceneManager::ReceiveMessages()
 			{
 				std::cout << "Welcome! " << client->GetName() << std::endl;
 
-				float rttKey;
-				in->Read(&rttKey);
+				double rttInitTime;
+				in->Read(&rttInitTime);
 
 				OutputMemoryStream* out = new OutputMemoryStream();
 				
 				out->Write((int)Commands::ACK_WELCOME);
 				out->Write(client->GetClientID());
-				out->Write(rttKey);
+				out->Write(rttInitTime);
 
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
@@ -235,14 +235,14 @@ void SceneManager::ReceiveMessages()
 			{
 				std::cout << "Salt error" << std::endl;
 
-				float rttKey;
-				in->Read(&rttKey);
+				double rttInitTime;
+				in->Read(&rttInitTime);
 
 				OutputMemoryStream* out = new OutputMemoryStream();
 
 				out->Write((int) Commands::SALT);
 				out->Write(client->GetClientID());
-				out->Write(rttKey);
+				out->Write(rttInitTime);
 
 				int _result = client->GetServerSalt() & client->GetClientSalt();
 
@@ -257,8 +257,8 @@ void SceneManager::ReceiveMessages()
 			{
 				std::cout << "Challenge operation" << std::endl;
 				
-				float rttKey;
-				in->Read(&rttKey);
+				double rttInitTime;
+				in->Read(&rttInitTime);
 
 				int id;
 				in->Read(&id);
@@ -276,7 +276,7 @@ void SceneManager::ReceiveMessages()
 				
 				out->Write((int) Commands::SALT);
 				out->Write(id);
-				out->Write(rttKey);
+				out->Write(rttInitTime);
 				out->Write(_result);
 
 				auto startTime2 = std::chrono::system_clock::now();

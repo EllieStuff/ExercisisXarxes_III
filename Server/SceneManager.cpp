@@ -31,15 +31,15 @@ SceneManager::SceneManager()
 	clientReceive.detach();
 }
 
-void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
+void SceneManager::MessageReceived(Commands _message, int _id, double _rttInitTime)
 {
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
 	mtx.lock();
 
-	float rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	float realRtt = rttMaxTime - _rttKey;
-	game->SetClientRtt(_id, _rttKey, realRtt);
+	double rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	double realRtt = rttMaxTime - _rttInitTime;
+	game->AddClientRtt(_id, realRtt);
 
 	auto mapPosition = clientPosition->second->find(_message);
 	if (mapPosition != clientPosition->second->end())
@@ -147,6 +147,41 @@ void SceneManager::CheckMessageTimeout()
 	}
 }
 
+void SceneManager::PrintRttAverage() 
+{
+	while (true) 
+	{
+		std::this_thread::sleep_for(std::chrono::seconds(10));
+		std::cout << "\nRtt Log:\n";
+
+		auto waitingClientsMap = game->GetConnectingClientsMap();
+		auto activeClientsMap = game->GetClientsMap();
+		float totalAvarage = 0;
+		int totalNumOfClients = waitingClientsMap.size() + activeClientsMap.size();
+
+		if (totalNumOfClients > 0)
+		{
+			for (auto it = waitingClientsMap.begin(); it != waitingClientsMap.end(); it++)
+			{
+				float rttAverage = it->second->GetRttAvarage();
+				totalAvarage += rttAverage;
+				std::cout << "Client " << it->first << " has RTT = " << rttAverage << std::endl;
+				it->second->CleanRttLog();
+			}
+			for (auto it = activeClientsMap.begin(); it != activeClientsMap.end(); it++)
+			{
+				float rttAverage = it->second->GetRttAvarage();
+				totalAvarage += rttAverage;
+				std::cout << "Client " << it->first << " has RTT = " << rttAverage << std::endl;
+				it->second->CleanRttLog();
+			}
+			totalAvarage /= totalNumOfClients;
+		}
+
+		std::cout << "\nThe total average is: " << totalAvarage << std::endl;
+	}
+}
+
 void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time, int _id)
 {
 	auto clientPos = criticalMessages->find(_id);
@@ -158,9 +193,6 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	CriticalMessages criticalMessage = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
 
 	auto mapPosition = clientPos->second->find(_packetId);
-
-	// Es posa com a 0 perquè no ho tingui en compte al càlcul si encara no ha arribat
-	game->SetClientRtt(_id, time, 0);
 
 	if (mapPosition != clientPos->second->end())
 	{
@@ -212,7 +244,7 @@ void SceneManager::ReceiveMessages()
 				}
 			}
 
-			float currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			double currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 			switch (commandNum)
 			{
@@ -241,9 +273,9 @@ void SceneManager::ReceiveMessages()
 				break;
 			case Commands::SALT:
 				{
-					float rttKey;
+					double rttInitTime;
 					int salt;
-					message->Read(&rttKey);
+					message->Read(&rttInitTime);
 					message->Read(&salt);
 
 					ClientData* _client = game->GetConnectingClient(id);
@@ -260,8 +292,8 @@ void SceneManager::ReceiveMessages()
 
 					std::cout << "Server SALT: " << _client->GetServerSalt() << ", Client SALT: " << _client->GetClientSalt() << ", Result: " << _result << std::endl;
 
-					MessageReceived(Commands::SALT, id, rttKey);
-					MessageReceived(Commands::CHALLENGE, id, rttKey);
+					MessageReceived(Commands::SALT, id, rttInitTime);
+					MessageReceived(Commands::CHALLENGE, id, rttInitTime);
 
 					if (salt == _result)
 					{
@@ -282,10 +314,10 @@ void SceneManager::ReceiveMessages()
 			case Commands::ACK_WELCOME:
 				{
 					std::cout << "client connected" << std::endl;
-					float rttKey;
+					double rttInitTime;
 
-					message->Read(&rttKey);
-					MessageReceived(Commands::WELCOME, id, rttKey);
+					message->Read(&rttInitTime);
+					MessageReceived(Commands::WELCOME, id, rttInitTime);
 				}
 				break;
 			//--------------- Connection ---------------
@@ -345,6 +377,8 @@ void SceneManager::Update()
 {
 	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
 	tCheck.detach();
+	std::thread tRtt(&SceneManager::PrintRttAverage, this);
+	tRtt.detach();
 
 	while (gameState != State::END)
 	{

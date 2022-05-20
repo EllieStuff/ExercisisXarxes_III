@@ -9,7 +9,7 @@ class ClientData
 	std::string name;
 	int clientSALT, serverSALT, clientID;
 	clock_t timeout;
-	std::map<float, float> rttLog;
+	std::vector<double> rttLog;
 
 	int saltTries = 0;
 
@@ -27,7 +27,7 @@ public:
 	bool CheckChallengeResult(int _salt);
 
 	void SetClientID(int _id) { clientID = _id; }
-	void SetClientRtt(float _rttKey, float _realRtt) { rttLog[_rttKey] = _realRtt; }
+	void AddClientRtt(double _rttTime) { rttLog.push_back(_rttTime); }
 
 	IpAddress GetAddress() { return address; }
 
@@ -35,7 +35,9 @@ public:
 
 	int GetServerSalt() { return serverSALT; }
 	int GetClientSalt() { return clientSALT; }
-	float GetClientRtt(float _rttKey) { return rttLog[_rttKey]; }
+	float GetRttAvarage();
+
+	void CleanRttLog() { rttLog.clear(); }
 
 	std::string GetName() { return name; }
 
