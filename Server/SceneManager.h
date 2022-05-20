@@ -22,7 +22,7 @@ class SceneManager
 	void MessageReceived(Commands message, int _id, float _rttKey);
 	void SearchMatch(int _id, int _matchID, bool _createOrSearch);
 
-	void ReceiveConnectionMessages();
+	void DisconnectClient(int _id);
 
 	int matchID;
 

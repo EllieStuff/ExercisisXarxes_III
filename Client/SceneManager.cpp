@@ -53,6 +53,14 @@ void SceneManager::UpdateGame()
 
 	case 2: 
 	{
+		OutputMemoryStream* out = new OutputMemoryStream();
+		out->Write((int)Commands::EXIT);
+		out->Write(client->GetClientID());
+
+		Status status;
+		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+		delete out;
+
 		exit(0);
 		break;
 	}

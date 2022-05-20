@@ -36,6 +36,20 @@ void GameManager::ClientConnected(int _id)
 }
 
 
+void GameManager::DisconnectClient(int _id)
+{
+	if (GetConnectingClient(_id) != nullptr)
+	{
+		delete waitingClients[_id];
+		waitingClients.erase(_id);
+	}
+	else if (GetConnectedClient(_id) != nullptr)
+	{
+		delete connectedClients[_id];
+		connectedClients.erase(_id);
+	}
+}
+
 Status GameManager::BindSocket()
 {
 	Status status;
@@ -66,6 +80,17 @@ Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 	Status status;
 	sock.Send(out, status, waitingClients[_id]->GetAddress(), waitingClients[_id]->GetPort());
 	return status;
+}
+
+ClientData* GameManager::GetClient(int _id)
+{
+	ClientData* _client = GetConnectedClient(_id);
+	if (_client != nullptr) return _client;
+
+	_client = GetConnectingClient(_id);
+	if (_client != nullptr) return _client;
+
+	return nullptr;
 }
 
 ClientData* GameManager::GetConnectedClient(int _id)

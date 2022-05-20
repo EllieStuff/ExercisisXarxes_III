@@ -106,6 +106,22 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 	}
 }
 
+void SceneManager::DisconnectClient(int _id)
+{
+	mtx.lock();
+
+	game->DisconnectClient(_id);
+	auto _client = criticalMessages->find(_id);
+	if (_client != criticalMessages->end())
+	{
+		delete _client->second;
+		criticalMessages->erase(_id);
+	}
+	std::cout << "Player Disconnected!!!!!" << std::endl;
+
+	mtx.unlock();
+}
+
 void SceneManager::CheckMessageTimeout()
 {
 	while (true)
@@ -128,8 +144,7 @@ void SceneManager::CheckMessageTimeout()
 				float time = currentTime - it2->second.startTime;
 				if(time > 5) 
 				{
-					criticalMessages->erase(it->first);
-					std::cout << "Player Disconnected!!!!!" << std::endl;
+					DisconnectClient(it->first);
 					erased = true;
 					break;
 				}
@@ -152,10 +167,9 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	auto clientPos = criticalMessages->find(_id);
 
 	if (clientPos == criticalMessages->end()) return;
-
 	mtx.lock();
 
-	CriticalMessages criticalMessage = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
+	CriticalMessages criticalMessage = CriticalMessages(game->GetClient(_id)->GetAddress(), game->GetClient(_id)->GetPort(), time, out);
 
 	auto mapPosition = clientPos->second->find(_packetId);
 
@@ -212,7 +226,7 @@ void SceneManager::ReceiveMessages()
 				}
 			}
 
-			float currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			float currentTime;
 
 			switch (commandNum)
 			{
@@ -226,14 +240,14 @@ void SceneManager::ReceiveMessages()
 
 					id = game->CreateClient(_client.second, _client.first, name, salt);
 
+					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
 					out->Write(Commands::CHALLENGE);
 					out->Write(currentTime);
 					out->Write(id);
 					out->Write(game->GetConnectingClient(id)->GetServerSalt());
 
 					criticalMessages->insert(std::pair<int, std::map<Commands, CriticalMessages>*>(id, new std::map<Commands, CriticalMessages>()));
-
-					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
 					SavePacketToTable(Commands::CHALLENGE, out, currentTime, id);
@@ -246,7 +260,8 @@ void SceneManager::ReceiveMessages()
 					message->Read(&rttKey);
 					message->Read(&salt);
 
-					ClientData* _client = game->GetConnectingClient(id);
+					ClientData* _client = game->GetClient(id);
+					if (_client == nullptr) continue;
 
 					if (_client->GetTries() >= MAX_TRIES)
 					{
@@ -265,11 +280,13 @@ void SceneManager::ReceiveMessages()
 
 					if (salt == _result)
 					{
+						currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 						out->Write((int)Commands::WELCOME);
 						SavePacketToTable(Commands::WELCOME, out, currentTime, id);
 					}
 					else
 					{
+						currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 						out->Write((int)Commands::SALT);
 						SavePacketToTable(Commands::SALT, out, currentTime, id);
 						game->GetClientsMap()[id]->AddTry();
@@ -290,21 +307,25 @@ void SceneManager::ReceiveMessages()
 				break;
 			//--------------- Connection ---------------
 
-			//--------------- Ping-Pong ---------------
+			//--------------- Disconnection ---------------
 			case Commands::PING_PONG:
 				{
 					OutputMemoryStream* out = new OutputMemoryStream();
+					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					
 					out->Write((int)Commands::PING_PONG);
 					out->Write(currentTime);
-
-					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
 					SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
 				}
 				break;
-			//--------------- Ping-Pong ---------------
+			case Commands::EXIT:
+				{
+				DisconnectClient(id);
+				}
+				break;
+			//--------------- Disconnection ---------------
 
 			//--------------- Ingame Receives -----------
 			case Commands::SEARCH_MATCH:
