@@ -1,6 +1,7 @@
 #pragma once
 #include "GameManager.h"
 #include <thread>
+#include <mutex>
 
 class SceneManager
 {
@@ -8,6 +9,9 @@ class SceneManager
 	State gameState;
 	bool* connected;
 	int packetId;
+	int saltTries;
+
+	std::mutex mtx;
 
 	bool* pong;
 	bool* match;

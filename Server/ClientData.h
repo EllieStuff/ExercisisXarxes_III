@@ -11,11 +11,16 @@ class ClientData
 	clock_t timeout;
 	std::vector<float> rttLog;
 
-	int tries;
+	int saltTries = 0;
 
 	void GenerateSALT(int &value, int numOfBytes);
 
 public:
+
+	bool searchingForMatch;
+	int matchID;
+	int playerQuantity;
+
 	ClientData() {}
 	ClientData(unsigned short _port, IpAddress _address, std::string _name, int _salt);
 
@@ -37,4 +42,7 @@ public:
 	std::string GetName() { return name; }
 
 	void ResetTimeOut() { timeout = clock(); }
+
+	int GetTries() { return saltTries; };
+	void AddTry() { saltTries++; }
 };

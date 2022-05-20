@@ -20,9 +20,21 @@ void SceneManager::UpdateGame()
 	{
 	case 1:
 	{
+		std::cout << "1. Create match" << std::endl;
+		std::cout << "2. Join match" << std::endl;
+
+		int option;
+
+		std::cin >> option;
+
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::SEARCH_MATCH);
 		out->Write((int)client->GetClientID());
+		
+		if(option == 1)
+			out->Write(false);
+		if (option == 2)
+			out->Write(true);
 
 		Status status;
 
@@ -31,6 +43,10 @@ void SceneManager::UpdateGame()
 		std::cout << "Waiting for match" << std::endl;
 
 		while (!(*match)) { }
+
+		std::cout << "Match Found!" << std::endl;
+
+		while (true) {  }
 
 		break;
 	}
@@ -61,6 +77,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 
 	if (mapPosition != criticalMessages->end())
 	{
+		delete mapPosition->second.message;
 		mapPosition->second = message;
 	}
 	else
@@ -86,6 +103,7 @@ void SceneManager::Ping()
 		auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+		delete out;
 
 		while(*pong != true) 
 		{
@@ -109,6 +127,8 @@ void SceneManager::CheckMessageTimeout()
 		if (criticalMessages->size() == 0) continue;
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
+		mtx.lock();
+
 		Status status;
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
@@ -119,11 +139,14 @@ void SceneManager::CheckMessageTimeout()
 				it->second.startTime = currentTime;
 			}
 		}
+
+		mtx.unlock();
 	}
 }
 
 void SceneManager::MessageReceived(Commands _message)
 {
+	mtx.lock();
 	auto mapPosition = criticalMessages->find(_message);
 
 	if (mapPosition != criticalMessages->end())
@@ -131,6 +154,7 @@ void SceneManager::MessageReceived(Commands _message)
 		delete mapPosition->second.message;
 		criticalMessages->erase(mapPosition);
 	}
+	mtx.unlock();
 }
 
 void SceneManager::UpdateInit()
@@ -173,6 +197,7 @@ void SceneManager::ReceiveMessages()
 {
 	Status status;
 	unsigned short _port;
+	match = new bool(false);
 
 	while(true) 
 	{
@@ -185,6 +210,7 @@ void SceneManager::ReceiveMessages()
 
 		switch (_com)
 		{
+		//---------------Connection---------------
 		case Commands::WELCOME:
 			{
 				std::cout << "Welcome! " << client->GetName() << std::endl;
@@ -195,19 +221,14 @@ void SceneManager::ReceiveMessages()
 				OutputMemoryStream* out = new OutputMemoryStream();
 				
 				out->Write((int)Commands::ACK_WELCOME);
-				out->Write(rttKey);
 				out->Write(client->GetClientID());
+				out->Write(rttKey);
 
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
 
 				connected = new bool(true);
 			}
-			//*connected = true;
-			break;
-		case Commands::HELLO:
-			break;
-		case Commands::PLAYER_ID:
 			break;
 		case Commands::SALT:
 			{
@@ -219,8 +240,8 @@ void SceneManager::ReceiveMessages()
 				OutputMemoryStream* out = new OutputMemoryStream();
 
 				out->Write((int) Commands::SALT);
-				out->Write(rttKey);
 				out->Write(client->GetClientID());
+				out->Write(rttKey);
 
 				int _result = client->GetServerSalt() & client->GetClientSalt();
 
@@ -253,8 +274,8 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Server SALT: " << client->GetServerSalt() << ", Client SALT: " << client->GetClientSalt() << ", Result: " << _result << std::endl;
 				
 				out->Write((int) Commands::SALT);
-				out->Write(rttKey);
 				out->Write(id);
+				out->Write(rttKey);
 				out->Write(_result);
 
 				auto startTime2 = std::chrono::system_clock::now();
@@ -263,11 +284,26 @@ void SceneManager::ReceiveMessages()
 				MessageReceived(Commands::HELLO);
 			}
 			break;
-			case Commands::PING_PONG:
+		//--------------- Connection ---------------
+			
+		//--------------- Ping-Pong ---------------
+		case Commands::PING_PONG:
 			{
 				pong = new bool(true);
 			}
 			break;
+		//--------------- Ping-Pong ---------------
+			
+		//--------------- Ingame Receives -----------
+		case Commands::MATCH_FOUND:
+			{
+				std::cout << "New Player Joined!" << std::endl;
+				int matchID;
+				in->Read(&matchID);
+				match = new bool(true);
+			}
+			break;
+		//--------------- Ingame Receives -----------
 		}
 
 		delete in;
