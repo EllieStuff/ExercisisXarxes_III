@@ -33,9 +33,9 @@ SceneManager::SceneManager()
 
 void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 {
-	mtx.lock();
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
+	mtx.lock();
 
 	float rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	float realRtt = rttMaxTime - _rttKey;
