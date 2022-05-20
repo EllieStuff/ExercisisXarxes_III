@@ -126,6 +126,8 @@ void SceneManager::CheckMessageTimeout()
 		if (criticalMessages->size() == 0) continue;
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
+		mtx.lock();
+
 		Status status;
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
@@ -136,11 +138,14 @@ void SceneManager::CheckMessageTimeout()
 				it->second.startTime = currentTime;
 			}
 		}
+
+		mtx.unlock();
 	}
 }
 
 void SceneManager::MessageReceived(Commands _message)
 {
+	mtx.lock();
 	auto mapPosition = criticalMessages->find(_message);
 
 	if (mapPosition != criticalMessages->end())
@@ -148,6 +153,7 @@ void SceneManager::MessageReceived(Commands _message)
 		delete mapPosition->second.message;
 		criticalMessages->erase(mapPosition);
 	}
+	mtx.unlock();
 }
 
 void SceneManager::UpdateInit()

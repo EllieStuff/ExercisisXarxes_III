@@ -33,6 +33,7 @@ SceneManager::SceneManager()
 
 void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 {
+	mtx.lock();
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
 
@@ -46,6 +47,7 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 		delete mapPosition->second.message;
 		clientPosition->second->erase(mapPosition);
 	}
+	mtx.unlock();
 
 }
 
@@ -64,7 +66,6 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 		while (_clients[_id]->playerQuantity < 4)
 		{
-			mtx.lock();
 			_clients = game->GetClientsMap();
 			for (auto it = _clients.begin(); it != _clients.end(); it++)
 			{
@@ -80,9 +81,9 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 					out->Write((int)Commands::MATCH_FOUND);
 					out->Write(_clients[_id]->matchID);
 					game->SendClient(_id, out);
+					delete out;
 				}
 			}
-			mtx.unlock();
 		}
 	}
 	//WAITING TO JOIN A GAME
@@ -101,6 +102,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 		std::cout << "Match Joined!!!!!" << std::endl;
 
 		game->SendClient(_id, out);
+		delete out;
 	}
 }
 
@@ -110,6 +112,8 @@ void SceneManager::CheckMessageTimeout()
 	{
 		if (criticalMessages->size() == 0) continue;
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+		mtx.lock();
 
 		Status status;
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
@@ -135,6 +139,8 @@ void SceneManager::CheckMessageTimeout()
 			if (erased)
 				break;
 		}
+
+		mtx.unlock();
 	}
 }
 
@@ -275,7 +281,7 @@ void SceneManager::ReceiveMessages()
 					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
-					SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
+					//SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
 				}
 				break;
 			case Commands::SEARCH_MATCH:
