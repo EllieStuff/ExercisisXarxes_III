@@ -295,13 +295,18 @@ void SceneManager::ReceiveMessages()
 			break;
 		//--------------- Connection ---------------
 			
-		//--------------- Ping-Pong ---------------
+		//--------------- Disconnection ---------------
 		case Commands::PING_PONG:
 			{
 				pong = new bool(true);
 			}
 			break;
-		//--------------- Ping-Pong ---------------
+		case Commands::EXIT:
+			{
+				exit(0);
+			}
+			break;
+		//--------------- Disconnection ---------------
 			
 		//--------------- Ingame Receives -----------
 		case Commands::MATCH_FOUND:

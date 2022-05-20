@@ -6,7 +6,8 @@ class SceneManager
 {
 	std::mutex mtx;
 	enum class State {INIT, GAME, END};
-	State gameState;
+	State* gameState;
+	int matchID;
 
 	std::map<int, std::map<Commands, CriticalMessages>*>* criticalMessages;
 
@@ -24,8 +25,7 @@ class SceneManager
 
 	void DisconnectClient(int _id);
 
-	int matchID;
-
+	void ExitThread();
 public:
 	SceneManager();
 	~SceneManager();

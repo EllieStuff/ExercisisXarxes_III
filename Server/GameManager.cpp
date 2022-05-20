@@ -12,7 +12,15 @@ GameManager::GameManager(std::string _address, unsigned short _port)
 
 GameManager::~GameManager()
 {
+	for (auto _client = connectedClients.begin(); _client != connectedClients.end(); _client++)
+	{
+		delete _client->second;
+	}
 
+	for (auto _client = waitingClients.begin(); _client != waitingClients.end(); _client++)
+	{
+		delete _client->second;
+	}
 }
 
 void GameManager::Update()
@@ -80,6 +88,20 @@ Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 	Status status;
 	sock.Send(out, status, waitingClients[_id]->GetAddress(), waitingClients[_id]->GetPort());
 	return status;
+}
+
+void GameManager::SendAll(OutputMemoryStream* out)
+{
+	Status status;
+	for (auto _client = connectedClients.begin(); _client != connectedClients.end(); _client++)
+	{
+		sock.Send(out, status, _client->second->GetAddress(), _client->second->GetPort());
+	}
+
+	for (auto _client = waitingClients.begin(); _client != waitingClients.end(); _client++)
+	{
+		sock.Send(out, status, _client->second->GetAddress(), _client->second->GetPort());
+	}
 }
 
 ClientData* GameManager::GetClient(int _id)
