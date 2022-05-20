@@ -281,7 +281,7 @@ void SceneManager::ReceiveMessages()
 					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 					game->SendClient(id, out);
-					//SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
+					SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
 				}
 				break;
 			case Commands::SEARCH_MATCH:
