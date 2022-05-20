@@ -54,8 +54,8 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 {
 	bool matchFound = false;
-	game->GetClientsMap()[_id]->matchID = _matchID;
-	game->GetClientsMap()[_id]->searchingForMatch = _createOrSearch;
+	game->GetConnectedClient(_id)->matchID = _matchID;
+	game->GetConnectedClient(_id)->searchingForMatch = _createOrSearch;
 	
 	//GAME CREATED AND POLLING FOR PLAYERS
 	if(!_createOrSearch) 
@@ -110,7 +110,9 @@ void SceneManager::CheckMessageTimeout()
 {
 	while (true)
 	{
-		if (criticalMessages->size() == 0) continue;
+		if (criticalMessages->size() == 0) {
+			continue;
+		}
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		mtx.lock();
@@ -119,7 +121,8 @@ void SceneManager::CheckMessageTimeout()
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
 			bool erased = false;
-			if (it->second->size() == 0) continue;
+			if (it->second->size() == 0)
+				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
 				float time = currentTime - it2->second.startTime;
@@ -133,7 +136,7 @@ void SceneManager::CheckMessageTimeout()
 				if (time > 1)
 				{
 					game->SendClient(it->first, it2->second.message);
-					//it2->second.startTime = currentTime;
+					it2->second.startTime = currentTime;
 				}
 			}
 			if (erased)

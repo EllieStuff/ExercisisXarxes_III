@@ -29,7 +29,7 @@ void SceneManager::UpdateGame()
 
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::SEARCH_MATCH);
-		out->Write((int)client->GetClientID());
+		out->Write(client->GetClientID());
 		
 		if(option == 1)
 			out->Write(false);
@@ -63,6 +63,8 @@ SceneManager::SceneManager()
 {
 	criticalMessages = new std::map<Commands, CriticalMessages>();
 
+	pong = new bool(false);
+
 	gameState = State::INIT;
 	client = new GameManager();
 	connected = new bool(false);
@@ -90,7 +92,7 @@ void SceneManager::Ping()
 {
 	while(true) 
 	{
-		pong = new bool(false);
+		*pong = false;
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::PING_PONG);
 		out->Write(client->GetClientID());
@@ -100,14 +102,13 @@ void SceneManager::Ping()
 		Status status;
 
 		auto startTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 		delete out;
 
 		while(*pong != true) 
 		{
-			endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 			int time = endTime - startTime;
 			if(time > 5)
 			{
