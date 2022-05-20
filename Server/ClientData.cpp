@@ -1,4 +1,5 @@
 #include "ClientData.h"
+#include<numeric>
 
 void ClientData::GenerateSALT(int& value, int numOfBytes = 4)
 {
@@ -22,4 +23,11 @@ bool ClientData::CheckChallengeResult(int _saltresult)
 		return true;
 
 	return false;
+}
+
+float ClientData::GetRttAvarage()
+{
+	if (rttLog.size() <= 0) return 0.0f;
+
+	return std::accumulate(rttLog.begin(), rttLog.end(), 0) / rttLog.size();
 }

@@ -18,6 +18,7 @@ class SceneManager
 	void UpdateGame();
 	void CheckMessageTimeout();
 	void MessageReceived(Commands message, int _id, float _rttKey);
+	void PrintRttAvarage();
 
 public:
 	SceneManager();

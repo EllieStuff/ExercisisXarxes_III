@@ -31,14 +31,14 @@ SceneManager::SceneManager()
 	clientReceive.detach();
 }
 
-void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
+void SceneManager::MessageReceived(Commands _message, int _id, float _rttInitTime)
 {
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
 
-	float rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	float realRtt = rttMaxTime - _rttKey;
-	game->SetClientRtt(_id, _rttKey, realRtt);
+	float rttCurrTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	float realRtt = rttCurrTime - _rttInitTime;
+	game->AddClientRtt(_id, realRtt);
 
 	auto mapPosition = clientPosition->second->find(_message);
 	if (mapPosition != clientPosition->second->end())
@@ -83,6 +83,15 @@ void SceneManager::CheckMessageTimeout()
 	}
 }
 
+void SceneManager::PrintRttAvarage()
+{
+	while (true)
+	{
+		std::this_thread::sleep_for(std::chrono::seconds(10));
+
+	}
+}
+
 void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time, int _id)
 {
 	auto clientPos = criticalMessages->find(_id);
@@ -92,9 +101,6 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	CriticalMessages criticalMessage = CriticalMessages(game->GetClientAddress(_id), game->GetClientPort(_id), time, out);
 
 	auto mapPosition = clientPos->second->find(_packetId);
-
-	// Es posa com a 0 perquè no ho tingui en compte al càlcul si encara no ha arribat
-	game->SetClientRtt(_id, time, 0);
 
 	if (mapPosition != clientPos->second->end())
 	{
@@ -161,9 +167,9 @@ void SceneManager::ReceiveMessages()
 				break;
 			case Commands::SALT:
 				{
-					float rttKey;
+					float rttInitTime;
 					int id, salt;
-					message->Read(&rttKey);
+					message->Read(&rttInitTime);
 					message->Read(&id);
 					message->Read(&salt);
 
@@ -174,8 +180,8 @@ void SceneManager::ReceiveMessages()
 					
 					std::cout << "Server SALT: " << game->GetServerSalt(id) << ", Client SALT: " << game->GetClientSalt(id) << ", Result: " << _result << std::endl;
 
-					MessageReceived(Commands::SALT, id, rttKey);
-					MessageReceived(Commands::CHALLENGE, id, rttKey);
+					MessageReceived(Commands::SALT, id, rttInitTime);
+					MessageReceived(Commands::CHALLENGE, id, rttInitTime);
 
 					if(salt == _result)
 					{
@@ -196,11 +202,11 @@ void SceneManager::ReceiveMessages()
 			case Commands::ACK_WELCOME:
 				{
 					std::cout << "client connected" << std::endl;
-					float rttKey;
+					float rttInitTime;
 					int id;
-					message->Read(&rttKey);
+					message->Read(&rttInitTime);
 					message->Read(&id);
-					MessageReceived(Commands::WELCOME, id, rttKey);
+					MessageReceived(Commands::WELCOME, id, rttInitTime);
 				}
 				break;
 			case Commands::PING_PONG:
@@ -241,6 +247,8 @@ void SceneManager::Update()
 {
 	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
 	tCheck.detach();
+	std::thread tRtt(&SceneManager::PrintRttAvarage, this);
+	tRtt.detach();
 
 	while (gameState != State::END)
 	{
