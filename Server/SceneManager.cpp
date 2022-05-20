@@ -229,6 +229,11 @@ void SceneManager::ReceiveMessages()
 					message->Read(&id);
 					message->Read(&salt);
 
+					if (game->GetClientsMap()[id]->GetTries() >= MAX_TRIES)
+					{
+						game->GetClientsMap().erase(id);
+						continue;
+					}
 
 					OutputMemoryStream* out = new OutputMemoryStream();
 
@@ -248,6 +253,7 @@ void SceneManager::ReceiveMessages()
 					{
 						out->Write((int) Commands::SALT);
 						SavePacketToTable(Commands::SALT, out, currentTime, id);
+						game->GetClientsMap()[id]->AddTry();
 					}
 					out->Write(currentTime);
 
@@ -271,10 +277,6 @@ void SceneManager::ReceiveMessages()
 					message->Read(&id);
 					OutputMemoryStream* out = new OutputMemoryStream();
 					
-					//
-					//MessageReceived(Commands::PING_PONG, id, rttKey);
-					//
-
 					out->Write((int)Commands::PING_PONG);
 					out->Write(currentTime);
 

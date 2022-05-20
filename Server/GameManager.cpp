@@ -22,7 +22,17 @@ void GameManager::Update()
 
 bool GameManager::ExistClient(int _id)
 {
-	return clients.find(_id) != clients.end();
+	return waitingClients.find(_id) != waitingClients.end();
+}
+
+void GameManager::ClientConnected(int _id)
+{
+	auto _client = waitingClients.find(_id);
+	if (_client != waitingClients.end())
+	{
+		connectedClients.insert(*_client);
+		waitingClients.erase(_id);
+	}
 }
 
 
@@ -43,7 +53,7 @@ InputMemoryStream* GameManager::ReceiveMSG(std::pair<IpAddress, unsigned short>*
 int GameManager::CreateClient(unsigned short _port ,IpAddress _address, std::string _name, int _salt)
 {
 	currentId++;
-	clients[currentId] = new ClientData(_port, _address, _name, _salt);
+	waitingClients[currentId] = new ClientData(_port, _address, _name, _salt);
 	return currentId;
 }
 
@@ -54,7 +64,7 @@ void GameManager::DeleteClient(int _id)
 Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 {
 	Status status;
-	sock.Send(out, status, clients[_id]->GetAddress(), clients[_id]->GetPort());
+	sock.Send(out, status, waitingClients[_id]->GetAddress(), waitingClients[_id]->GetPort());
 	return status;
 }
 

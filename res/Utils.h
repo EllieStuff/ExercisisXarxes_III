@@ -6,6 +6,8 @@
 //Usar puerto inicial para el cliente y si el status de bindear a este es negativo, incrementar este puerto inicial
 const unsigned short Client_Initial_Port = 500;
 
+const int MAX_TRIES = 5;
+
 const unsigned short Server_Port = 5000;
 const std::string Server_Ip = "127.0.0.1";
 
