@@ -140,7 +140,9 @@ void SceneManager::ExitThread()
 			Status status;
 			game->SendAll(out);
 			delete out;
+
 			mtx.unlock();
+			exit(0);
 		}
 	}
 }
@@ -315,7 +317,7 @@ void SceneManager::ReceiveMessages()
 				out->Write(currentTime);
 
 				game->SendClient(id, out);
-			}
+		}
 			break;
 		case Commands::ACK_WELCOME:
 			{
@@ -324,7 +326,7 @@ void SceneManager::ReceiveMessages()
 
 				message->Read(&rttKey);
 				MessageReceived(Commands::WELCOME, id, rttKey);
-			}
+		}
 			break;
 		//--------------- Connection ---------------
 
