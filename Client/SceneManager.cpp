@@ -219,8 +219,8 @@ void SceneManager::ReceiveMessages()
 				OutputMemoryStream* out = new OutputMemoryStream();
 				
 				out->Write((int)Commands::ACK_WELCOME);
-				out->Write(rttKey);
 				out->Write(client->GetClientID());
+				out->Write(rttKey);
 
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
@@ -243,8 +243,8 @@ void SceneManager::ReceiveMessages()
 				OutputMemoryStream* out = new OutputMemoryStream();
 
 				out->Write((int) Commands::SALT);
-				out->Write(rttKey);
 				out->Write(client->GetClientID());
+				out->Write(rttKey);
 
 				int _result = client->GetServerSalt() & client->GetClientSalt();
 
@@ -277,8 +277,8 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Server SALT: " << client->GetServerSalt() << ", Client SALT: " << client->GetClientSalt() << ", Result: " << _result << std::endl;
 				
 				out->Write((int) Commands::SALT);
-				out->Write(rttKey);
 				out->Write(id);
+				out->Write(rttKey);
 				out->Write(_result);
 
 				auto startTime2 = std::chrono::system_clock::now();

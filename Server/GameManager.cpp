@@ -68,4 +68,20 @@ Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 	return status;
 }
 
+ClientData* GameManager::GetConnectedClient(int _id)
+{
+	if (connectedClients.find(_id) != connectedClients.end())
+		return connectedClients[_id];
+	else
+		return nullptr;
+}
+
+ClientData* GameManager::GetConnectingClient(int _id)
+{
+	if (waitingClients.find(_id) != waitingClients.end())
+		return waitingClients[_id];
+	else
+		return nullptr;
+}
+
 

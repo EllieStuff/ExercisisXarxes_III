@@ -176,14 +176,12 @@ void SceneManager::UpdateInit()
 void SceneManager::ReceiveMessages()
 {
 	matchID = 0;
+	Status status = Status::NOT_READY;
+	std::string ip = "127.0.0.1";
+
 	while (gameState != State::END)
 	{
-		Status status = Status::NOT_READY;
-
-		std::pair<IpAddress, unsigned short> _client ;
-
-		std::string ip = "127.0.0.1";
-		_client.first = ip;
+		std::pair<IpAddress, unsigned short> _client = std::pair<IpAddress, unsigned short>(ip, 0);
 
 		InputMemoryStream* message = game->ReceiveMSG(&_client, status);
 
@@ -196,122 +194,125 @@ void SceneManager::ReceiveMessages()
 
 			commandNum = (Commands) num;
 
+			int id;
+			if (commandNum != Commands::HELLO)
+			{
+				message->Read(&id);
+				if (game->GetConnectedClient(id) == nullptr && game->GetConnectingClient(id) == nullptr)
+				{
+					continue;
+				}
+			}
+
 			float currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 			switch (commandNum)
 			{
-			case Commands::HELLO: 
-				{
-					OutputMemoryStream* out = new OutputMemoryStream();
-					std::string name = message->ReadString();
-					int salt;
-					message->Read(&salt);
+			case Commands::HELLO:
+			{
+				OutputMemoryStream* out = new OutputMemoryStream();
+				std::string name = message->ReadString();
+				int salt;
+				message->Read(&salt);
 
-					int id = game->CreateClient(_client.second, _client.first, name, salt);
-					out->Write(Commands::CHALLENGE);
-					out->Write(currentTime);
-					out->Write(id);
-					out->Write(game->GetServerSalt(id));
+				id = game->CreateClient(_client.second, _client.first, name, salt);
 
-					criticalMessages->insert(std::pair<int, std::map<Commands, CriticalMessages>*>(id, new std::map<Commands, CriticalMessages>()));
+				out->Write(Commands::CHALLENGE);
+				out->Write(currentTime);
+				out->Write(id);
+				out->Write(game->GetConnectingClient(id)->GetServerSalt());
 
-					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				criticalMessages->insert(std::pair<int, std::map<Commands, CriticalMessages>*>(id, new std::map<Commands, CriticalMessages>()));
 
-					game->SendClient(id, out);
-					SavePacketToTable(Commands::CHALLENGE, out, currentTime, id);
-				}
-				break;
+				auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+				game->SendClient(id, out);
+				SavePacketToTable(Commands::CHALLENGE, out, currentTime, id);
+			}
+			break;
 			case Commands::SALT:
+			{
+				float rttKey;
+				int salt;
+				message->Read(&rttKey);
+				message->Read(&salt);
+
+				ClientData* _client = game->GetConnectingClient(id);
+
+				if (_client->GetTries() >= MAX_TRIES)
 				{
-					float rttKey;
-					int id, salt;
-					message->Read(&rttKey);
-					message->Read(&id);
-					message->Read(&salt);
-
-					if (game->GetClientsMap()[id]->GetTries() >= MAX_TRIES)
-					{
-						game->GetClientsMap().erase(id);
-						continue;
-					}
-
-					OutputMemoryStream* out = new OutputMemoryStream();
-
-					int _result = game->GetServerSalt(id) & game->GetClientSalt(id);
-					
-					std::cout << "Server SALT: " << game->GetServerSalt(id) << ", Client SALT: " << game->GetClientSalt(id) << ", Result: " << _result << std::endl;
-
-					MessageReceived(Commands::SALT, id, rttKey);
-					MessageReceived(Commands::CHALLENGE, id, rttKey);
-
-					if(salt == _result)
-					{
-						out->Write((int) Commands::WELCOME);
-						SavePacketToTable(Commands::WELCOME, out, currentTime, id);
-					}
-					else 
-					{
-						out->Write((int) Commands::SALT);
-						SavePacketToTable(Commands::SALT, out, currentTime, id);
-						game->GetClientsMap()[id]->AddTry();
-					}
-					out->Write(currentTime);
-
-
-					game->SendClient(id, out);
+					game->GetClientsMap().erase(id);
+					continue;
 				}
-				break;
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				int _result = _client->GetServerSalt() & _client->GetClientSalt();
+
+				std::cout << "Server SALT: " << _client->GetServerSalt() << ", Client SALT: " << _client->GetClientSalt() << ", Result: " << _result << std::endl;
+
+				MessageReceived(Commands::SALT, id, rttKey);
+				MessageReceived(Commands::CHALLENGE, id, rttKey);
+
+				if (salt == _result)
+				{
+					out->Write((int)Commands::WELCOME);
+					SavePacketToTable(Commands::WELCOME, out, currentTime, id);
+				}
+				else
+				{
+					out->Write((int)Commands::SALT);
+					SavePacketToTable(Commands::SALT, out, currentTime, id);
+					game->GetClientsMap()[id]->AddTry();
+				}
+				out->Write(currentTime);
+
+				game->SendClient(id, out);
+			}
+			break;
 			case Commands::ACK_WELCOME:
-				{
-					std::cout << "client connected" << std::endl;
-					float rttKey;
-					int id;
-					message->Read(&rttKey);
-					message->Read(&id);
-					MessageReceived(Commands::WELCOME, id, rttKey);
-				}
-				break;
+			{
+				std::cout << "client connected" << std::endl;
+				float rttKey;
+
+				message->Read(&rttKey);
+				MessageReceived(Commands::WELCOME, id, rttKey);
+			}
+			break;
 			case Commands::PING_PONG:
-				{
-					int id;
-					message->Read(&id);
-					OutputMemoryStream* out = new OutputMemoryStream();
+			{
+				OutputMemoryStream* out = new OutputMemoryStream();
 					
-					out->Write((int)Commands::PING_PONG);
-					out->Write(currentTime);
+				out->Write((int)Commands::PING_PONG);
+				out->Write(currentTime);
 
-					auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-					game->SendClient(id, out);
-					SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
-				}
-				break;
+				game->SendClient(id, out);
+				SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
+			}
+			break;
 			case Commands::SEARCH_MATCH:
-				{
-					int id;
-					message->Read(&id);
-					bool createOrSearch;
-					message->Read(&createOrSearch);
-					matchID++;
+			{
+				bool createOrSearch;
+				message->Read(&createOrSearch);
+				matchID++;
 
-					if (createOrSearch)
-					{
-						std::thread tSearch(&SceneManager::SearchMatch, this, id, -1, createOrSearch);
-						tSearch.detach();
-					}
-					else
-					{
-						std::thread tCreate(&SceneManager::SearchMatch, this, id, matchID, createOrSearch);
-						tCreate.detach();
-					}
+				if (createOrSearch)
+				{
+					std::thread tSearch(&SceneManager::SearchMatch, this, id, -1, createOrSearch);
+					tSearch.detach();
 				}
-				break;
+				else
+				{
+					std::thread tCreate(&SceneManager::SearchMatch, this, id, matchID, createOrSearch);
+					tCreate.detach();
+				}
+			}
+			break;
 			}
 		}
-		else 
-		{
-			delete message;
-		}
+		delete message;
 	}
 }
 

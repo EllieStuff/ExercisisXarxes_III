@@ -12,8 +12,6 @@ class SceneManager
 
 	GameManager* game;
 
-
-
 	void SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time, int _id);
 
 	void UpdateInit();
@@ -23,6 +21,8 @@ class SceneManager
 	void CheckMessageTimeout();
 	void MessageReceived(Commands message, int _id, float _rttKey);
 	void SearchMatch(int _id, int _matchID, bool _createOrSearch);
+
+	void ReceiveConnectionMessages();
 
 	int matchID;
 

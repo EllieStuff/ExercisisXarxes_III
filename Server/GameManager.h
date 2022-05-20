@@ -25,8 +25,6 @@ public:
 
 	void SetClientRtt(int _id, float _rttKey, float _realRtt) { waitingClients[_id]->SetClientRtt(_rttKey, _realRtt); }
 
-	std::map<int, ClientData*> GetClientsMap() { return waitingClients; }
-
 	int GetServerSalt(int _id) { return waitingClients[_id]->GetServerSalt(); };
 	int GetClientSalt(int _id) { return waitingClients[_id]->GetClientSalt(); };
 	IpAddress GetClientAddress(int _id) { return waitingClients[_id]->GetAddress(); };
@@ -40,4 +38,9 @@ public:
 	void DeleteClient(int _id);
 	Status SendClient(int _id, OutputMemoryStream* out);
 
+	std::map<int, ClientData*> GetClientsMap() { return connectedClients; }
+	ClientData* GetConnectedClient(int _id);
+
+	std::map<int, ClientData*> GetConnectingClientsMap() { return waitingClients; }
+	ClientData* GetConnectingClient(int _id);
 };
