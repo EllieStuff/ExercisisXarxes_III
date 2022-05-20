@@ -195,7 +195,6 @@ void SceneManager::UpdateInit()
 
 void SceneManager::ReceiveMessages()
 {
-	saltTries = 0;
 	Status status;
 	unsigned short _port;
 	match = new bool(false);
@@ -268,8 +267,6 @@ void SceneManager::ReceiveMessages()
 				in->Read(&salt);
 				client->SetServerSalt(salt);
 
-				if (saltTries > 5) exit(0);
-
 				OutputMemoryStream* out = new OutputMemoryStream();
 
 				int _result = salt & client->GetClientSalt();
@@ -280,8 +277,6 @@ void SceneManager::ReceiveMessages()
 				out->Write(id);
 				out->Write(rttKey);
 				out->Write(_result);
-
-				saltTries++;
 
 				auto startTime2 = std::chrono::system_clock::now();
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
