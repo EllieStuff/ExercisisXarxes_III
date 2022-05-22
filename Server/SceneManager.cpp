@@ -38,7 +38,6 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 {
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
-	mtx.lock();
 
 	float rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	float realRtt = rttMaxTime - _rttKey;
@@ -47,10 +46,43 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 	auto mapPosition = clientPosition->second->find(_message);
 	if (mapPosition != clientPosition->second->end())
 	{
+		mtx.lock();
 		delete mapPosition->second.message;
 		clientPosition->second->erase(mapPosition);
+		mtx.unlock();
 	}
-	mtx.unlock();
+}
+
+void SceneManager::UpdateGameInfo(int _gameID) 
+{
+	std::map<int, ClientData*> _clients = game->GetClientsMap();
+
+	while (true) 
+	{
+		_clients = game->GetClientsMap();
+		for (auto it = _clients.begin(); it != _clients.end(); it++)
+		{
+			if (it->second->matchID == _gameID)
+			{
+				//sending their info to the rest of clients
+				for (auto it2 = _clients.begin(); it2 != _clients.end(); it2++)
+				{
+					if (it2->first == it->first) continue;
+					if (it2->second->matchID == _gameID)
+					{
+						OutputMemoryStream* out = new OutputMemoryStream();
+						out->Write((int)Commands::UPDATE_GAME);
+						out->Write(it->first);
+						out->Write(it->second->GetXPos());
+						out->Write(it->second->GetYPos());
+						game->SendClient(it2->first, out);
+						delete out;
+					}
+				}
+			}
+		}
+	}
+
 }
 
 void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
@@ -66,7 +98,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 		_clients[_id]->playerQuantity = 1;
 
-		while (_clients[_id]->playerQuantity < 4)
+		while (true)
 		{
 			_clients = game->GetClientsMap();
 			for (auto it = _clients.begin(); it != _clients.end(); it++)
@@ -78,11 +110,19 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 					it->second->matchID = _clients[_id]->matchID;
 					_clients[_id]->playerQuantity++;
 					it->second->searchingForMatch = false;
-					std::cout << "Match Found!!!!!" << std::endl;
+					std::cout << "Player Found!!!!!" << std::endl;
 					OutputMemoryStream* out = new OutputMemoryStream();
 					out->Write((int)Commands::MATCH_FOUND);
 					out->Write(_clients[_id]->matchID);
 					game->SendClient(_id, out);
+					
+					if (!matchFound)
+					{
+						std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clients[_id]->matchID);
+						tUpdate.detach();
+						matchFound = true;
+					}
+
 					delete out;
 				}
 			}
@@ -110,18 +150,18 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 void SceneManager::DisconnectClient(int _id)
 {
-	mtx.lock();
 
 	game->DisconnectClient(_id);
 	auto _client = criticalMessages->find(_id);
 	if (_client != criticalMessages->end())
 	{
+		mtx.lock();
 		delete _client->second;
 		criticalMessages->erase(_id);
+		mtx.unlock();
 	}
 	std::cout << "Player Disconnected!!!!!" << std::endl;
 
-	mtx.unlock();
 }
 
 void SceneManager::ExitThread()
@@ -156,7 +196,6 @@ void SceneManager::CheckMessageTimeout()
 		}
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-		mtx.lock();
 
 		Status status;
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
@@ -169,8 +208,10 @@ void SceneManager::CheckMessageTimeout()
 				float time = currentTime - it2->second.startTime;
 				if(time > 5) 
 				{
+					mtx.lock();
 					DisconnectClient(it->first);
 					erased = true;
+					mtx.unlock();
 					break;
 				}
 				if (time > 1)
@@ -183,7 +224,6 @@ void SceneManager::CheckMessageTimeout()
 				break;
 		}
 
-		mtx.unlock();
 	}
 }
 
@@ -227,7 +267,11 @@ void SceneManager::ReceiveMessages()
 
 	std::pair<IpAddress, unsigned short> _client = std::pair<IpAddress, unsigned short>(ip, 0);
 
+	mtx.lock();
+
 	InputMemoryStream* message = game->ReceiveMSG(&_client, status);
+
+	mtx.unlock();
 
 	if(status == Status::DONE) 
 	{
@@ -345,7 +389,7 @@ void SceneManager::ReceiveMessages()
 			break;
 		case Commands::EXIT:
 			{
-			DisconnectClient(id);
+				DisconnectClient(id);
 			}
 			break;
 		//--------------- Disconnection ---------------
@@ -370,6 +414,17 @@ void SceneManager::ReceiveMessages()
 			}
 			break;
 		//--------------- Ingame Receives -----------
+		case Commands::UPDATE_GAME:
+			{
+				int posX = 0;
+				int posY = 0;
+
+				message->Read(&posX);
+				message->Read(&posY);
+
+				game->GetClientsMap()[id]->SetPosition(posX, posY);
+			}
+			break;
 		}
 	}
 	delete message;

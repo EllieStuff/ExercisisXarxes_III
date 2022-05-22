@@ -5,11 +5,32 @@
 
 class SceneManager
 {
+	struct GamePlayerInfo
+	{
+		GamePlayerInfo(float _posX, float _posY) 
+		{
+			posX = _posX;
+			posY = _posY;
+		}
+
+		void SetPlayerPos(float _posX, float _posY)
+		{
+			posX = _posX;
+			posY = _posY;
+		}
+
+		int posX;
+		int posY;
+	};
+
+	std::map<int, GamePlayerInfo>* players;
+
 	enum class State {INIT, GAME, END};
 	State gameState;
 	bool* connected;
 	int packetId;
 	int saltTries;
+	int matchID;
 
 	std::mutex mtx;
 

@@ -37,7 +37,7 @@ public:
 
 	ClientData* GetClient(int _id);
 
-	std::map<int, ClientData*> GetClientsMap() { return connectedClients; }
+	std::map<int, ClientData*> GetClientsMap() { return waitingClients; }
 	ClientData* GetConnectedClient(int _id);
 
 	std::map<int, ClientData*> GetConnectingClientsMap() { return waitingClients; }

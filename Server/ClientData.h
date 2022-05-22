@@ -13,6 +13,9 @@ class ClientData
 
 	int saltTries = 0;
 
+	int posX = 0;
+	int posY = 0;
+
 	void GenerateSALT(int &value, int numOfBytes);
 
 public:
@@ -40,6 +43,10 @@ public:
 	std::string GetName() { return name; }
 
 	void ResetTimeOut() { timeout = clock(); }
+
+	void SetPosition(int _posX, int _posY) { posX = _posX; posY = _posY; }
+	float GetXPos() { return posX; }
+	float GetYPos() { return posY; }
 
 	int GetTries() { return saltTries; };
 	void AddTry() { saltTries++; }

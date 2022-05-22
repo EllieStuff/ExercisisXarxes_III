@@ -117,8 +117,8 @@ ClientData* GameManager::GetClient(int _id)
 
 ClientData* GameManager::GetConnectedClient(int _id)
 {
-	if (connectedClients.find(_id) != connectedClients.end())
-		return connectedClients[_id];
+	if (waitingClients.find(_id) != waitingClients.end())
+		return waitingClients[_id];
 	else
 		return nullptr;
 }

@@ -1,5 +1,6 @@
 #include "SceneManager.h"
 #include <iostream>
+#include <SDL2/include/SDL.h>
 
 void SceneManager::EnterGame()
 {
@@ -15,6 +16,9 @@ void SceneManager::UpdateGame()
 	std::cin >> option;
 
 	std::cout << "" << std::endl;
+
+	GamePlayerInfo game = GamePlayerInfo(0, 0);
+	players->insert(std::pair<int, GamePlayerInfo>(client->GetClientID(), game));
 
 	switch (option)
 	{
@@ -46,7 +50,98 @@ void SceneManager::UpdateGame()
 
 		std::cout << "Match Found!" << std::endl;
 
-		while (true) {  }
+		SDL_Init(SDL_INIT_EVERYTHING);
+		SDL_Window* window = NULL;
+		window = SDL_CreateWindow
+		(
+			"Game Test Networking", SDL_WINDOWPOS_UNDEFINED,
+			SDL_WINDOWPOS_UNDEFINED,
+			640,
+			480,
+			SDL_WINDOW_SHOWN
+		);
+
+		SDL_Renderer* renderer = NULL;
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+
+		while (true) 
+		{
+			SDL_Event _event;
+			int posX = players->find(client->GetClientID())->second.posX;
+			int posY = players->find(client->GetClientID())->second.posY;
+
+			if(SDL_PollEvent(&_event) != 0) 
+			{
+				switch (_event.key.keysym.sym) {
+				case SDLK_LEFT:
+					posX -= 1;
+					break;
+				case SDLK_RIGHT:
+					posX += 1;
+					break;
+				case SDLK_UP:
+					posY -= 1;
+					break;
+				case SDLK_DOWN:
+					posY += 1;
+					break;
+				default:
+					break;
+				}
+			}
+
+			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+			SDL_RenderClear(renderer);
+
+
+			SDL_Rect playerLocal;
+			SDL_Rect r;
+			r.x = posX;
+			r.y = posY;
+			r.w = 50;
+			r.h = 50;
+
+			SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+
+			SDL_RenderFillRect(renderer, &r);
+
+			players->find(client->GetClientID())->second.SetPlayerPos(posX, posY);
+
+			for (auto it = players->begin(); it != players->end(); it++)
+			{
+				if (it->first == client->GetClientID()) continue;
+
+				SDL_Rect playerLocal;
+				SDL_Rect r2;
+				r2.x = it->second.posX;
+				r2.y = it->second.posY;
+				r2.w = 50;
+				r2.h = 50;
+
+				SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+
+				SDL_RenderFillRect(renderer, &r2);
+
+			}
+
+			SDL_RenderPresent(renderer);
+
+			OutputMemoryStream* out = new OutputMemoryStream();
+
+			out->Write((int)Commands::UPDATE_GAME);
+			out->Write(client->GetClientID());
+
+			out->Write(posX);
+			out->Write(posY);
+
+			Status status;
+
+			client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+			delete out;
+		}
 
 		break;
 	}
@@ -70,6 +165,7 @@ void SceneManager::UpdateGame()
 SceneManager::SceneManager()
 {
 	criticalMessages = new std::map<Commands, CriticalMessages>();
+	players = new std::map<int, GamePlayerInfo>();
 
 	pong = new bool(false);
 
@@ -112,18 +208,24 @@ void SceneManager::Ping()
 		auto startTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-		delete out;
 
 		while(*pong != true) 
 		{
 			auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 			int time = endTime - startTime;
+
+			if (*match) break;
+
 			if(time > 5)
 			{
 				std::cout << "Disconnected!!!!!" << std::endl;
 				exit(0);
 			}
 		}
+
+		delete out;
+
+		if (*match) break;
 
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
@@ -312,12 +414,41 @@ void SceneManager::ReceiveMessages()
 		case Commands::MATCH_FOUND:
 			{
 				std::cout << "New Player Joined!" << std::endl;
-				int matchID;
 				in->Read(&matchID);
+				int playerID;
+				in->Read(&playerID);
 				match = new bool(true);
 			}
 			break;
 		//--------------- Ingame Receives -----------
+
+		case Commands::UPDATE_GAME:
+			{
+				int playerID;
+				in->Read(&playerID);
+				float posX;
+				float posY;
+				in->Read(&posX);
+				in->Read(&posY);
+
+
+				if(players->find(playerID) == players->end())
+				{
+					mtx.lock();
+					GamePlayerInfo game = GamePlayerInfo(0, 0);
+					players->insert(std::pair<int, GamePlayerInfo>(playerID, game));
+					mtx.unlock();
+				}
+				
+				players->find(playerID)->second.SetPlayerPos(posX, posY);
+
+				std::cout << "PLAYER: " << std::to_string(playerID) << std::endl;
+				std::cout << players->find(playerID)->second.posX << std::endl;
+				std::cout << players->find(playerID)->second.posY << std::endl;
+				std::cout << "_______________________________________" << std::endl;
+
+			}
+			break;
 		}
 
 		delete in;
