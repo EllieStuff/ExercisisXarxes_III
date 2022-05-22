@@ -27,8 +27,8 @@ SceneManager::SceneManager()
 		*gameState = State::END;
 	}
 
-	std::thread clientReceive(&SceneManager::ReceiveMessages, this);
-	clientReceive.detach();
+	//std::thread clientReceive(&SceneManager::ReceiveMessages, this);
+	//clientReceive.detach();
 
 	std::thread exitThread(&SceneManager::ExitThread, this);
 	exitThread.detach();
