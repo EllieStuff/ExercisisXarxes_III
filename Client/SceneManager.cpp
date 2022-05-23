@@ -68,8 +68,9 @@ void SceneManager::UpdateGame()
 		while (true) 
 		{
 			SDL_Event _event;
-			int posX = players->find(client->GetClientID())->second.posX;
-			int posY = players->find(client->GetClientID())->second.posY;
+			auto _player = players->find(client->GetClientID());
+			int posX = _player->second.pos.x;
+			int posY = _player->second.pos.y;
 
 			if(SDL_PollEvent(&_event) != 0) 
 			{
@@ -107,7 +108,7 @@ void SceneManager::UpdateGame()
 
 			SDL_RenderFillRect(renderer, &r);
 
-			players->find(client->GetClientID())->second.SetPlayerPos(posX, posY);
+			_player->second.SetPlayerPos(posX, posY);
 
 			for (auto it = players->begin(); it != players->end(); it++)
 			{
@@ -115,8 +116,8 @@ void SceneManager::UpdateGame()
 
 				SDL_Rect playerLocal;
 				SDL_Rect r2;
-				r2.x = it->second.posX;
-				r2.y = it->second.posY;
+				r2.x = it->second.pos.x;
+				r2.y = it->second.pos.y;
 				r2.w = 50;
 				r2.h = 50;
 
@@ -431,8 +432,8 @@ void SceneManager::ReceiveMessages()
 				in->Read(&posX);
 				in->Read(&posY);
 
-
-				if(players->find(playerID) == players->end())
+				auto _player = players->find(playerID);
+				if(_player == players->end())
 				{
 					mtx.lock();
 					GamePlayerInfo game = GamePlayerInfo(0, 0);
@@ -440,11 +441,11 @@ void SceneManager::ReceiveMessages()
 					mtx.unlock();
 				}
 				
-				players->find(playerID)->second.SetPlayerPos(posX, posY);
+				_player->second.SetPlayerPos(posX, posY);
 
 				std::cout << "PLAYER: " << std::to_string(playerID) << std::endl;
-				std::cout << players->find(playerID)->second.posX << std::endl;
-				std::cout << players->find(playerID)->second.posY << std::endl;
+				std::cout << _player->second.pos.x << std::endl;
+				std::cout << _player->second.pos.y << std::endl;
 				std::cout << "_______________________________________" << std::endl;
 
 			}

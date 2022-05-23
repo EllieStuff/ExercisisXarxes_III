@@ -19,6 +19,11 @@ enum class Commands {
 	COUNT
 };
 
+struct Vector2
+{
+	float x, y;
+};
+
 struct CriticalMessages {
 	IpAddress ip;
 	unsigned short port;

@@ -7,20 +7,19 @@ class SceneManager
 {
 	struct GamePlayerInfo
 	{
+		Vector2 pos;
+
 		GamePlayerInfo(float _posX, float _posY) 
 		{
-			posX = _posX;
-			posY = _posY;
+			pos.x = _posX;
+			pos.x = _posY;
 		}
 
 		void SetPlayerPos(float _posX, float _posY)
 		{
-			posX = _posX;
-			posY = _posY;
+			pos.x = _posX;
+			pos.x = _posY;
 		}
-
-		int posX;
-		int posY;
 	};
 
 	std::map<int, GamePlayerInfo>* players;
