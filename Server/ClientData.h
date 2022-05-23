@@ -45,8 +45,8 @@ public:
 	void ResetTimeOut() { timeout = clock(); }
 
 	void SetPosition(int _posX, int _posY) { posX = _posX; posY = _posY; }
-	float GetXPos() { return posX; }
-	float GetYPos() { return posY; }
+	int GetXPos() { return posX; }
+	int GetYPos() { return posY; }
 
 	int GetTries() { return saltTries; };
 	void AddTry() { saltTries++; }

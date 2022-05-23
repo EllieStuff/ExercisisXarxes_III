@@ -7,18 +7,19 @@ class SceneManager
 {
 	struct GamePlayerInfo
 	{
-		Vector2 pos;
+		int posX;
+		int posY;
 
-		GamePlayerInfo(float _posX, float _posY) 
+		GamePlayerInfo(int _posX, int _posY) 
 		{
-			pos.x = _posX;
-			pos.x = _posY;
+			posX = _posX;
+			posY = _posY;
 		}
 
-		void SetPlayerPos(float _posX, float _posY)
+		void SetPlayerPos(int _posX, int _posY)
 		{
-			pos.x = _posX;
-			pos.x = _posY;
+			posX = _posX;
+			posY = _posY;
 		}
 	};
 

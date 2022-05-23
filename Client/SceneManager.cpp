@@ -69,8 +69,11 @@ void SceneManager::UpdateGame()
 		{
 			SDL_Event _event;
 			auto _player = players->find(client->GetClientID());
-			int posX = _player->second.pos.x;
-			int posY = _player->second.pos.y;
+			int posX = _player->second.posX;
+			int posY = _player->second.posY;
+
+			int oldX = posX;
+			int oldY = posY;
 
 			if(SDL_PollEvent(&_event) != 0) 
 			{
@@ -82,7 +85,7 @@ void SceneManager::UpdateGame()
 					posX += 1;
 					break;
 				case SDLK_UP:
-					posY -= 1;
+					posY -= 5;
 					break;
 				case SDLK_DOWN:
 					posY += 1;
@@ -116,15 +119,14 @@ void SceneManager::UpdateGame()
 
 				SDL_Rect playerLocal;
 				SDL_Rect r2;
-				r2.x = it->second.pos.x;
-				r2.y = it->second.pos.y;
+				r2.x = it->second.posX;
+				r2.y = it->second.posY;
 				r2.w = 50;
 				r2.h = 50;
 
 				SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
 
-				SDL_RenderFillRect(renderer, &r2);
-
+				SDL_RenderFillRect(renderer, &r2);	
 			}
 
 			SDL_RenderPresent(renderer);
@@ -139,7 +141,8 @@ void SceneManager::UpdateGame()
 
 			Status status;
 
-			client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+			if(oldX != posX || oldY != posY)
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 
 			delete out;
 		}
@@ -206,8 +209,8 @@ void SceneManager::Ping()
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
 
-		std::cout << "PING: " << a << std::endl;
-		a++;
+		//std::cout << "PING: " << a << std::endl;
+		//a++;
 		*pong = false;
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::PING_PONG);
@@ -247,8 +250,8 @@ void SceneManager::CheckMessageTimeout()
 	while(true) 
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(1));
-		std::cout << "MessageTimeout: " << a << std::endl;
-		a++;
+		//std::cout << "MessageTimeout: " << a << std::endl;
+		//a++;
 		if (criticalMessages->size() == 0) continue;
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -321,9 +324,9 @@ void SceneManager::ReceiveMessages()
 
 	while(true) 
 	{
-		std::cout << "RECEIVE: " << a << std::endl;
-		a++;
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		//std::cout << "RECEIVE: " << a << std::endl;
+		//a++;
+		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		InputMemoryStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
 
 		int command;
@@ -436,28 +439,30 @@ void SceneManager::ReceiveMessages()
 
 		case Commands::UPDATE_GAME:
 			{
+				mtx.lock();
 				int playerID;
 				in->Read(&playerID);
-				float posX;
-				float posY;
+				int posX;
+				int posY;
 				in->Read(&posX);
 				in->Read(&posY);
 
 				auto _player = players->find(playerID);
 				if(_player == players->end())
 				{
-					mtx.lock();
 					GamePlayerInfo game = GamePlayerInfo(0, 0);
 					players->insert(std::pair<int, GamePlayerInfo>(playerID, game));
-					mtx.unlock();
+					_player = players->find(playerID);
 				}
+
 				
 				_player->second.SetPlayerPos(posX, posY);
 
 				std::cout << "PLAYER: " << std::to_string(playerID) << std::endl;
-				std::cout << _player->second.pos.x << std::endl;
-				std::cout << _player->second.pos.y << std::endl;
+				std::cout << _player->second.posX << std::endl;
+				std::cout << _player->second.posY << std::endl;
 				std::cout << "_______________________________________" << std::endl;
+				mtx.unlock();
 
 			}
 			break;

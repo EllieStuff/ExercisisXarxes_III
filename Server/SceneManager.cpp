@@ -57,6 +57,7 @@ void SceneManager::UpdateGameInfo(int _gameID)
 
 	while (*gameState != State::END)
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		std::cout << "UPDATEGAME: " << a << std::endl;
 		a++;
 		_clients = game->GetClientsMap();
@@ -204,6 +205,7 @@ void SceneManager::CheckMessageTimeout()
 		if (criticalMessages->size() == 0) {
 			continue;
 		}
+
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	
 		mtx.lock();
@@ -211,7 +213,8 @@ void SceneManager::CheckMessageTimeout()
 		
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
-			
+		try 
+		{			
 			if (it->second->size() == 0)
 				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
@@ -230,7 +233,15 @@ void SceneManager::CheckMessageTimeout()
 				}
 			}
 		}
+		catch(...) 
+		{
+			std::cout << "ERROR!!" << std::endl;
+			//DisconnectClient(it->first);
+			//it--;
+		}
+		}
 		mtx.unlock();
+
 	}
 }
 
@@ -459,6 +470,5 @@ void SceneManager::Update()
 		std::cout << "GAMELOOP: " << a << std::endl;
 		a++;
 		ReceiveMessages();
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 }
