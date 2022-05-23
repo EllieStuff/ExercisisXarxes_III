@@ -58,8 +58,8 @@ void SceneManager::UpdateGameInfo(int _gameID)
 	while (*gameState != State::END)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
-		std::cout << "UPDATEGAME: " << a << std::endl;
-		a++;
+		//std::cout << "UPDATEGAME: " << a << std::endl;
+		//a++;
 		_clients = game->GetClientsMap();
 		for (auto it = _clients.begin(); it != _clients.end(); it++)
 		{
@@ -103,8 +103,8 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 		while (*gameState != State::END)
 		{
-			std::cout << "MATCHFIND: " << a << std::endl;
-			a++;
+			//std::cout << "MATCHFIND: " << a << std::endl;
+			//a++;
 			_clients = game->GetClientsMap();
 			for (auto it = _clients.begin(); it != _clients.end(); it++)
 			{
@@ -174,8 +174,8 @@ void SceneManager::ExitThread()
 	int a = 0;
 	while (*gameState != State::END)
 	{
-		std::cout << "EXIT: " << a << std::endl;
-		a++;
+		//std::cout << "EXIT: " << a << std::endl;
+		//a++;
 		std::cin >> _exit;
 		if (_exit == "exit" || _exit == "EXIT")
 		{
@@ -199,8 +199,8 @@ void SceneManager::CheckMessageTimeout()
 	int a = 0;
 	while (*gameState != State::END)
 	{
-		std::cout << "TIMEOUTMSG: " << a << std::endl;
-		a++;
+		//std::cout << "TIMEOUTMSG: " << a << std::endl;
+		//a++;
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		if (criticalMessages->size() == 0) {
 			continue;
@@ -464,11 +464,8 @@ void SceneManager::Update()
 {
 	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
 	tCheck.detach();
-	int a = 0;
 	while (*gameState != State::END)
 	{
-		std::cout << "GAMELOOP: " << a << std::endl;
-		a++;
 		ReceiveMessages();
 	}
 }
