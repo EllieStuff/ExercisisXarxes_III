@@ -53,9 +53,12 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 void SceneManager::UpdateGameInfo(int _gameID) 
 {
 	std::map<int, ClientData*> _clients = game->GetClientsMap();
+	int a = 0;
 
-	while (true) 
+	while (*gameState != State::END)
 	{
+		std::cout << "UPDATEGAME: " << a << std::endl;
+		a++;
 		_clients = game->GetClientsMap();
 		for (auto it = _clients.begin(); it != _clients.end(); it++)
 		{
@@ -95,8 +98,12 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 		_clients[_id]->playerQuantity = 1;
 
-		while (true)
+		int a = 0;
+
+		while (*gameState != State::END)
 		{
+			std::cout << "MATCHFIND: " << a << std::endl;
+			a++;
 			_clients = game->GetClientsMap();
 			for (auto it = _clients.begin(); it != _clients.end(); it++)
 			{
@@ -147,25 +154,27 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 void SceneManager::DisconnectClient(int _id)
 {
-
+	mtx.lock();
 	game->DisconnectClient(_id);
 	auto _client = criticalMessages->find(_id);
 	if (_client != criticalMessages->end())
 	{
-		mtx.lock();
 		delete _client->second;
 		criticalMessages->erase(_id);
-		mtx.unlock();
 	}
 	std::cout << "Player Disconnected!!!!!" << std::endl;
+	mtx.unlock();
 
 }
 
 void SceneManager::ExitThread()
 {
 	std::string _exit = "";
+	int a = 0;
 	while (*gameState != State::END)
 	{
+		std::cout << "EXIT: " << a << std::endl;
+		a++;
 		std::cin >> _exit;
 		if (_exit == "exit" || _exit == "EXIT")
 		{
@@ -179,25 +188,30 @@ void SceneManager::ExitThread()
 			delete out;
 
 			mtx.unlock();
-			exit(0);
+			*gameState = State::END;
 		}
 	}
 }
 
 void SceneManager::CheckMessageTimeout()
 {
-	while (true)
+	int a = 0;
+	while (*gameState != State::END)
 	{
+		std::cout << "TIMEOUTMSG: " << a << std::endl;
+		a++;
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 		if (criticalMessages->size() == 0) {
 			continue;
 		}
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-
+	
+		mtx.lock();
 		Status status;
+		
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
-			bool erased = false;
+			
 			if (it->second->size() == 0)
 				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
@@ -205,22 +219,18 @@ void SceneManager::CheckMessageTimeout()
 				float time = currentTime - it2->second.startTime;
 				if(time > 5) 
 				{
-					mtx.lock();
 					DisconnectClient(it->first);
-					erased = true;
-					mtx.unlock();
+					it--;
 					break;
 				}
-				if (time > 1)
+				else if (time > 2)
 				{
 					game->SendClient(it->first, it2->second.message);
 					it2->second.startTime = currentTime;
 				}
 			}
-			if (erased)
-				break;
 		}
-
+		mtx.unlock();
 	}
 }
 
@@ -443,9 +453,12 @@ void SceneManager::Update()
 {
 	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
 	tCheck.detach();
-
+	int a = 0;
 	while (*gameState != State::END)
 	{
+		std::cout << "GAMELOOP: " << a << std::endl;
+		a++;
 		ReceiveMessages();
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 }

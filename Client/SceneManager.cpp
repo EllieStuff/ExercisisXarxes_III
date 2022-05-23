@@ -174,6 +174,12 @@ SceneManager::SceneManager()
 	client = new GameManager();
 	connected = new bool(false);
 	packetId = 0;
+
+	std::thread tReceive(&SceneManager::ReceiveMessages, this);
+	tReceive.detach();
+
+	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
+	tCheck.detach();
 }
 
 void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time)
@@ -195,8 +201,13 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 
 void SceneManager::Ping() 
 {
+	int a = 0;
 	while(true) 
 	{
+		std::this_thread::sleep_for(std::chrono::seconds(3));
+
+		std::cout << "PING: " << a << std::endl;
+		a++;
 		*pong = false;
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::PING_PONG);
@@ -227,15 +238,17 @@ void SceneManager::Ping()
 		delete out;
 
 		if (*match) break;
-
-		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 }
 
 void SceneManager::CheckMessageTimeout()
 {
+	int a = 0;
 	while(true) 
 	{
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::cout << "MessageTimeout: " << a << std::endl;
+		a++;
 		if (criticalMessages->size() == 0) continue;
 		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -245,7 +258,7 @@ void SceneManager::CheckMessageTimeout()
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
 		{
 			float time = currentTime - it->second.startTime;
-			if (time > 1)
+			if (time > 3)
 			{
 				client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
 				it->second.startTime = currentTime;
@@ -279,12 +292,6 @@ void SceneManager::UpdateInit()
 
 	Status status;
 
-	std::thread tReceive(&SceneManager::ReceiveMessages, this);
-	tReceive.detach();
-
-	std::thread tCheck(&SceneManager::CheckMessageTimeout, this);
-	tCheck.detach();
-
 
 	std::cout << " Connecting to the server" << std::endl;
 
@@ -297,7 +304,7 @@ void SceneManager::UpdateInit()
 	client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 	SavePacketToTable(Commands::HELLO, out, std::chrono::system_clock::to_time_t(startTime));
 
-	while (!(*connected)) { }
+	while (!(*connected)) { std::this_thread::sleep_for(std::chrono::seconds(2)); }
 
 	std::thread tPing(&SceneManager::Ping, this);
 	tPing.detach();
@@ -310,9 +317,13 @@ void SceneManager::ReceiveMessages()
 	Status status;
 	unsigned short _port;
 	match = new bool(false);
+	int a = 0;
 
 	while(true) 
 	{
+		std::cout << "RECEIVE: " << a << std::endl;
+		a++;
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		InputMemoryStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
 
 		int command;
