@@ -411,6 +411,7 @@ void SceneManager::ReceiveMessages()
 			{
 				OutputMemoryStream* out = new OutputMemoryStream();
 				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				//std::cout << "PingPongeandoo\n";
 					
 				out->Write((int)Commands::PING_PONG);
 				out->Write(currentTime);

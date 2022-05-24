@@ -197,7 +197,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 
 void SceneManager::Ping() 
 {
-	int a = 0;
+	//int a = 0;
 	while(true) 
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -222,7 +222,7 @@ void SceneManager::Ping()
 			auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 			int time = endTime - startTime;
 
-			if (*match) break;
+			//if (*match) break;
 
 			if(time > 5)
 			{
@@ -233,7 +233,7 @@ void SceneManager::Ping()
 
 		delete out;
 
-		if (*match) break;
+		//if (*match) break;
 	}
 }
 
