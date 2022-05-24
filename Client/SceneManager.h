@@ -59,7 +59,7 @@ class SceneManager
 	void ReceiveMessages();
 	void SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time);
 	void CheckMessageTimeout();
-	void Ping();
+	void Ping(float rttKey);
 
 	void MessageReceived(Commands _message);
 

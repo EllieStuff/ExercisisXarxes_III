@@ -195,7 +195,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 	}
 }
 
-void SceneManager::Ping() 
+void SceneManager::Ping(float rttKey) 
 {
 	//int a = 0;
 	while(true) 
@@ -208,6 +208,7 @@ void SceneManager::Ping()
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::PING_PONG);
 		out->Write(client->GetClientID());
+		out->Write(rttKey);
 
 		unsigned short port;
 
@@ -224,7 +225,7 @@ void SceneManager::Ping()
 
 			//if (*match) break;
 
-			if(time > 10)
+			if(time > 3)
 			{
 				std::cout << "Disconnected!!!!!" << std::endl;
 				exit(0);
@@ -302,9 +303,6 @@ void SceneManager::UpdateInit()
 
 	while (!(*connected)) { std::this_thread::sleep_for(std::chrono::milliseconds(2)); }
 
-	std::thread tPing(&SceneManager::Ping, this);
-	tPing.detach();
-
 	gameState = State::GAME;
 }
 
@@ -335,6 +333,7 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Welcome! " << client->GetName() << std::endl;
 
 				float rttKey;
+
 				in->Read(&rttKey);
 
 				OutputMemoryStream* out = new OutputMemoryStream();
@@ -345,6 +344,12 @@ void SceneManager::ReceiveMessages()
 
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 				MessageReceived(Commands::SALT);
+
+				if (!*connected)
+				{
+					std::thread tPing(&SceneManager::Ping, this, rttKey);
+					tPing.detach();
+				}
 
 				connected = new bool(true);
 			}

@@ -28,7 +28,7 @@ struct CriticalMessages {
 	IpAddress ip;
 	unsigned short port;
 	std::time_t startTime;
-	std::time_t currentTime;
+	int tries;
 	OutputMemoryStream* message;
 
 	CriticalMessages() {}
@@ -38,6 +38,7 @@ struct CriticalMessages {
 		port = _port;
 		startTime = _timeout;
 		message = _message;
+		tries = 0;
 	};
 
 

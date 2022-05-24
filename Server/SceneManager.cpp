@@ -221,43 +221,30 @@ void SceneManager::CheckMessageTimeout()
 		if (criticalMessages->size() == 0) {
 			continue;
 		}
-
-		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	
-		mtx.lock();
+		//mtx.lock();
 		Status status;
 		
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
-		{
-		try 
 		{			
 			if (it->second->size() == 0)
 				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
-				if (game->GetClientsMap()[it->first]->disconnected) continue;
-				float time = currentTime - it2->second.startTime;
-				if(time > 10) 
+				//std::cout << it2->second.tries << std::endl;
+				if(it2->second.tries > 3 && !game->GetClientsMap()[it->first]->disconnected)
 				{
 					DisconnectClient(it->first);
-					//it--;
 					break;
 				}
-				else if (time > 2)
+				else if(!game->GetClientsMap()[it->first]->disconnected)
 				{
 					game->SendClient(it->first, it2->second.message);
-					it2->second.startTime = currentTime;
+					it2->second.tries++;
 				}
 			}
 		}
-		catch(...) 
-		{
-			//std::cout << "ERROR!!" << std::endl;
-			//DisconnectClient(it->first);
-			//it--;
-		}
-		}
-		mtx.unlock();
+		//mtx.unlock();
 
 	}
 }
@@ -411,9 +398,13 @@ void SceneManager::ReceiveMessages()
 		//--------------- Disconnection ---------------
 		case Commands::PING_PONG:
 			{
+				float rttKey;
+				message->Read(&rttKey);
+
+				MessageReceived(Commands::PING_PONG, id, rttKey);
+
 				OutputMemoryStream* out = new OutputMemoryStream();
 				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-				//std::cout << "PingPongeandoo\n";
 					
 				out->Write((int)Commands::PING_PONG);
 				out->Write(currentTime);
