@@ -224,7 +224,7 @@ void SceneManager::Ping()
 
 			//if (*match) break;
 
-			if(time > 5)
+			if(time > 10)
 			{
 				std::cout << "Disconnected!!!!!" << std::endl;
 				exit(0);
@@ -300,7 +300,7 @@ void SceneManager::UpdateInit()
 	client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 	SavePacketToTable(Commands::HELLO, out, std::chrono::system_clock::to_time_t(startTime));
 
-	while (!(*connected)) { std::this_thread::sleep_for(std::chrono::seconds(2)); }
+	while (!(*connected)) { std::this_thread::sleep_for(std::chrono::milliseconds(2)); }
 
 	std::thread tPing(&SceneManager::Ping, this);
 	tPing.detach();

@@ -50,26 +50,27 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 	}
 }
 
-void SceneManager::UpdateGameInfo(int _gameID) 
+void SceneManager::UpdateGameInfo(int _gameID, int hostID) 
 {
 	std::map<int, ClientData*> _clients = game->GetClientsMap();
 	int a = 0;
 
 	while (*gameState != State::END)
 	{
+		if (game->GetConnectedClient(hostID)->disconnected) return;
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		//std::cout << "UPDATEGAME: " << a << std::endl;
 		//a++;
 		_clients = game->GetClientsMap();
 		for (auto it = _clients.begin(); it != _clients.end(); it++)
 		{
-			if (it->second->matchID == _gameID)
+			if (it->second->matchID == _gameID && !it->second->disconnected)
 			{
 				//sending their info to the rest of clients
 				for (auto it2 = _clients.begin(); it2 != _clients.end(); it2++)
 				{
 					if (it2->first == it->first) continue;
-					if (it2->second->matchID == _gameID)
+					if (it2->second->matchID == _gameID && !it2->second->disconnected)
 					{
 						OutputMemoryStream* out = new OutputMemoryStream();
 						out->Write((int)Commands::UPDATE_GAME);
@@ -101,6 +102,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 		while (*gameState != State::END)
 		{
+			if (game->GetConnectedClient(_id)->disconnected) return;
 			//std::cout << "MATCHFIND: " << a << std::endl;
 			//a++;
 			_clients = game->GetClientsMap();
@@ -108,7 +110,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 			{
 				if (it->first == _id) continue;
 
-				if (it->second->searchingForMatch && it->second->matchID == -1)
+				if (it->second->searchingForMatch && it->second->matchID == -1 && !it->second->disconnected)
 				{
 					std::string playerName = _clients[_id]->GetName();
 					char gameChar = it->second->GetName().at(0);
@@ -136,7 +138,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 						if (!matchFound)
 						{
-							std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clients[_id]->matchID);
+							std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clients[_id]->matchID, _id);
 							tUpdate.detach();
 							matchFound = true;
 						}
@@ -153,6 +155,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 	{
 		while(!matchFound) 
 		{
+			if (game->GetClientsMap()[_id]->disconnected) return;
 			if (!game->GetClientsMap()[_id]->searchingForMatch)
 				matchFound = true;
 		}
@@ -170,16 +173,14 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 void SceneManager::DisconnectClient(int _id)
 {
-	mtx.lock();
 	game->DisconnectClient(_id);
-	auto _client = criticalMessages->find(_id);
-	if (_client != criticalMessages->end())
+	//auto _client = criticalMessages->find(_id);
+	/*if (_client != criticalMessages->end())
 	{
 		delete _client->second;
 		criticalMessages->erase(_id);
-	}
+	}*/
 	std::cout << "Player Disconnected!!!!!" << std::endl;
-	mtx.unlock();
 
 }
 
@@ -234,11 +235,12 @@ void SceneManager::CheckMessageTimeout()
 				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
+				if (game->GetClientsMap()[it->first]->disconnected) continue;
 				float time = currentTime - it2->second.startTime;
-				if(time > 5) 
+				if(time > 10) 
 				{
 					DisconnectClient(it->first);
-					it--;
+					//it--;
 					break;
 				}
 				else if (time > 2)
@@ -440,6 +442,7 @@ void SceneManager::ReceiveMessages()
 				for (auto it = _clients.begin(); it != _clients.end(); it++)
 				{
 					if (it->first == id) continue;
+					if (it->second->disconnected) continue;
 
 					if (!it->second->searchingForMatch)
 					{

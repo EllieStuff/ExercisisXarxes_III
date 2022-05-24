@@ -20,6 +20,7 @@ class ClientData
 
 public:
 
+	bool disconnected;
 	bool searchingForMatch;
 	int matchID;
 	int playerQuantity;

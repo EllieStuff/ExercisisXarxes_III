@@ -46,7 +46,8 @@ void GameManager::ClientConnected(int _id)
 
 void GameManager::DisconnectClient(int _id)
 {
-	if (GetConnectingClient(_id) != nullptr)
+	waitingClients[_id]->disconnected = true;
+	/*if (GetConnectingClient(_id) != nullptr)
 	{
 		delete waitingClients[_id];
 		waitingClients.erase(_id);
@@ -55,7 +56,7 @@ void GameManager::DisconnectClient(int _id)
 	{
 		delete connectedClients[_id];
 		connectedClients.erase(_id);
-	}
+	}*/
 }
 
 Status GameManager::BindSocket()

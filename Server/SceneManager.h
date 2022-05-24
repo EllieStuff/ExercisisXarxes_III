@@ -22,7 +22,7 @@ class SceneManager
 	void CheckMessageTimeout();
 	void MessageReceived(Commands message, int _id, float _rttKey);
 	void SearchMatch(int _id, int _matchID, bool _createOrSearch);
-	void UpdateGameInfo(int _gameID);
+	void UpdateGameInfo(int _gameID, int hostID);
 
 	void DisconnectClient(int _id);
 
