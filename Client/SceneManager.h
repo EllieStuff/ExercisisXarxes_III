@@ -7,8 +7,11 @@ class SceneManager
 {
 	struct GamePlayerInfo
 	{
-		int posX;
-		int posY;
+		float posX;
+		float posY;
+
+		float oldX;
+		float oldY;
 
 		GamePlayerInfo(int _posX, int _posY) 
 		{
@@ -16,10 +19,16 @@ class SceneManager
 			posY = _posY;
 		}
 
-		void SetPlayerPos(int _posX, int _posY)
+		void SetPlayerPos(float _posX, float _posY)
 		{
 			posX = _posX;
 			posY = _posY;
+		}
+
+		void SetOldPlayerPos(float _posX, float posY) 
+		{
+			oldX = _posX;
+			oldY = posY;
 		}
 	};
 

@@ -24,21 +24,9 @@ void SceneManager::UpdateGame()
 	{
 	case 1:
 	{
-		std::cout << "1. Create match" << std::endl;
-		std::cout << "2. Join match" << std::endl;
-
-		int option;
-
-		std::cin >> option;
-
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::SEARCH_MATCH);
 		out->Write(client->GetClientID());
-		
-		if(option == 1)
-			out->Write(false);
-		if (option == 2)
-			out->Write(true);
 
 		Status status;
 
@@ -117,10 +105,15 @@ void SceneManager::UpdateGame()
 			{
 				if (it->first == client->GetClientID()) continue;
 
+				float lerpX = it->second.oldX + 0.001f * (it->second.posX - it->second.oldX);
+				float lerpY = it->second.oldY + 0.001f * (it->second.posY - it->second.oldY);
+
+				it->second.SetOldPlayerPos(lerpX, lerpY);
+
 				SDL_Rect playerLocal;
 				SDL_Rect r2;
-				r2.x = it->second.posX;
-				r2.y = it->second.posY;
+				r2.x = lerpX;
+				r2.y = lerpY;
 				r2.w = 50;
 				r2.h = 50;
 
@@ -455,7 +448,6 @@ void SceneManager::ReceiveMessages()
 					_player = players->find(playerID);
 				}
 
-				
 				_player->second.SetPlayerPos(posX, posY);
 
 				std::cout << "PLAYER: " << std::to_string(playerID) << std::endl;

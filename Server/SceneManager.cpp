@@ -99,8 +99,6 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 		_clients[_id]->playerQuantity = 1;
 
-		int a = 0;
-
 		while (*gameState != State::END)
 		{
 			//std::cout << "MATCHFIND: " << a << std::endl;
@@ -235,7 +233,7 @@ void SceneManager::CheckMessageTimeout()
 		}
 		catch(...) 
 		{
-			std::cout << "ERROR!!" << std::endl;
+			//std::cout << "ERROR!!" << std::endl;
 			//DisconnectClient(it->first);
 			//it--;
 		}
@@ -415,17 +413,41 @@ void SceneManager::ReceiveMessages()
 		//--------------- Ingame Receives -----------
 		case Commands::SEARCH_MATCH:
 			{
-				bool createOrSearch;
-				message->Read(&createOrSearch);
+				bool createOrSearch = false;
 				matchID++;
+
+				std::map<int, ClientData*> _clients = game->GetClientsMap();
+				
+				if(_clients.size() == 1) createOrSearch = true;
+
+				for (auto it = _clients.begin(); it != _clients.end(); it++)
+				{
+					if (it->first == id) continue;
+
+					if (!it->second->searchingForMatch)
+					{
+						std::string playerName = _clients[id]->GetName();
+						std::string itName = it->second->GetName();
+
+						for (size_t i = 0; i < itName.length(); i++)
+						{
+							if(playerName.at(i) == itName.at(0) && i < 10) 
+							{
+								createOrSearch = true;
+							}
+						}
+					}
+				}
 
 				if (createOrSearch)
 				{
+					std::cout << "SEARCHING A GAME FOR PLAYER " << id;
 					std::thread tSearch(&SceneManager::SearchMatch, this, id, -1, createOrSearch);
 					tSearch.detach();
 				}
 				else
 				{
+					std::cout << "CREATING A GAME FOR PLAYER " << id;
 					std::thread tCreate(&SceneManager::SearchMatch, this, id, matchID, createOrSearch);
 					tCreate.detach();
 				}
