@@ -110,23 +110,40 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 				if (it->second->searchingForMatch && it->second->matchID == -1)
 				{
-					it->second->matchID = _clients[_id]->matchID;
-					_clients[_id]->playerQuantity++;
-					it->second->searchingForMatch = false;
-					std::cout << "Player Found!!!!!" << std::endl;
-					OutputMemoryStream* out = new OutputMemoryStream();
-					out->Write((int)Commands::MATCH_FOUND);
-					out->Write(_clients[_id]->matchID);
-					game->SendClient(_id, out);
-					
-					if (!matchFound)
+					std::string playerName = _clients[_id]->GetName();
+					char gameChar = it->second->GetName().at(0);
+					bool matchWPlayer = false;
+
+					for (size_t i = 0; i < playerName.length() && i < 10; i++)
 					{
-						std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clients[_id]->matchID);
-						tUpdate.detach();
-						matchFound = true;
+						if (playerName.at(i) == gameChar)
+						{
+							matchWPlayer = true;
+							break;
+						}
 					}
 
-					delete out;
+					if (matchWPlayer)
+					{
+						it->second->matchID = _clients[_id]->matchID;
+						_clients[_id]->playerQuantity++;
+						it->second->searchingForMatch = false;
+						std::cout << "Player Found!!!!!" << std::endl;
+						OutputMemoryStream* out = new OutputMemoryStream();
+						out->Write((int)Commands::MATCH_FOUND);
+						out->Write(_clients[_id]->matchID);
+						game->SendClient(_id, out);
+
+						if (!matchFound)
+						{
+							std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clients[_id]->matchID);
+							tUpdate.detach();
+							matchFound = true;
+						}
+
+						delete out;
+					}
+					
 				}
 			}
 		}
@@ -277,7 +294,6 @@ void SceneManager::UpdateInit()
 
 void SceneManager::ReceiveMessages()
 {
-	matchID = 0;
 	Status status = Status::NOT_READY;
 	std::string ip = "127.0.0.1";
 
@@ -427,13 +443,14 @@ void SceneManager::ReceiveMessages()
 					if (!it->second->searchingForMatch)
 					{
 						std::string playerName = _clients[id]->GetName();
-						std::string itName = it->second->GetName();
+						char gameChar = it->second->GetName().at(0);
 
-						for (size_t i = 0; i < itName.length(); i++)
+						for (size_t i = 0; i < playerName.length() && i < 10; i++)
 						{
-							if(playerName.at(i) == itName.at(0) && i < 10) 
+							if(playerName.at(i) == gameChar)
 							{
 								createOrSearch = true;
+								break;
 							}
 						}
 					}

@@ -7,7 +7,7 @@ class SceneManager
 	std::mutex mtx;
 	enum class State {INIT, GAME, END};
 	State* gameState;
-	int matchID;
+	int matchID = 0;
 
 	std::map<int, std::map<Commands, CriticalMessages>*>* criticalMessages;
 
