@@ -1,4 +1,5 @@
 #include "GameManager.h"
+#include <mutex>
 
 GameManager::GameManager()
 {
@@ -46,8 +47,13 @@ void GameManager::ClientConnected(int _id)
 
 void GameManager::DisconnectClient(int _id)
 {
-	waitingClients[_id]->disconnected = true;
-	/*if (GetConnectingClient(_id) != nullptr)
+	if(!waitingClients[_id]->disconnected) 
+	{
+		waitingClients[_id]->disconnected = true;
+		return;
+	}
+
+	if (GetConnectingClient(_id) != nullptr)
 	{
 		delete waitingClients[_id];
 		waitingClients.erase(_id);
@@ -56,7 +62,7 @@ void GameManager::DisconnectClient(int _id)
 	{
 		delete connectedClients[_id];
 		connectedClients.erase(_id);
-	}*/
+	}
 }
 
 Status GameManager::BindSocket()

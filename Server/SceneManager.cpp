@@ -174,13 +174,13 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 void SceneManager::DisconnectClient(int _id)
 {
 	game->DisconnectClient(_id);
-	//auto _client = criticalMessages->find(_id);
-	/*if (_client != criticalMessages->end())
+	auto _client = criticalMessages->find(_id);
+	if (_client != criticalMessages->end())
 	{
 		delete _client->second;
 		criticalMessages->erase(_id);
-	}*/
-	std::cout << "Player Disconnected!!!!!" << std::endl;
+		std::cout << "Player Disconnected!!!!!" << std::endl;
+	}
 
 }
 
@@ -226,15 +226,17 @@ void SceneManager::CheckMessageTimeout()
 		Status status;
 		
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
-		{			
+		{	
+			bool breakLoop = false;
 			if (it->second->size() == 0)
 				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
 				//std::cout << it2->second.tries << std::endl;
-				if(it2->second.tries > 3 && !game->GetClientsMap()[it->first]->disconnected)
+				if(it2->second.tries > 2)
 				{
 					DisconnectClient(it->first);
+					breakLoop = true;
 					break;
 				}
 				else if(!game->GetClientsMap()[it->first]->disconnected)
@@ -243,6 +245,7 @@ void SceneManager::CheckMessageTimeout()
 					it2->second.tries++;
 				}
 			}
+			if (breakLoop) break;
 		}
 		//mtx.unlock();
 
