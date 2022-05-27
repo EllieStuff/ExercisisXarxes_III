@@ -333,9 +333,12 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Welcome! " << client->GetName() << std::endl;
 
 				float rttKey;
+				int newId;
 
+				in->Read(&newId);
 				in->Read(&rttKey);
 
+				//if (newId >= 0);
 				OutputMemoryStream* out = new OutputMemoryStream();
 				
 				out->Write((int)Commands::ACK_WELCOME);

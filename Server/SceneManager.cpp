@@ -311,6 +311,7 @@ void SceneManager::ReceiveMessages()
 		commandNum = (Commands) num;
 
 		int id;
+		float currentTime;
 		//Check if Client is connected or connecting
 		if (commandNum != Commands::HELLO)
 		{
@@ -320,8 +321,23 @@ void SceneManager::ReceiveMessages()
 				return;
 			}
 		}
+		/*else 
+		{
+			std::pair<int, ClientData*> _client;
 
-		float currentTime;
+			if (_client.first >= 0)
+			{
+				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+				out->Write((int)Commands::WELCOME);
+				out->Write(_client.first);
+				SavePacketToTable(Commands::WELCOME, out, currentTime, _client.first);
+				return;
+
+			}
+		}*/
+
 
 		switch (commandNum)
 		{
@@ -377,6 +393,7 @@ void SceneManager::ReceiveMessages()
 				{
 					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					out->Write((int)Commands::WELCOME);
+					out->Write(-1);
 					SavePacketToTable(Commands::WELCOME, out, currentTime, id);
 				}
 				else
