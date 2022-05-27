@@ -23,7 +23,7 @@ public:
 
 	void ClientConnected(int _id);
 
-	void SetClientRtt(int _id, float _rttKey, float _realRtt) { waitingClients[_id]->SetClientRtt(_rttKey, _realRtt); }
+	void SetClientRtt(int _id, float _rttKey, float _realRtt);
 
 	void DisconnectClient(int _id);
 
@@ -37,9 +37,9 @@ public:
 
 	ClientData* GetClient(int _id);
 
-	std::map<int, ClientData*> GetClientsMap() { return waitingClients; }
+	std::map<int, ClientData*>* GetClientsMap() { return &connectedClients; }
 	ClientData* GetConnectedClient(int _id);
 
-	std::map<int, ClientData*> GetConnectingClientsMap() { return waitingClients; }
+	std::map<int, ClientData*>* GetConnectingClientsMap() { return &waitingClients; }
 	ClientData* GetConnectingClient(int _id);
 };

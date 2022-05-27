@@ -52,7 +52,7 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 
 void SceneManager::UpdateGameInfo(int _gameID, int hostID) 
 {
-	std::map<int, ClientData*> _clients = game->GetClientsMap();
+	std::map<int, ClientData*>* _clients = game->GetClientsMap();
 	int a = 0;
 
 	while (*gameState != State::END)
@@ -61,13 +61,13 @@ void SceneManager::UpdateGameInfo(int _gameID, int hostID)
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		//std::cout << "UPDATEGAME: " << a << std::endl;
 		//a++;
-		_clients = game->GetClientsMap();
-		for (auto it = _clients.begin(); it != _clients.end(); it++)
+
+		for (auto it = _clients->begin(); it != _clients->end(); it++)
 		{
 			if (it->second->matchID == _gameID && !it->second->disconnected)
 			{
 				//sending their info to the rest of clients
-				for (auto it2 = _clients.begin(); it2 != _clients.end(); it2++)
+				for (auto it2 = _clients->begin(); it2 != _clients->end(); it2++)
 				{
 					if (it2->first == it->first) continue;
 					if (it2->second->matchID == _gameID && !it2->second->disconnected)
@@ -96,23 +96,25 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 	//GAME CREATED AND POLLING FOR PLAYERS
 	if(!_createOrSearch) 
 	{
-		std::map<int, ClientData*> _clients = game->GetClientsMap();
+		std::map<int, ClientData*>* _clients = game->GetClientsMap();
 
-		_clients[_id]->playerQuantity = 1;
+		_clients->at(_id)->playerQuantity = 1;
 
 		while (*gameState != State::END)
 		{
 			if (game->GetConnectedClient(_id)->disconnected) return;
 			//std::cout << "MATCHFIND: " << a << std::endl;
 			//a++;
-			_clients = game->GetClientsMap();
-			for (auto it = _clients.begin(); it != _clients.end(); it++)
+			//_clients = game->GetClientsMap();
+			for (auto it = _clients->begin(); it != _clients->end(); it++)
 			{
 				if (it->first == _id) continue;
 
+				ClientData* _clientInfo = _clients->at(_id);
+
 				if (it->second->searchingForMatch && it->second->matchID == -1 && !it->second->disconnected)
 				{
-					std::string playerName = _clients[_id]->GetName();
+					std::string playerName = _clientInfo->GetName();
 					char gameChar = it->second->GetName().at(0);
 					bool matchWPlayer = false;
 
@@ -127,18 +129,18 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 					if (matchWPlayer)
 					{
-						it->second->matchID = _clients[_id]->matchID;
-						_clients[_id]->playerQuantity++;
+						it->second->matchID = _clientInfo->matchID;
+						_clientInfo->playerQuantity++;
 						it->second->searchingForMatch = false;
 						std::cout << "Player Found!!!!!" << std::endl;
 						OutputMemoryStream* out = new OutputMemoryStream();
 						out->Write((int)Commands::MATCH_FOUND);
-						out->Write(_clients[_id]->matchID);
+						out->Write(_clientInfo->matchID);
 						game->SendClient(_id, out);
 
 						if (!matchFound)
 						{
-							std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clients[_id]->matchID, _id);
+							std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clientInfo->matchID, _id);
 							tUpdate.detach();
 							matchFound = true;
 						}
@@ -153,16 +155,18 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 	//WAITING TO JOIN A GAME
 	else 
 	{
+		ClientData* _client = game->GetClientsMap()->at(_id);
+		if (_client == nullptr) return;
 		while(!matchFound) 
 		{
-			if (game->GetClientsMap()[_id]->disconnected) return;
-			if (!game->GetClientsMap()[_id]->searchingForMatch)
+			if (_client->disconnected) return;
+			if (!_client->searchingForMatch)
 				matchFound = true;
 		}
 
 		OutputMemoryStream* out = new OutputMemoryStream();
 		out->Write((int)Commands::MATCH_FOUND);
-		out->Write(game->GetClientsMap()[_id]->matchID);
+		out->Write(_client->matchID);
 
 		std::cout << "Match Joined!!!!!" << std::endl;
 
@@ -239,7 +243,7 @@ void SceneManager::CheckMessageTimeout()
 					breakLoop = true;
 					break;
 				}
-				else if(!game->GetClientsMap()[it->first]->disconnected)
+				else if(!game->GetClient(it->first)->disconnected)
 				{
 					game->SendClient(it->first, it2->second.message);
 					it2->second.tries++;
@@ -356,7 +360,7 @@ void SceneManager::ReceiveMessages()
 
 				if (_client->GetTries() >= MAX_TRIES)
 				{
-					game->GetClientsMap().erase(id);
+					game->DisconnectClient(id);
 					return;
 				}
 
@@ -380,7 +384,7 @@ void SceneManager::ReceiveMessages()
 					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					out->Write((int)Commands::SALT);
 					SavePacketToTable(Commands::SALT, out, currentTime, id);
-					game->GetClientsMap()[id]->AddTry();
+					game->GetClientsMap()->at(id)->AddTry();
 				}
 				out->Write(currentTime);
 
@@ -394,6 +398,8 @@ void SceneManager::ReceiveMessages()
 
 				message->Read(&rttKey);
 				MessageReceived(Commands::WELCOME, id, rttKey);
+
+				game->ClientConnected(id);
 		}
 			break;
 		//--------------- Connection ---------------
@@ -429,18 +435,18 @@ void SceneManager::ReceiveMessages()
 				bool createOrSearch = false;
 				matchID++;
 
-				std::map<int, ClientData*> _clients = game->GetClientsMap();
+				std::map<int, ClientData*>* _clients = game->GetClientsMap();
 				
-				if(_clients.size() == 1) createOrSearch = true;
+				if(_clients->size() == 1) createOrSearch = true;
 
-				for (auto it = _clients.begin(); it != _clients.end(); it++)
+				for (auto it = _clients->begin(); it != _clients->end(); it++)
 				{
 					if (it->first == id) continue;
 					if (it->second->disconnected) continue;
 
 					if (!it->second->searchingForMatch)
 					{
-						std::string playerName = _clients[id]->GetName();
+						std::string playerName = _clients->at(id)->GetName();
 						char gameChar = it->second->GetName().at(0);
 
 						for (size_t i = 0; i < playerName.length() && i < 10; i++)
@@ -477,7 +483,7 @@ void SceneManager::ReceiveMessages()
 				message->Read(&posX);
 				message->Read(&posY);
 
-				game->GetClientsMap()[id]->SetPosition(posX, posY);
+				game->GetConnectedClient(id)->SetPosition(posX, posY);
 			}
 			break;
 		}

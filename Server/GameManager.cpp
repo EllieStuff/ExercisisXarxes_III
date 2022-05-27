@@ -44,12 +44,25 @@ void GameManager::ClientConnected(int _id)
 	}
 }
 
+void GameManager::SetClientRtt(int _id, float _rttKey, float _realRtt)
+{
+	if (GetConnectingClient(_id) != nullptr)
+	{
+		waitingClients[_id]->SetClientRtt(_rttKey, _realRtt);
+	}
+	else if (GetConnectedClient(_id) != nullptr)
+	{
+		connectedClients[_id]->SetClientRtt(_rttKey, _realRtt);
+	}
+}
+
 
 void GameManager::DisconnectClient(int _id)
 {
-	if(!waitingClients[_id]->disconnected) 
+	ClientData* _client = GetClient(_id);
+	if(!_client->disconnected) 
 	{
-		waitingClients[_id]->disconnected = true;
+		_client->disconnected = true;
 		return;
 	}
 
@@ -93,7 +106,14 @@ void GameManager::DeleteClient(int _id)
 Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 {
 	Status status;
-	sock.Send(out, status, waitingClients[_id]->GetAddress(), waitingClients[_id]->GetPort());
+
+	auto _client = GetConnectedClient(_id);
+	if (_client == nullptr)
+		_client = GetConnectingClient(_id);
+
+	if (_client == nullptr) return Status::ERROR;
+
+	sock.Send(out, status, _client->GetAddress(), _client->GetPort());
 	return status;
 }
 
@@ -124,8 +144,8 @@ ClientData* GameManager::GetClient(int _id)
 
 ClientData* GameManager::GetConnectedClient(int _id)
 {
-	if (waitingClients.find(_id) != waitingClients.end())
-		return waitingClients[_id];
+	if (connectedClients.find(_id) != connectedClients.end())
+		return connectedClients[_id];
 	else
 		return nullptr;
 }
