@@ -114,20 +114,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 				if (it->second->searchingForMatch && it->second->matchID == -1 && !it->second->disconnected)
 				{
-					std::string playerName = _clientInfo->GetName();
-					char gameChar = it->second->GetName().at(0);
-					bool matchWPlayer = false;
-
-					for (size_t i = 0; i < playerName.length() && i < 10; i++)
-					{
-						if (playerName.at(i) == gameChar)
-						{
-							matchWPlayer = true;
-							break;
-						}
-					}
-
-					if (matchWPlayer)
+					if (abs(_clientInfo->GetName()[0] - it->second->GetName()[0]) < 10)
 					{
 						it->second->matchID = _clientInfo->matchID;
 						_clientInfo->playerQuantity++;
@@ -147,7 +134,6 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 						delete out;
 					}
-					
 				}
 			}
 		}
@@ -463,17 +449,8 @@ void SceneManager::ReceiveMessages()
 
 					if (!it->second->searchingForMatch)
 					{
-						std::string playerName = _clients->at(id)->GetName();
-						char gameChar = it->second->GetName().at(0);
-
-						for (size_t i = 0; i < playerName.length() && i < 10; i++)
-						{
-							if(playerName.at(i) == gameChar)
-							{
-								createOrSearch = true;
-								break;
-							}
-						}
+						if(abs(_clients->at(id)->GetName()[0] - it->second->GetName()[0] ) < 10)
+							createOrSearch = true;
 					}
 				}
 
