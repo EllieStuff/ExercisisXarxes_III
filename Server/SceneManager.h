@@ -10,6 +10,8 @@ class SceneManager
 	int matchID = 0;
 
 	std::map<int, std::map<Commands, CriticalMessages>*>* criticalMessages;
+	std::map<int, std::vector<std::pair<int, ClientData*>>>* rooms;
+	std::vector<std::pair<int, ClientData*>>* searchingPlayers;
 
 	GameManager* game;
 
@@ -23,6 +25,9 @@ class SceneManager
 	void MessageReceived(Commands message, int _id, float _rttKey);
 	void SearchMatch(int _id, int _matchID, bool _createOrSearch);
 	void UpdateGameInfo(int _gameID, int hostID);
+
+	void CheckRooms();
+	void MatchMaking();
 
 	void DisconnectClient(int _id);
 

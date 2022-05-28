@@ -41,6 +41,7 @@ public:
 	int GetClientSalt() { return clientSALT; }
 	float GetClientRtt(float _rttKey) { return rttLog[_rttKey]; }
 
+	int GetId() { return clientID; }
 	std::string GetName() { return name; }
 
 	void ResetTimeOut() { timeout = clock(); }

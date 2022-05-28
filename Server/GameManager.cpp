@@ -96,6 +96,7 @@ int GameManager::CreateClient(unsigned short _port ,IpAddress _address, std::str
 {
 	currentId++;
 	waitingClients[currentId] = new ClientData(_port, _address, _name, _salt);
+	waitingClients[currentId]->SetClientID(currentId);
 	return currentId;
 }
 

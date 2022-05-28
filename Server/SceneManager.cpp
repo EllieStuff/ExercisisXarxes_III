@@ -15,11 +15,13 @@ void SceneManager::UpdateGame()
 SceneManager::SceneManager()
 {
 	gameState = new State (State::INIT);
+	
+	std::thread exitThread(&SceneManager::ExitThread, this);
+	exitThread.detach();
+
 	game = new GameManager();
 	Status status;
 	status = game->BindSocket();
-
-	criticalMessages = new std::map<int, std::map<Commands, CriticalMessages>*>();
 
 	if(status != Status::DONE) 
 	{
@@ -27,8 +29,16 @@ SceneManager::SceneManager()
 		*gameState = State::END;
 	}
 
-	std::thread exitThread(&SceneManager::ExitThread, this);
-	exitThread.detach();
+	criticalMessages = new std::map<int, std::map<Commands, CriticalMessages>*>();
+	rooms = new std::map<int, std::vector<std::pair<int, ClientData*>>>();
+
+	searchingPlayers = new std::vector<std::pair<int, ClientData*>>();
+
+	std::thread roomsThread(&SceneManager::CheckRooms, this);
+	roomsThread.detach();
+
+	std::thread matchMakingThread(&SceneManager::MatchMaking, this);
+	matchMakingThread.detach();
 }
 
 void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
@@ -84,7 +94,113 @@ void SceneManager::UpdateGameInfo(int _gameID, int hostID)
 			}
 		}
 	}
+}
 
+void SceneManager::CheckRooms()
+{
+	OutputMemoryStream* out;
+	while (*gameState != State::END)
+	{
+		if (rooms->size() == 0)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+			continue;
+		}
+
+		out = new OutputMemoryStream();
+
+		for (auto roomIt = rooms->begin(); roomIt != rooms->end(); roomIt++)
+		{
+			for (int i = 0; i < roomIt->second.size(); i++)
+			{
+				if (roomIt->second[i].second->disconnected)
+				{
+					OutputMemoryStream* out2 = new OutputMemoryStream();
+					out2->Write((int)Commands::MATCH_FINISHED);
+					if (i == 0)
+					{
+						SavePacketToTable(Commands::MATCH_FINISHED, out2,
+							std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), roomIt->second[1].first);
+						game->SendClient(roomIt->second[1].first, out2);
+					}
+					else
+					{
+						SavePacketToTable(Commands::MATCH_FINISHED, out2,
+							std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), roomIt->second[0].first);
+						game->SendClient(roomIt->second[0].first, out2);
+					}
+					rooms->erase(roomIt);
+					continue;
+				}
+				for (size_t j = 0; j < roomIt->second.size(); j++)
+				{
+					if (j == i) continue;
+
+					out->Write((int)Commands::UPDATE_GAME);
+					out->Write(roomIt->second[i].first);
+					out->Write(roomIt->second[i].second->GetXPos());
+					out->Write(roomIt->second[i].second->GetYPos());
+					game->SendClient(roomIt->second[j].first, out);
+				}
+			}
+		}
+		delete out;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
+void SceneManager::MatchMaking()
+{
+	OutputMemoryStream* out;
+	while (*gameState != State::END)
+	{
+		if (searchingPlayers->empty())
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+			continue;
+		}
+
+		out = new OutputMemoryStream();
+
+		for (size_t i = 0; i < searchingPlayers->size(); i++)
+		{
+			for (size_t j = 0; j < searchingPlayers->size(); j++)
+			{
+				if (i == j) continue;
+				if (abs(searchingPlayers->at(i).second->GetName()[0] - searchingPlayers->at(j).second->GetName()[0]) < 10)
+				{
+					std::pair<int, std::vector<std::pair<int, ClientData*>>> _room(matchID, std::vector< std::pair<int, ClientData*>>());
+					_room.second.push_back(std::pair<int, ClientData*>(searchingPlayers->at(i).second->GetId(), searchingPlayers->at(i).second));
+					_room.second.push_back(std::pair<int, ClientData*>(searchingPlayers->at(j).second->GetId(), searchingPlayers->at(j).second));
+
+					matchID++;
+					rooms->insert(_room);
+					
+					out->Write((int)Commands::MATCH_FOUND);
+					float rtt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+					out->Write(rtt);
+					SavePacketToTable(Commands::MATCH_FOUND, out,
+						std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(i).second->GetId());
+					SavePacketToTable(Commands::MATCH_FOUND, out,
+						std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(j).second->GetId());
+
+					game->SendClient(searchingPlayers->at(i).second->GetId(), out);
+					game->SendClient(searchingPlayers->at(j).second->GetId(), out);
+
+					if (i < j)
+					{
+						searchingPlayers->erase(searchingPlayers->begin() + i);
+						searchingPlayers->erase(searchingPlayers->begin() + j - 1);
+					}
+					else
+					{
+						searchingPlayers->erase(searchingPlayers->begin() + j);
+						searchingPlayers->erase(searchingPlayers->begin() + i - 1);
+					}
+				}
+			}
+		}
+	}
 }
 
 void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
@@ -127,8 +243,6 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 
 						if (!matchFound)
 						{
-							std::thread tUpdate(&SceneManager::UpdateGameInfo, this, _clientInfo->matchID, _id);
-							tUpdate.detach();
 							matchFound = true;
 						}
 
@@ -223,7 +337,7 @@ void SceneManager::CheckMessageTimeout()
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
 				//std::cout << it2->second.tries << std::endl;
-				if(it2->second.tries > 2)
+				if(it2->first == Commands::PING_PONG && it2->second.tries > 10)
 				{
 					DisconnectClient(it->first);
 					breakLoop = true;
@@ -231,6 +345,7 @@ void SceneManager::CheckMessageTimeout()
 				}
 				else if(!game->GetClient(it->first)->disconnected)
 				{
+					std::cout << "Sending Important Message " <<  (int)it2->first << std::endl;
 					game->SendClient(it->first, it2->second.message);
 					it2->second.tries++;
 				}
@@ -436,7 +551,10 @@ void SceneManager::ReceiveMessages()
 		case Commands::SEARCH_MATCH:
 			{
 				bool createOrSearch = false;
-				matchID++;
+
+				searchingPlayers->push_back(std::pair<int, ClientData*>(id, game->GetConnectedClient(id)));
+
+				/*matchID++;
 
 				std::map<int, ClientData*>* _clients = game->GetClientsMap();
 				
@@ -465,12 +583,13 @@ void SceneManager::ReceiveMessages()
 					std::cout << "CREATING A GAME FOR PLAYER " << id;
 					std::thread tCreate(&SceneManager::SearchMatch, this, id, matchID, createOrSearch);
 					tCreate.detach();
-				}
+				}*/
 			}
 			break;
 		//--------------- Ingame Receives -----------
 		case Commands::UPDATE_GAME:
 			{
+
 				int posX = 0;
 				int posY = 0;
 
@@ -480,6 +599,20 @@ void SceneManager::ReceiveMessages()
 				game->GetConnectedClient(id)->SetPosition(posX, posY);
 			}
 			break;
+		case Commands::ACK_MATCH_FOUND:
+		{
+			float rttKey;
+			message->Read(&rttKey);
+			MessageReceived(Commands::MATCH_FOUND, id, rttKey);
+		}
+		break;
+		case Commands::ACK_MATCH_FINISHED:
+		{
+			float rttKey;
+			message->Read(&rttKey);
+			MessageReceived(Commands::MATCH_FINISHED, id, rttKey);
+		}
+		break;
 		}
 	}
 	delete message;

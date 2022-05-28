@@ -34,7 +34,7 @@ void SceneManager::UpdateGame()
 
 		std::cout << "Waiting for match" << std::endl;
 
-		while (!(*match)) { }
+		while (!(*match)) { std::this_thread::sleep_for(std::chrono::seconds(1)); }
 
 		std::cout << "Match Found!" << std::endl;
 
@@ -53,7 +53,7 @@ void SceneManager::UpdateGame()
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 
-		while (true) 
+		while (*gameState != State::END)
 		{
 			SDL_Event _event;
 			auto _player = players->find(client->GetClientID());
@@ -166,10 +166,12 @@ SceneManager::SceneManager()
 
 	pong = new bool(false);
 
-	gameState = State::INIT;
+	gameState = new State( State::INIT);
 	client = new GameManager();
 	connected = new bool(false);
 	packetId = 0;
+
+	match = new bool(false);
 
 	std::thread tReceive(&SceneManager::ReceiveMessages, this);
 	tReceive.detach();
@@ -198,7 +200,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 void SceneManager::Ping(float rttKey) 
 {
 	//int a = 0;
-	while(true) 
+	while(*gameState != State::END)
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
 
@@ -241,7 +243,7 @@ void SceneManager::Ping(float rttKey)
 void SceneManager::CheckMessageTimeout()
 {
 	int a = 0;
-	while(true) 
+	while(*gameState != State::END)
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		//std::cout << "MessageTimeout: " << a << std::endl;
@@ -257,6 +259,7 @@ void SceneManager::CheckMessageTimeout()
 			float time = currentTime - it->second.startTime;
 			if (time > 3)
 			{
+				std::cout << "Sending Important Message " << (int)it->first << std::endl;
 				client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
 				it->second.startTime = currentTime;
 			}
@@ -303,17 +306,16 @@ void SceneManager::UpdateInit()
 
 	while (!(*connected)) { std::this_thread::sleep_for(std::chrono::milliseconds(2)); }
 
-	gameState = State::GAME;
+	*gameState = State::GAME;
 }
 
 void SceneManager::ReceiveMessages()
 {
 	Status status;
 	unsigned short _port;
-	match = new bool(false);
 	int a = 0;
 
-	while(true) 
+	while(*gameState != State::END) 
 	{
 		//std::cout << "RECEIVE: " << a << std::endl;
 		//a++;
@@ -416,12 +418,12 @@ void SceneManager::ReceiveMessages()
 		//--------------- Disconnection ---------------
 		case Commands::PING_PONG:
 			{
-				pong = new bool(true);
+				*pong = true;
 			}
 			break;
 		case Commands::EXIT:
 			{
-				exit(0);
+			*gameState = State::END;
 			}
 			break;
 		//--------------- Disconnection ---------------
@@ -430,13 +432,34 @@ void SceneManager::ReceiveMessages()
 		case Commands::MATCH_FOUND:
 			{
 				std::cout << "New Player Joined!" << std::endl;
-				in->Read(&matchID);
-				int playerID;
-				in->Read(&playerID);
-				match = new bool(true);
+				float rtt;
+				in->Read(&rtt);
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+				out->Write((int)Commands::ACK_MATCH_FOUND);
+				out->Write((int)client->GetClientID());
+				out->Write(rtt);
+
+				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+				*match = true;
 			}
 			break;
 		//--------------- Ingame Receives -----------
+		case Commands::MATCH_FINISHED:
+		{
+			std::cout << "Another player has disconnected! Shutting down the match! Bye." << std::endl;
+			float rtt;
+			in->Read(&rtt);
+
+			OutputMemoryStream* out = new OutputMemoryStream();
+			out->Write((int)Commands::ACK_MATCH_FINISHED);
+			out->Write((int)client->GetClientID());
+			out->Write(rtt);
+			client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+			*gameState = State::END;
+		}
+		break;
 
 		case Commands::UPDATE_GAME:
 			{
@@ -475,13 +498,14 @@ void SceneManager::ReceiveMessages()
 SceneManager::~SceneManager()
 {
 	delete connected;
+	delete gameState;
 }
 
 void SceneManager::Update()
 {
-	while (gameState != State::END)
+	while (*gameState != State::END)
 	{
-		switch (gameState)
+		switch (*gameState)
 		{
 		case SceneManager::State::INIT:
 			UpdateInit();
@@ -491,4 +515,5 @@ void SceneManager::Update()
 			break;
 		}
 	}
+	system("pause");
 }

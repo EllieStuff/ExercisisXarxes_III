@@ -35,7 +35,7 @@ class SceneManager
 	std::map<int, GamePlayerInfo>* players;
 
 	enum class State {INIT, GAME, END};
-	State gameState;
+	State* gameState;
 	bool* connected;
 	int packetId;
 	int saltTries;
