@@ -107,7 +107,7 @@ void SceneManager::CheckRooms()
 			continue;
 		}
 
-		out = new OutputMemoryStream();
+		bool breakLoop = false;
 
 		for (auto roomIt = rooms->begin(); roomIt != rooms->end(); roomIt++)
 		{
@@ -130,21 +130,26 @@ void SceneManager::CheckRooms()
 						game->SendClient(roomIt->second[0].first, out2);
 					}
 					rooms->erase(roomIt);
-					continue;
+
+					breakLoop = true;
+
+					break;
 				}
 				for (size_t j = 0; j < roomIt->second.size(); j++)
 				{
 					if (j == i) continue;
 
+					out = new OutputMemoryStream();
 					out->Write((int)Commands::UPDATE_GAME);
 					out->Write(roomIt->second[i].first);
 					out->Write(roomIt->second[i].second->GetXPos());
 					out->Write(roomIt->second[i].second->GetYPos());
 					game->SendClient(roomIt->second[j].first, out);
+					delete out;
 				}
 			}
+			if (breakLoop) break;
 		}
-		delete out;
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
@@ -160,15 +165,16 @@ void SceneManager::MatchMaking()
 			continue;
 		}
 
-		out = new OutputMemoryStream();
+		bool breakLoop = false;
 
 		for (size_t i = 0; i < searchingPlayers->size(); i++)
 		{
 			for (size_t j = 0; j < searchingPlayers->size(); j++)
 			{
 				if (i == j) continue;
-				if (abs(searchingPlayers->at(i).second->GetName()[0] - searchingPlayers->at(j).second->GetName()[0]) < 10)
+				if (searchingPlayers->at(j).second->searchingForMatch && abs(searchingPlayers->at(i).second->GetName()[0] - searchingPlayers->at(j).second->GetName()[0]) < 10)
 				{
+					out = new OutputMemoryStream();
 					std::pair<int, std::vector<std::pair<int, ClientData*>>> _room(matchID, std::vector< std::pair<int, ClientData*>>());
 					_room.second.push_back(std::pair<int, ClientData*>(searchingPlayers->at(i).second->GetId(), searchingPlayers->at(i).second));
 					_room.second.push_back(std::pair<int, ClientData*>(searchingPlayers->at(j).second->GetId(), searchingPlayers->at(j).second));
@@ -179,26 +185,45 @@ void SceneManager::MatchMaking()
 					out->Write((int)Commands::MATCH_FOUND);
 					float rtt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					out->Write(rtt);
-					SavePacketToTable(Commands::MATCH_FOUND, out,
-						std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(i).second->GetId());
-					SavePacketToTable(Commands::MATCH_FOUND, out,
-						std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(j).second->GetId());
+					//SavePacketToTable(Commands::MATCH_FOUND, out,
+						//std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(i).second->GetId());
+					//SavePacketToTable(Commands::MATCH_FOUND, out,
+						//std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(j).second->GetId());
 
 					game->SendClient(searchingPlayers->at(i).second->GetId(), out);
 					game->SendClient(searchingPlayers->at(j).second->GetId(), out);
 
+					delete out;
+
 					if (i < j)
 					{
-						searchingPlayers->erase(searchingPlayers->begin() + i);
-						searchingPlayers->erase(searchingPlayers->begin() + j - 1);
+							searchingPlayers->at(i).second->searchingForMatch = false;
+							searchingPlayers->at(j).second->searchingForMatch = false;
 					}
 					else
 					{
-						searchingPlayers->erase(searchingPlayers->begin() + j);
-						searchingPlayers->erase(searchingPlayers->begin() + i - 1);
+							searchingPlayers->at(j).second->searchingForMatch = false;
+							searchingPlayers->at(i).second->searchingForMatch = false;
+					}
+
+					breakLoop = true;
+					break;
+				}
+				else if(!searchingPlayers->at(j).second->searchingForMatch)
+				{
+					if (i < j)
+					{
+							searchingPlayers->erase(searchingPlayers->begin() + i);
+							searchingPlayers->erase(searchingPlayers->begin() + j - 1);
+					}
+					else
+					{
+							searchingPlayers->erase(searchingPlayers->begin() + j);
+							searchingPlayers->erase(searchingPlayers->begin() + i - 1);
 					}
 				}
 			}
+			if (breakLoop) break;
 		}
 	}
 }
@@ -244,6 +269,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 						if (!matchFound)
 						{
 							matchFound = true;
+							return;
 						}
 
 						delete out;
@@ -551,8 +577,9 @@ void SceneManager::ReceiveMessages()
 		case Commands::SEARCH_MATCH:
 			{
 				bool createOrSearch = false;
-
+				game->GetConnectedClient(id)->searchingForMatch = true;
 				searchingPlayers->push_back(std::pair<int, ClientData*>(id, game->GetConnectedClient(id)));
+
 
 				/*matchID++;
 

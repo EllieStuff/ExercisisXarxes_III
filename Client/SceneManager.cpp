@@ -391,7 +391,7 @@ void SceneManager::ReceiveMessages()
 				int id;
 				in->Read(&id);
 				client->SetClientID(id);
-
+				std::cout << id << std::endl;
 				int salt;
 				in->Read(&salt);
 				client->SetServerSalt(salt);
