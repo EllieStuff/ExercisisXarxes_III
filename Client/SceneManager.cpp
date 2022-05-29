@@ -9,153 +9,164 @@ void SceneManager::EnterGame()
 
 void SceneManager::UpdateGame()
 {
-	std::cout << "1. Matchmaking" << std::endl;
-	std::cout << "2. Exit" << std::endl;
-	std::cout << "OPTION: ";
-	int option;
-	std::cin >> option;
 
-	std::cout << "" << std::endl;
-
-	GamePlayerInfo game = GamePlayerInfo(0, 0);
-	players->insert(std::pair<int, GamePlayerInfo>(client->GetClientID(), game));
-
-	switch (option)
+	while(true) 
 	{
-	case 1:
-	{
-		OutputMemoryStream* out = new OutputMemoryStream();
-		out->Write((int)Commands::SEARCH_MATCH);
-		out->Write(client->GetClientID());
+		players->clear();
+		*match = false;
+		std::cout << "1. Matchmaking" << std::endl;
+		std::cout << "2. Exit" << std::endl;
+		std::cout << "OPTION: ";
+		int option;
+		std::cin >> option;
 
-		Status status;
-
-		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-
-		std::cout << "Waiting for match" << std::endl;
-
-		while (!(*match)) { std::this_thread::sleep_for(std::chrono::seconds(1)); }
-
-		std::cout << "Match Found!" << std::endl;
-
-		SDL_Init(SDL_INIT_EVERYTHING);
-		SDL_Window* window = NULL;
-		window = SDL_CreateWindow
-		(
-			"Game Test Networking", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED,
-			640,
-			480,
-			SDL_WINDOW_SHOWN
-		);
-
-		SDL_Renderer* renderer = NULL;
-		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+		std::cout << "" << std::endl;
 
 
-		while (*gameState != State::END)
+		GamePlayerInfo game = GamePlayerInfo(0, 0);
+		players->insert(std::pair<int, GamePlayerInfo>(client->GetClientID(), game));
+
+		switch (option)
 		{
-			SDL_Event _event;
-			auto _player = players->find(client->GetClientID());
-			int posX = _player->second.posX;
-			int posY = _player->second.posY;
-
-			int oldX = posX;
-			int oldY = posY;
-
-			if(SDL_PollEvent(&_event) != 0) 
-			{
-				switch (_event.key.keysym.sym) {
-				case SDLK_LEFT:
-					posX -= 1;
-					break;
-				case SDLK_RIGHT:
-					posX += 1;
-					break;
-				case SDLK_UP:
-					posY -= 5;
-					break;
-				case SDLK_DOWN:
-					posY += 1;
-					break;
-				default:
-					break;
-				}
-			}
-
-			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
-			SDL_RenderClear(renderer);
-
-
-			SDL_Rect playerLocal;
-			SDL_Rect r;
-			r.x = posX;
-			r.y = posY;
-			r.w = 50;
-			r.h = 50;
-
-			SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-
-			SDL_RenderFillRect(renderer, &r);
-
-			_player->second.SetPlayerPos(posX, posY);
-
-			for (auto it = players->begin(); it != players->end(); it++)
-			{
-				if (it->first == client->GetClientID()) continue;
-
-				float lerpX = it->second.oldX + 0.001f * (it->second.posX - it->second.oldX);
-				float lerpY = it->second.oldY + 0.001f * (it->second.posY - it->second.oldY);
-
-				it->second.SetOldPlayerPos(lerpX, lerpY);
-
-				SDL_Rect playerLocal;
-				SDL_Rect r2;
-				r2.x = lerpX;
-				r2.y = lerpY;
-				r2.w = 50;
-				r2.h = 50;
-
-				SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-
-				SDL_RenderFillRect(renderer, &r2);	
-			}
-
-			SDL_RenderPresent(renderer);
+		case 1:
+		{
 
 			OutputMemoryStream* out = new OutputMemoryStream();
-
-			out->Write((int)Commands::UPDATE_GAME);
+			out->Write((int)Commands::SEARCH_MATCH);
 			out->Write(client->GetClientID());
-
-			out->Write(posX);
-			out->Write(posY);
 
 			Status status;
 
-			if(oldX != posX || oldY != posY)
-				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+			client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 
-			delete out;
+			std::cout << "Waiting for match" << std::endl;
+
+			while (!(*match)) { std::this_thread::sleep_for(std::chrono::seconds(1)); }
+			*gameState = State::GAME;
+
+			std::cout << "Match Found!" << std::endl;
+
+			SDL_Init(SDL_INIT_EVERYTHING);
+			SDL_Window* window = NULL;
+			window = SDL_CreateWindow
+			(
+				"Game Test Networking", SDL_WINDOWPOS_UNDEFINED,
+				SDL_WINDOWPOS_UNDEFINED,
+				640,
+				480,
+				SDL_WINDOW_SHOWN
+			);
+
+			SDL_Renderer* renderer = NULL;
+			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+
+			while (*gameState != State::END)
+			{
+				SDL_Event _event;
+				auto _player = players->find(client->GetClientID());
+				int posX = _player->second.posX;
+				int posY = _player->second.posY;
+
+				int oldX = posX;
+				int oldY = posY;
+
+				if (SDL_PollEvent(&_event) != 0)
+				{
+					switch (_event.key.keysym.sym) {
+					case SDLK_LEFT:
+						posX -= 1;
+						break;
+					case SDLK_RIGHT:
+						posX += 1;
+						break;
+					case SDLK_UP:
+						posY -= 5;
+						break;
+					case SDLK_DOWN:
+						posY += 1;
+						break;
+					default:
+						break;
+					}
+				}
+
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+				SDL_RenderClear(renderer);
+
+
+				SDL_Rect playerLocal;
+				SDL_Rect r;
+				r.x = posX;
+				r.y = posY;
+				r.w = 50;
+				r.h = 50;
+
+				SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+
+				SDL_RenderFillRect(renderer, &r);
+
+				_player->second.SetPlayerPos(posX, posY);
+
+				for (auto it = players->begin(); it != players->end(); it++)
+				{
+					if (it->first == client->GetClientID()) continue;
+
+					float lerpX = it->second.oldX + 0.001f * (it->second.posX - it->second.oldX);
+					float lerpY = it->second.oldY + 0.001f * (it->second.posY - it->second.oldY);
+
+					it->second.SetOldPlayerPos(lerpX, lerpY);
+
+					SDL_Rect playerLocal;
+					SDL_Rect r2;
+					r2.x = lerpX;
+					r2.y = lerpY;
+					r2.w = 50;
+					r2.h = 50;
+
+					SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+
+					SDL_RenderFillRect(renderer, &r2);
+				}
+
+				SDL_RenderPresent(renderer);
+
+				OutputMemoryStream* out = new OutputMemoryStream();
+
+				out->Write((int)Commands::UPDATE_GAME);
+				out->Write(client->GetClientID());
+
+				out->Write(posX);
+				out->Write(posY);
+
+				Status status;
+
+				if (oldX != posX || oldY != posY)
+					client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
+				delete out;
+			}
+
+			SDL_DestroyWindow(window);
+
+			break;
 		}
 
-		break;
-	}
+		case 2:
+		{
+			OutputMemoryStream* out = new OutputMemoryStream();
+			out->Write((int)Commands::EXIT);
+			out->Write(client->GetClientID());
 
-	case 2: 
-	{
-		OutputMemoryStream* out = new OutputMemoryStream();
-		out->Write((int)Commands::EXIT);
-		out->Write(client->GetClientID());
+			Status status;
+			client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+			delete out;
 
-		Status status;
-		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-		delete out;
-
-		exit(0);
-		break;
-	}
+			exit(0);
+			break;
+		}
+		}
 	}
 }
 
@@ -200,7 +211,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 void SceneManager::Ping(float rttKey) 
 {
 	//int a = 0;
-	while(*gameState != State::END)
+	while(true)
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
 
@@ -315,7 +326,7 @@ void SceneManager::ReceiveMessages()
 	unsigned short _port;
 	int a = 0;
 
-	while(*gameState != State::END) 
+	while(true) 
 	{
 		//std::cout << "RECEIVE: " << a << std::endl;
 		//a++;
