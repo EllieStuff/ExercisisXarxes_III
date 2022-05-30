@@ -87,6 +87,7 @@ void SceneManager::UpdateGameInfo(int _gameID, int hostID)
 						out->Write(it->first);
 						out->Write(it->second->GetXPos());
 						out->Write(it->second->GetYPos());
+						it->second->UpdatePosition();
 						game->SendClient(it2->first, out);
 						delete out;
 					}
@@ -139,18 +140,24 @@ void SceneManager::CheckRooms()
 				{
 					if (j == i) continue;
 
-					out = new OutputMemoryStream();
-					out->Write((int)Commands::UPDATE_GAME);
-					out->Write(roomIt->second[i].first);
-					out->Write(roomIt->second[i].second->GetXPos());
-					out->Write(roomIt->second[i].second->GetYPos());
-					game->SendClient(roomIt->second[j].first, out);
-					delete out;
+					for (int l = 0 ; l < roomIt->second[i].second->positions.size() ; l++)
+					{
+						mtx.lock();
+						roomIt->second[i].second->UpdatePosition();
+						mtx.unlock();
+						out = new OutputMemoryStream();
+						out->Write((int)Commands::UPDATE_GAME);
+						out->Write(roomIt->second[i].first);
+						out->Write(roomIt->second[i].second->GetXPos());
+						out->Write(roomIt->second[i].second->GetYPos());
+						//std::cout << "Player: " << roomIt->second[j].first << " X: " << roomIt->second[i].second->GetXPos() << " Y: " << roomIt->second[i].second->GetYPos() << std::endl;
+						game->SendClient(roomIt->second[j].first, out);
+					}
 				}
 			}
 			if (breakLoop) break;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 	}
 }
 
@@ -616,14 +623,26 @@ void SceneManager::ReceiveMessages()
 		//--------------- Ingame Receives -----------
 		case Commands::UPDATE_GAME:
 			{
+				int quantity = 0;
+				int empty = 0;
 
-				int posX = 0;
-				int posY = 0;
+				message->Read(&quantity);
+				message->Read(&empty);
 
-				message->Read(&posX);
-				message->Read(&posY);
 
-				game->GetConnectedClient(id)->SetPosition(posX, posY);
+				for (size_t i = 0; i < quantity; i++)
+				{
+					int posX = 0;
+					int posY = 0;
+
+					message->Read(&posX);
+					message->Read(&posY);
+
+					mtx.lock();
+					game->GetConnectedClient(id)->AcumulatePosition(posX, posY);
+					mtx.unlock();
+				}
+
 			}
 			break;
 		case Commands::ACK_MATCH_FOUND:

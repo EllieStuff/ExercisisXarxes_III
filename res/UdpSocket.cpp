@@ -16,7 +16,7 @@ void UdpSocket::Send(OutputMemoryStream* _out, Status& _status, IpAddress _addre
 InputMemoryStream* UdpSocket::Receive(Status& _status, std::pair<IpAddress, unsigned short> &_client)
 {
 	std::string* bufferChar = new std::string();
-	size_t size = 2000;
+	size_t size = 5000;
 	std::size_t received;
 	InputMemoryStream* input = new InputMemoryStream((char*)bufferChar, size);
 

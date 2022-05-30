@@ -60,9 +60,32 @@ void SceneManager::UpdateGame()
 			SDL_Renderer* renderer = NULL;
 			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+			float startTime = 0;
 
 			while (*gameState != State::END)
 			{
+				startTime += 0.2f;
+				if((int) startTime % 5 == 0 && acumulatedMessages.size() > 0)
+				{
+					OutputMemoryStream* out = new OutputMemoryStream();
+
+					out->Write((int)Commands::UPDATE_GAME);
+					out->Write(client->GetClientID());
+					out->Write(acumulatedMessages.size());
+
+					for (std::pair<int, int> message : acumulatedMessages)
+					{
+						out->Write(message.first);
+						out->Write(message.second);
+					}
+
+					Status status;
+					client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+					acumulatedMessages.clear();
+
+					delete out;
+				}
+
 				SDL_Event _event;
 				auto _player = players->find(client->GetClientID());
 				int posX = _player->second.posX;
@@ -113,8 +136,8 @@ void SceneManager::UpdateGame()
 				{
 					if (it->first == client->GetClientID()) continue;
 
-					float lerpX = it->second.oldX + 0.001f * (it->second.posX - it->second.oldX);
-					float lerpY = it->second.oldY + 0.001f * (it->second.posY - it->second.oldY);
+					float lerpX = it->second.oldX + 0.8f * (it->second.posX - it->second.oldX);
+					float lerpY = it->second.oldY + 0.8f * (it->second.posY - it->second.oldY);
 
 					it->second.SetOldPlayerPos(lerpX, lerpY);
 
@@ -132,20 +155,8 @@ void SceneManager::UpdateGame()
 
 				SDL_RenderPresent(renderer);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
-
-				out->Write((int)Commands::UPDATE_GAME);
-				out->Write(client->GetClientID());
-
-				out->Write(posX);
-				out->Write(posY);
-
-				Status status;
-
 				if (oldX != posX || oldY != posY)
-					client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-
-				delete out;
+					acumulatedMessages.push_back(std::pair<int, int>(posX, posY));
 			}
 
 			SDL_DestroyWindow(window);

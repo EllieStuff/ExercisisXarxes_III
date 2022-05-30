@@ -16,10 +16,12 @@ class ClientData
 	int posX = 0;
 	int posY = 0;
 
+
 	void GenerateSALT(int &value, int numOfBytes);
 
 public:
 
+	std::vector<std::pair<int, int>> positions;
 	bool disconnected;
 	bool searchingForMatch;
 	int matchID;
@@ -46,7 +48,8 @@ public:
 
 	void ResetTimeOut() { timeout = clock(); }
 
-	void SetPosition(int _posX, int _posY) { posX = _posX; posY = _posY; }
+	void AcumulatePosition(int _posX, int _posY) { positions.push_back(std::pair<int, int>(_posX, _posY)); }
+	void UpdatePosition() { if (!positions.empty()) { posX = positions[0].first; posY = positions[0].second; positions.erase(positions.begin()); } }
 	int GetXPos() { return posX; }
 	int GetYPos() { return posY; }
 
