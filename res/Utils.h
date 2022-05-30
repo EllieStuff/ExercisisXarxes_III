@@ -29,10 +29,10 @@ struct CriticalMessages {
 	unsigned short port;
 	std::time_t startTime;
 	int tries;
-	OutputMemoryStream* message;
+	OutputMemoryBitStream* message;
 
 	CriticalMessages() {}
-	CriticalMessages(IpAddress _ip, unsigned short _port, std::time_t _timeout, OutputMemoryStream* _message)
+	CriticalMessages(IpAddress _ip, unsigned short _port, std::time_t _timeout, OutputMemoryBitStream* _message)
 	{
 		ip = _ip;
 		port = _port;

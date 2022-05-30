@@ -15,7 +15,7 @@ class SceneManager
 
 	GameManager* game;
 
-	void SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time, int _id);
+	void SavePacketToTable(Commands _packetId, OutputMemoryBitStream* out, std::time_t time, int _id);
 
 	void UpdateInit();
 	void ReceiveMessages();

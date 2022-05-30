@@ -79,6 +79,7 @@ public:
 	template< typename T >
 	void Read(T* _inData, uint32_t _inBitCount = sizeof(T) * 8)
 	{
+		*_inData = 1;
 		static_assert(std::is_arithmetic< T >::value ||
 			std::is_enum< T >::value,
 			"Este read sólo soporta tipos básicos");
@@ -87,7 +88,7 @@ public:
 
 	std::string ReadString(uint32_t _inBitCount = sizeof(char) * 8)
 	{
-		int size = 0;
+		int size;
 		Read(&size, 5);
 
 		char* _string = new char[size + 1];

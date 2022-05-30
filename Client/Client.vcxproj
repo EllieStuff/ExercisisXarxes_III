@@ -153,8 +153,10 @@
     <ClCompile Include="SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\res\InputMemoryBitStream.h" />
     <ClInclude Include="..\res\InputMemoryStream.h" />
     <ClInclude Include="..\res\IpAddress.h" />
+    <ClInclude Include="..\res\OutputMemoryBitStream.h" />
     <ClInclude Include="..\res\OutputMemoryStream.h" />
     <ClInclude Include="..\res\UdpSocket.h" />
     <ClInclude Include="..\res\Utils.h" />

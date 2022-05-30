@@ -82,7 +82,7 @@ void SceneManager::UpdateGameInfo(int _gameID, int hostID)
 					if (it2->first == it->first) continue;
 					if (it2->second->matchID == _gameID && !it2->second->disconnected)
 					{
-						OutputMemoryStream* out = new OutputMemoryStream();
+						OutputMemoryBitStream* out = new OutputMemoryBitStream();
 						out->Write((int)Commands::UPDATE_GAME);
 						out->Write(it->first);
 						out->Write(it->second->GetXPos());
@@ -98,7 +98,7 @@ void SceneManager::UpdateGameInfo(int _gameID, int hostID)
 
 void SceneManager::CheckRooms()
 {
-	OutputMemoryStream* out;
+	OutputMemoryBitStream* out;
 	while (*gameState != State::END)
 	{
 		if (rooms->size() == 0)
@@ -115,7 +115,7 @@ void SceneManager::CheckRooms()
 			{
 				if (roomIt->second[i].second->disconnected)
 				{
-					OutputMemoryStream* out2 = new OutputMemoryStream();
+					OutputMemoryBitStream* out2 = new OutputMemoryBitStream();
 					out2->Write((int)Commands::MATCH_FINISHED);
 					if (i == 0)
 					{
@@ -139,7 +139,7 @@ void SceneManager::CheckRooms()
 				{
 					if (j == i) continue;
 
-					out = new OutputMemoryStream();
+					out = new OutputMemoryBitStream();
 					out->Write((int)Commands::UPDATE_GAME);
 					out->Write(roomIt->second[i].first);
 					out->Write(roomIt->second[i].second->GetXPos());
@@ -156,7 +156,7 @@ void SceneManager::CheckRooms()
 
 void SceneManager::MatchMaking()
 {
-	OutputMemoryStream* out;
+	OutputMemoryBitStream* out;
 	while (*gameState != State::END)
 	{
 		if (searchingPlayers->empty())
@@ -174,7 +174,7 @@ void SceneManager::MatchMaking()
 				if (i == j) continue;
 				if (searchingPlayers->at(j).second->searchingForMatch && abs(searchingPlayers->at(i).second->GetName()[0] - searchingPlayers->at(j).second->GetName()[0]) < 10)
 				{
-					out = new OutputMemoryStream();
+					out = new OutputMemoryBitStream();
 					std::pair<int, std::vector<std::pair<int, ClientData*>>> _room(matchID, std::vector< std::pair<int, ClientData*>>());
 					_room.second.push_back(std::pair<int, ClientData*>(searchingPlayers->at(i).second->GetId(), searchingPlayers->at(i).second));
 					_room.second.push_back(std::pair<int, ClientData*>(searchingPlayers->at(j).second->GetId(), searchingPlayers->at(j).second));
@@ -261,7 +261,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 						_clientInfo->playerQuantity++;
 						it->second->searchingForMatch = false;
 						std::cout << "Player Found!!!!!" << std::endl;
-						OutputMemoryStream* out = new OutputMemoryStream();
+						OutputMemoryBitStream* out = new OutputMemoryBitStream();
 						out->Write((int)Commands::MATCH_FOUND);
 						out->Write(_clientInfo->matchID);
 						game->SendClient(_id, out);
@@ -290,7 +290,7 @@ void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
 				matchFound = true;
 		}
 
-		OutputMemoryStream* out = new OutputMemoryStream();
+		OutputMemoryBitStream* out = new OutputMemoryBitStream();
 		out->Write((int)Commands::MATCH_FOUND);
 		out->Write(_client->matchID);
 
@@ -327,7 +327,7 @@ void SceneManager::ExitThread()
 		{
 			mtx.lock();
 			*gameState = State::END;
-			OutputMemoryStream* out = new OutputMemoryStream();
+			OutputMemoryBitStream* out = new OutputMemoryBitStream();
 			out->Write((int)Commands::EXIT);
 
 			Status status;
@@ -383,7 +383,7 @@ void SceneManager::CheckMessageTimeout()
 	}
 }
 
-void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time, int _id)
+void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryBitStream* out, std::time_t time, int _id)
 {
 	auto clientPos = criticalMessages->find(_id);
 
@@ -424,7 +424,7 @@ void SceneManager::ReceiveMessages()
 
 	mtx.lock();
 
-	InputMemoryStream* message = game->ReceiveMSG(&_client, status);
+	InputMemoryBitStream* message = game->ReceiveMSG(&_client, status);
 
 	mtx.unlock();
 
@@ -471,7 +471,7 @@ void SceneManager::ReceiveMessages()
 		//---------------Connection---------------
 		case Commands::HELLO:
 			{
-				OutputMemoryStream* out = new OutputMemoryStream();
+			OutputMemoryBitStream* out = new OutputMemoryBitStream();
 				std::string name = message->ReadString();
 				int salt;
 				message->Read(&salt);
@@ -507,7 +507,7 @@ void SceneManager::ReceiveMessages()
 					return;
 				}
 
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 
 				int _result = _client->GetServerSalt() & _client->GetClientSalt();
 
@@ -556,7 +556,7 @@ void SceneManager::ReceiveMessages()
 
 				MessageReceived(Commands::PING_PONG, id, rttKey);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					
 				out->Write((int)Commands::PING_PONG);

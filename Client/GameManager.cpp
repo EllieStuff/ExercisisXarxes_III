@@ -15,7 +15,7 @@ void GameManager::Update()
 
 }
 
-void GameManager::SafeSend(OutputMemoryStream* out)
+void GameManager::SafeSend(OutputMemoryBitStream* out)
 {
 	Status status;
 	sock.Send(out, status, Server_Ip, Server_Port);

@@ -15,7 +15,7 @@ public:
 
 	void Update();
 
-	void SafeSend(OutputMemoryStream* out);
+	void SafeSend(OutputMemoryBitStream* out);
 
 	UdpSocket* GetSocket() { return &sock; }
 

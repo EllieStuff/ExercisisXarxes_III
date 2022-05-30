@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/Network.hpp>
-#include "InputMemoryStream.h"
-#include "OutputMemoryStream.h"
+#include "InputMemoryBitStream.h"
+#include "OutputMemoryBitStream.h"
 #include "IpAddress.h"
 #include "Utils.h"
 
@@ -13,9 +13,9 @@ public:
 	UdpSocket();
 	~UdpSocket();
 
-	void Send(OutputMemoryStream* _out, Status& _status, IpAddress _address, unsigned short _port);
-	InputMemoryStream* Receive(Status& _status, std::pair<IpAddress, unsigned short> &_client);
-	InputMemoryStream* Receive(Status& _status, IpAddress _address, unsigned short& _port);
+	void Send(OutputMemoryBitStream* _out, Status& _status, IpAddress _address, unsigned short _port);
+	InputMemoryBitStream* Receive(Status& _status, std::pair<IpAddress, unsigned short> &_client);
+	InputMemoryBitStream* Receive(Status& _status, IpAddress _address, unsigned short& _port);
 
 	void Bind(unsigned int _port, Status& _status);
 	void Unbind();

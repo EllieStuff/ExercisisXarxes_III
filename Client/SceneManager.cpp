@@ -31,7 +31,7 @@ void SceneManager::UpdateGame()
 		case 1:
 		{
 
-			OutputMemoryStream* out = new OutputMemoryStream();
+			OutputMemoryBitStream* out = new OutputMemoryBitStream();
 			out->Write((int)Commands::SEARCH_MATCH);
 			out->Write(client->GetClientID());
 
@@ -132,7 +132,7 @@ void SceneManager::UpdateGame()
 
 				SDL_RenderPresent(renderer);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 
 				out->Write((int)Commands::UPDATE_GAME);
 				out->Write(client->GetClientID());
@@ -155,7 +155,7 @@ void SceneManager::UpdateGame()
 
 		case 2:
 		{
-			OutputMemoryStream* out = new OutputMemoryStream();
+			OutputMemoryBitStream* out = new OutputMemoryBitStream();
 			out->Write((int)Commands::EXIT);
 			out->Write(client->GetClientID());
 
@@ -191,7 +191,7 @@ SceneManager::SceneManager()
 	tCheck.detach();
 }
 
-void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out, std::time_t time)
+void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryBitStream* out, std::time_t time)
 {
 	CriticalMessages message = CriticalMessages(client->GetAddress().GetLocalAddress(), client->GetPort(), time, out);
 
@@ -218,7 +218,7 @@ void SceneManager::Ping(float rttKey)
 		//std::cout << "PING: " << a << std::endl;
 		//a++;
 		*pong = false;
-		OutputMemoryStream* out = new OutputMemoryStream();
+		OutputMemoryBitStream* out = new OutputMemoryBitStream();
 		out->Write((int)Commands::PING_PONG);
 		out->Write(client->GetClientID());
 		out->Write(rttKey);
@@ -306,7 +306,7 @@ void SceneManager::UpdateInit()
 
 	std::cout << " Connecting to the server" << std::endl;
 
-	OutputMemoryStream* out = new OutputMemoryStream();
+	OutputMemoryBitStream* out = new OutputMemoryBitStream();
 	out->Write((int)Commands::HELLO);
 	out->WriteString(client->GetName());
 	out->Write(client->GetClientSalt());
@@ -331,7 +331,7 @@ void SceneManager::ReceiveMessages()
 		//std::cout << "RECEIVE: " << a << std::endl;
 		//a++;
 		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
-		InputMemoryStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
+		InputMemoryBitStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
 
 		int command;
 		in->Read(&command);
@@ -352,7 +352,7 @@ void SceneManager::ReceiveMessages()
 				in->Read(&rttKey);
 
 				//if (newId >= 0);
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 				
 				out->Write((int)Commands::ACK_WELCOME);
 				out->Write(client->GetClientID());
@@ -377,7 +377,7 @@ void SceneManager::ReceiveMessages()
 				float rttKey;
 				in->Read(&rttKey);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 
 				out->Write((int) Commands::SALT);
 				out->Write(client->GetClientID());
@@ -407,7 +407,7 @@ void SceneManager::ReceiveMessages()
 				in->Read(&salt);
 				client->SetServerSalt(salt);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 
 				int _result = salt & client->GetClientSalt();
 
@@ -446,7 +446,7 @@ void SceneManager::ReceiveMessages()
 				float rtt;
 				in->Read(&rtt);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
+				OutputMemoryBitStream* out = new OutputMemoryBitStream();
 				out->Write((int)Commands::ACK_MATCH_FOUND);
 				out->Write((int)client->GetClientID());
 				out->Write(rtt);
@@ -462,7 +462,7 @@ void SceneManager::ReceiveMessages()
 			float rtt;
 			in->Read(&rtt);
 
-			OutputMemoryStream* out = new OutputMemoryStream();
+			OutputMemoryBitStream* out = new OutputMemoryBitStream();
 			out->Write((int)Commands::ACK_MATCH_FINISHED);
 			out->Write((int)client->GetClientID());
 			out->Write(rtt);

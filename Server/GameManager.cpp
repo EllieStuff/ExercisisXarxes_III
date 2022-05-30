@@ -85,9 +85,9 @@ Status GameManager::BindSocket()
 	return status;
 }
 
-InputMemoryStream* GameManager::ReceiveMSG(std::pair<IpAddress, unsigned short>* client, Status& status)
+InputMemoryBitStream* GameManager::ReceiveMSG(std::pair<IpAddress, unsigned short>* client, Status& status)
 {
-	InputMemoryStream* in = sock.Receive(status, client->first, client->second);
+	InputMemoryBitStream* in = sock.Receive(status, client->first, client->second);
 
 	return in;
 }
@@ -104,7 +104,7 @@ void GameManager::DeleteClient(int _id)
 {
 }
 
-Status GameManager::SendClient(int _id, OutputMemoryStream* out)
+Status GameManager::SendClient(int _id, OutputMemoryBitStream* out)
 {
 	Status status;
 
@@ -118,7 +118,7 @@ Status GameManager::SendClient(int _id, OutputMemoryStream* out)
 	return status;
 }
 
-void GameManager::SendAll(OutputMemoryStream* out)
+void GameManager::SendAll(OutputMemoryBitStream* out)
 {
 	Status status;
 	for (auto _client = connectedClients.begin(); _client != connectedClients.end(); _client++)

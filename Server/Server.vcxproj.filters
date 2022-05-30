@@ -45,5 +45,7 @@
     <ClInclude Include="..\res\IpAddress.h" />
     <ClInclude Include="..\res\UdpSocket.h" />
     <ClInclude Include="ClientData.h" />
+    <ClInclude Include="..\res\InputMemoryBitStream.h" />
+    <ClInclude Include="..\res\OutputMemoryBitStream.h" />
   </ItemGroup>
 </Project>
