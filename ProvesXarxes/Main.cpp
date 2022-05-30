@@ -1,70 +1,20 @@
-
+#include "../res/InputMemoryBitStream.h"
+#include "../res/OutputMemoryBitStream.h"
 #include <iostream>
-#include <thread>
-#include <vector>
-#include <string>
-#include <time.h>
-#include <mutex>
 
+int main()
+{
+	std::string str = "hello world";
 
-class ThreadClass;
-std::vector<ThreadClass> threadsVec;
-std::mutex mtx;
+	OutputMemoryBitStream out; 
+	out.WriteString(str, 7);
 
-class ThreadClass {
-public:
-	int posInArray;
-	std::thread* thread;
+	InputMemoryBitStream in(out.GetBufferPtr(), out.GetBitLength());
 
-	void PrintThread() {
-		posInArray = threadsVec.size() - 1;
+	std::string result = in.ReadString(7);
 
-		int timesPrinted = 0;
-		while (timesPrinted < 10) {
-			mtx.lock();
-			std::cout << "Soy el thread " << std::this_thread::get_id() << " y estoy en la posicion " << std::to_string(posInArray) << std::endl;
-			mtx.unlock();
+	std::cout << "Initially: " << str << ", Result: " << result << std::endl;
 
-			time_t finalTime, currTime;
-			time(&currTime);
-			finalTime = currTime + 1;
-			while (currTime < finalTime) {
-				time(&currTime);
-			}
-
-			timesPrinted++;
-		}
-
-		mtx.lock();
-		threadsVec.erase(threadsVec.begin());
-		for (int i = 0; i < threadsVec.size(); i++)
-			threadsVec[i].posInArray--;
-		mtx.unlock();
-
-	}
-
-
-};
-
-int main() {
-
-	while (true) {
-		std::string text;
-		std::cin >> text;
-		if (text == "N") {
-			mtx.lock();
-
-			ThreadClass tClass;
-			std::thread t(&ThreadClass::PrintThread, tClass);
-			tClass.thread = &t;
-			t.detach();
-			threadsVec.push_back(tClass);
-
-			mtx.unlock();
-		}
-
-	}
-
-
+	system("pause");
 	return 0;
 }

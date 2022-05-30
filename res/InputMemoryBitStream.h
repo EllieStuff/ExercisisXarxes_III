@@ -85,7 +85,21 @@ public:
 		ReadBits(_inData, _inBitCount);
 	}
 
+	std::string ReadString(uint32_t _inBitCount = sizeof(char) * 8)
+	{
+		int size = 0;
+		Read(&size, 5);
 
+		char* _string = new char[size + 1];
 
+		for (size_t i = 0; i < size; i++)
+		{
+			Read(&_string[i], _inBitCount);
+		}
+
+		_string[size] = '\0';
+
+		return _string;
+	}
 	
 };

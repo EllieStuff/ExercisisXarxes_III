@@ -141,5 +141,17 @@ public:
 		WriteBitsOver8(&_inData, _inBitCount);
 	}
 
+	void WriteString(std::string _inData, uint32_t _inBitCount = sizeof(char) * 8)
+	{
+		int size = _inData.size();
+		Write(size, 5);
+
+		const char* _string = _inData.c_str();
+
+		for (size_t i = 0; i < size; i++)
+		{
+			Write(_string[i], _inBitCount);
+		}
+	}
 
 };
