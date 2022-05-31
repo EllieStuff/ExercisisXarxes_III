@@ -60,13 +60,17 @@ void SceneManager::UpdateGame()
 			SDL_Renderer* renderer = NULL;
 			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-			float startTime = 0;
+			int timeMargin = 1;
+			int startTime = (int)std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) + timeMargin;
 
 			while (*gameState != State::END)
 			{
-				startTime += 0.2f;
-				if ((int)startTime % 5 == 0 && accumulatedMessages.size() > 0)
+				//startTime += 0.2f;
+				int currTime = (int)std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				if (currTime > startTime && accumulatedMessages.size() > 0)
 				{
+					startTime = currTime + timeMargin;
+
 					mtx.lock();
 					OutputMemoryStream* out = new OutputMemoryStream();
 
