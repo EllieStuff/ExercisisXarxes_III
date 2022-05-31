@@ -60,9 +60,33 @@ void SceneManager::UpdateGame()
 			SDL_Renderer* renderer = NULL;
 			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+			float startTime = 0;
+
 
 			while (*gameState != State::END)
 			{
+				startTime += 0.2f;
+				if ((int)startTime % 5 == 0 && accumulatedMessages.size() > 0)
+				{
+					OutputMemoryStream* out = new OutputMemoryStream();
+
+					out->Write((int)Commands::UPDATE_GAME);
+					out->Write(client->GetClientID());
+					out->Write(accumulatedMessages.size());
+
+					for (std::pair<int, int> message : accumulatedMessages)
+					{
+						out->Write(message.first);
+						out->Write(message.second);
+					}
+
+					Status status;
+					client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+					accumulatedMessages.clear();
+
+					delete out;
+				}
+
 				SDL_Event _event;
 				auto _player = players->find(client->GetClientID());
 				int posX = _player->second.posX;

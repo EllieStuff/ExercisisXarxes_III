@@ -13,8 +13,8 @@ class SceneManager
 		float posX;
 		float posY;
 
-		float oldX;
-		float oldY;
+		float oldX = 0;
+		float oldY = 0;
 
 		GamePlayerInfo(int _posX, int _posY) 
 		{

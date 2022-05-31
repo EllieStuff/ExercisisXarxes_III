@@ -140,11 +140,14 @@ void SceneManager::CheckRooms()
 				{
 					if (j == i) continue;
 
+					bool sendInfo = false;
+
 					for (int l = 0 ; l < roomIt->second[i].second->positions.size() ; l++)
 					{
 						mtx.lock();
 						roomIt->second[i].second->UpdatePosition();
 						mtx.unlock();
+						sendInfo = true;
 					}
 					out = new OutputMemoryStream();
 					out->Write((int)Commands::UPDATE_GAME);
@@ -152,6 +155,7 @@ void SceneManager::CheckRooms()
 					out->Write(roomIt->second[i].second->GetXPos());
 					out->Write(roomIt->second[i].second->GetYPos());
 					//std::cout << "Player: " << roomIt->second[j].first << " X: " << roomIt->second[i].second->GetXPos() << " Y: " << roomIt->second[i].second->GetYPos() << std::endl;
+					if(sendInfo)
 					game->SendClient(roomIt->second[j].first, out);
 				}
 			}
