@@ -4,6 +4,8 @@
 
 class SceneManager
 {
+	const int POS_MARGIN = 10;
+
 	std::mutex mtx;
 	enum class State {INIT, GAME, END};
 	State* gameState;

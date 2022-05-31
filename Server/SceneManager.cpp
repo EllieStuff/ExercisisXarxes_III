@@ -60,43 +60,6 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 	}
 }
 
-void SceneManager::UpdateGameInfo(int _gameID, int hostID) 
-{
-	std::map<int, ClientData*>* _clients = game->GetClientsMap();
-	int a = 0;
-
-	while (*gameState != State::END)
-	{
-		if (game->GetConnectedClient(hostID)->disconnected) return;
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
-		//std::cout << "UPDATEGAME: " << a << std::endl;
-		//a++;
-
-		for (auto it = _clients->begin(); it != _clients->end(); it++)
-		{
-			if (it->second->matchID == _gameID && !it->second->disconnected)
-			{
-				//sending their info to the rest of clients
-				for (auto it2 = _clients->begin(); it2 != _clients->end(); it2++)
-				{
-					if (it2->first == it->first) continue;
-					if (it2->second->matchID == _gameID && !it2->second->disconnected)
-					{
-						OutputMemoryStream* out = new OutputMemoryStream();
-						out->Write((int)Commands::UPDATE_GAME);
-						out->Write(it->first);
-						out->Write(it->second->GetXPos());
-						out->Write(it->second->GetYPos());
-						it->second->UpdatePosition();
-						game->SendClient(it2->first, out);
-						delete out;
-					}
-				}
-			}
-		}
-	}
-}
-
 void SceneManager::CheckRooms()
 {
 	OutputMemoryStream* out;
@@ -130,7 +93,9 @@ void SceneManager::CheckRooms()
 							std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), roomIt->second[0].first);
 						game->SendClient(roomIt->second[0].first, out2);
 					}
+					mtx.lock();
 					rooms->erase(roomIt);
+					mtx.unlock();
 
 					breakLoop = true;
 
@@ -154,9 +119,9 @@ void SceneManager::CheckRooms()
 					out->Write(roomIt->second[i].first);
 					out->Write(roomIt->second[i].second->GetXPos());
 					out->Write(roomIt->second[i].second->GetYPos());
-					//std::cout << "Player: " << roomIt->second[j].first << " X: " << roomIt->second[i].second->GetXPos() << " Y: " << roomIt->second[i].second->GetYPos() << std::endl;
+					
 					if(sendInfo)
-					game->SendClient(roomIt->second[j].first, out);
+						game->SendClient(roomIt->second[j].first, out);
 				}
 			}
 			if (breakLoop) break;
@@ -239,79 +204,6 @@ void SceneManager::MatchMaking()
 	}
 }
 
-void SceneManager::SearchMatch(int _id, int _matchID, bool _createOrSearch)
-{
-	bool matchFound = false;
-	game->GetConnectedClient(_id)->matchID = _matchID;
-	game->GetConnectedClient(_id)->searchingForMatch = _createOrSearch;
-	
-	//GAME CREATED AND POLLING FOR PLAYERS
-	if(!_createOrSearch) 
-	{
-		std::map<int, ClientData*>* _clients = game->GetClientsMap();
-
-		_clients->at(_id)->playerQuantity = 1;
-
-		while (*gameState != State::END)
-		{
-			if (game->GetConnectedClient(_id)->disconnected) return;
-			//std::cout << "MATCHFIND: " << a << std::endl;
-			//a++;
-			//_clients = game->GetClientsMap();
-			for (auto it = _clients->begin(); it != _clients->end(); it++)
-			{
-				if (it->first == _id) continue;
-
-				ClientData* _clientInfo = _clients->at(_id);
-
-				if (it->second->searchingForMatch && it->second->matchID == -1 && !it->second->disconnected)
-				{
-					if (abs(_clientInfo->GetName()[0] - it->second->GetName()[0]) < 10)
-					{
-						it->second->matchID = _clientInfo->matchID;
-						_clientInfo->playerQuantity++;
-						it->second->searchingForMatch = false;
-						std::cout << "Player Found!!!!!" << std::endl;
-						OutputMemoryStream* out = new OutputMemoryStream();
-						out->Write((int)Commands::MATCH_FOUND);
-						out->Write(_clientInfo->matchID);
-						game->SendClient(_id, out);
-
-						if (!matchFound)
-						{
-							matchFound = true;
-							return;
-						}
-
-						delete out;
-					}
-				}
-			}
-		}
-	}
-	//WAITING TO JOIN A GAME
-	else 
-	{
-		ClientData* _client = game->GetClientsMap()->at(_id);
-		if (_client == nullptr) return;
-		while(!matchFound) 
-		{
-			if (_client->disconnected) return;
-			if (!_client->searchingForMatch)
-				matchFound = true;
-		}
-
-		OutputMemoryStream* out = new OutputMemoryStream();
-		out->Write((int)Commands::MATCH_FOUND);
-		out->Write(_client->matchID);
-
-		std::cout << "Match Joined!!!!!" << std::endl;
-
-		game->SendClient(_id, out);
-		delete out;
-	}
-}
-
 void SceneManager::DisconnectClient(int _id)
 {
 	game->DisconnectClient(_id);
@@ -383,14 +275,15 @@ void SceneManager::CheckMessageTimeout()
 				else if(!game->GetClient(it->first)->disconnected)
 				{
 					std::cout << "Sending Important Message " <<  (int)it2->first << std::endl;
-					game->SendClient(it->first, it2->second.message);
-					it2->second.tries++;
+					if ((int)it2->first > 0 && (int)it2->first < (int)Commands::COUNT)
+					{
+						game->SendClient(it->first, it2->second.message);
+						it2->second.tries++;
+					}
 				}
 			}
 			if (breakLoop) break;
 		}
-		//mtx.unlock();
-
 	}
 }
 
@@ -433,11 +326,7 @@ void SceneManager::ReceiveMessages()
 
 	std::pair<IpAddress, unsigned short> _client = std::pair<IpAddress, unsigned short>(ip, 0);
 
-	mtx.lock();
-
 	InputMemoryStream* message = game->ReceiveMSG(&_client, status);
-
-	mtx.unlock();
 
 	if(status == Status::DONE) 
 	{
@@ -459,23 +348,6 @@ void SceneManager::ReceiveMessages()
 				return;
 			}
 		}
-		/*else 
-		{
-			std::pair<int, ClientData*> _client;
-
-			if (_client.first >= 0)
-			{
-				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-				OutputMemoryStream* out = new OutputMemoryStream();
-				out->Write((int)Commands::WELCOME);
-				out->Write(_client.first);
-				SavePacketToTable(Commands::WELCOME, out, currentTime, _client.first);
-				return;
-
-			}
-		}*/
-
 
 		switch (commandNum)
 		{
@@ -590,53 +462,19 @@ void SceneManager::ReceiveMessages()
 				bool createOrSearch = false;
 				game->GetConnectedClient(id)->searchingForMatch = true;
 				searchingPlayers->push_back(std::pair<int, ClientData*>(id, game->GetConnectedClient(id)));
-
-
-				/*matchID++;
-
-				std::map<int, ClientData*>* _clients = game->GetClientsMap();
-				
-				if(_clients->size() == 1) createOrSearch = true;
-
-				for (auto it = _clients->begin(); it != _clients->end(); it++)
-				{
-					if (it->first == id) continue;
-					if (it->second->disconnected) continue;
-
-					if (!it->second->searchingForMatch)
-					{
-						if(abs(_clients->at(id)->GetName()[0] - it->second->GetName()[0] ) < 10)
-							createOrSearch = true;
-					}
-				}
-
-				if (createOrSearch)
-				{
-					std::cout << "SEARCHING A GAME FOR PLAYER " << id;
-					std::thread tSearch(&SceneManager::SearchMatch, this, id, -1, createOrSearch);
-					tSearch.detach();
-				}
-				else
-				{
-					std::cout << "CREATING A GAME FOR PLAYER " << id;
-					std::thread tCreate(&SceneManager::SearchMatch, this, id, matchID, createOrSearch);
-					tCreate.detach();
-				}*/
 			}
 			break;
 		//--------------- Ingame Receives -----------
 		case Commands::UPDATE_GAME:
 			{
 				int quantity = 0;
-				int empty = 0;
 
 				message->Read(&quantity);
-				message->Read(&empty);
-
 
 				int serverXpos = game->GetConnectedClient(id)->GetXPos();
 				int serverYpos = game->GetConnectedClient(id)->GetYPos();
 
+				mtx.lock();
 				for (size_t i = 0; i < quantity; i++)
 				{
 					int posX = 0;
@@ -644,30 +482,38 @@ void SceneManager::ReceiveMessages()
 
 					message->Read(&posX);
 					message->Read(&posY);
-
+					
 					serverXpos += posX;
 					serverYpos += posY;
 
-					mtx.lock();
 					game->GetConnectedClient(id)->AcumulatePosition(posX, posY);
-					mtx.unlock();
 				}
+				mtx.unlock();
 
-				int clientPosX;
-				int clientPosY;
+				int clientPosX = 0;
+				int clientPosY = 0;
 
 				message->Read(&clientPosX);
 				message->Read(&clientPosY);
+				
+				OutputMemoryStream* out = new OutputMemoryStream();
+				out->Write((int)Commands::PREDICTION);
 
-				if(clientPosX != serverXpos || clientPosY != serverYpos) 
+				if (abs(clientPosX - serverXpos) > POS_MARGIN || abs(clientPosY - serverYpos) > POS_MARGIN)
 				{
-					OutputMemoryStream* out = new OutputMemoryStream();
-					out->Write((int)Commands::PREDICTION);
+					mtx.lock();
+					game->GetConnectedClient(id)->CleanAccumulatedPositions();
+					mtx.unlock();
+
+					out->Write((int)Commands::INCORRECT_POS);
 					out->Write(serverXpos);
 					out->Write(serverYpos);
-
-					game->SendClient(id, out);
 				}
+				else
+					out->Write((int)Commands::CORRECT_POS);
+
+				game->SendClient(id, out);
+				delete out;
 			}
 			break;
 		case Commands::ACK_MATCH_FOUND:

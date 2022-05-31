@@ -16,7 +16,7 @@ class SceneManager
 		float oldX = 0;
 		float oldY = 0;
 
-		GamePlayerInfo(int _posX, int _posY) 
+		GamePlayerInfo(float _posX, float _posY)
 		{
 			posX = _posX;
 			posY = _posY;
@@ -37,12 +37,14 @@ class SceneManager
 
 	std::map<int, GamePlayerInfo>* players;
 
-	enum class State {INIT, GAME, END};
+	enum class State {INIT, GAME, END, EXIT};
 	State* gameState;
 	bool* connected;
 	int packetId;
 	int saltTries;
 	int matchID;
+
+	bool left = false, right = false, up = false, down = false;
 
 	std::mutex mtx;
 

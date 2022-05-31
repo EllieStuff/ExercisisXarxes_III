@@ -48,6 +48,7 @@ public:
 
 	void ResetTimeOut() { timeout = clock(); }
 
+	void CleanAccumulatedPositions() { positions.clear(); }
 	void AcumulatePosition(int _posX, int _posY) { positions.push_back(std::pair<int, int>(_posX, _posY)); }
 	void UpdatePosition() { if (!positions.empty()) { posX += positions[0].first; posY += positions[0].second; positions.erase(positions.begin()); } }
 	int GetXPos() { return posX; }

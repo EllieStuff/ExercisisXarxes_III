@@ -10,7 +10,7 @@ void SceneManager::EnterGame()
 void SceneManager::UpdateGame()
 {
 
-	while(true) 
+	while(*gameState != State::EXIT) 
 	{
 		players->clear();
 		*match = false;
@@ -62,17 +62,18 @@ void SceneManager::UpdateGame()
 
 			float startTime = 0;
 
-
 			while (*gameState != State::END)
 			{
 				startTime += 0.2f;
 				if ((int)startTime % 5 == 0 && accumulatedMessages.size() > 0)
 				{
+					mtx.lock();
 					OutputMemoryStream* out = new OutputMemoryStream();
 
 					out->Write((int)Commands::UPDATE_GAME);
 					out->Write(client->GetClientID());
-					out->Write(accumulatedMessages.size());
+					int size = accumulatedMessages.size();
+					out->Write(size);
 
 					for (std::pair<int, int> message : accumulatedMessages)
 					{
@@ -82,33 +83,58 @@ void SceneManager::UpdateGame()
 					
 					auto _player = players->find(client->GetClientID());
 
-					out->Write(_player->second.posX);
-					out->Write(_player->second.posY);
+					std::cout << "Client Pos: " << _player->second.posX << ", " << _player->second.posY << std::endl;
+
+					out->Write((int)_player->second.posX);
+					out->Write((int)_player->second.posY);
 
 					Status status;
 					client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
+
 					accumulatedMessages.clear();
 
 					delete out;
+					mtx.unlock();
 				}
 
 				SDL_Event _event;
 				auto _player = players->find(client->GetClientID());
-				int posX = _player->second.posX;
-				int posY = _player->second.posY;
+				float posX = _player->second.posX;
+				float posY = _player->second.posY;
 
-				int oldX = posX;
-				int oldY = posY;
+				float oldX = posX;
+				float oldY = posY;
 
 				int currInputX = 0, currInputY = 0;
 
 				if (SDL_PollEvent(&_event) != 0)
 				{
-					if (_event.key.keysym.sym == SDLK_LEFT) currInputX += -1;
-					if (_event.key.keysym.sym == SDLK_RIGHT) currInputX += 1;
-					if (_event.key.keysym.sym == SDLK_UP) currInputY += -1;
-					if (_event.key.keysym.sym == SDLK_DOWN) currInputY += 1;
+					switch (_event.type)
+					{
+					case  SDL_QUIT:
+						*gameState = State::EXIT;
+						break;
+					case SDL_KEYDOWN:
+						if (_event.key.keysym.sym == SDLK_LEFT) left = true;
+						if (_event.key.keysym.sym == SDLK_RIGHT) right = true;
+						if (_event.key.keysym.sym == SDLK_UP) up = true;
+						if (_event.key.keysym.sym == SDLK_DOWN) down = true;
+						break;
+					case SDL_KEYUP:
+						if (_event.key.keysym.sym == SDLK_LEFT) left = false;
+						if (_event.key.keysym.sym == SDLK_RIGHT)  right = false;
+						if (_event.key.keysym.sym == SDLK_UP)  up = false;
+						if (_event.key.keysym.sym == SDLK_DOWN)  down = false;
+						break;
+					
+					}
+					if (left) currInputX += -1;
+					if (right) currInputX += 1;
+					if (up) currInputY += -1;
+					if (down) currInputY += 1;
 				}
+
+				if (*gameState == State::EXIT) break;
 
 				posX += currInputX;
 				posY += currInputY;
@@ -118,7 +144,6 @@ void SceneManager::UpdateGame()
 				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
 				SDL_RenderClear(renderer);
-
 
 				SDL_Rect playerLocal;
 				SDL_Rect r;
@@ -156,21 +181,8 @@ void SceneManager::UpdateGame()
 
 				SDL_RenderPresent(renderer);
 
-				OutputMemoryStream* out = new OutputMemoryStream();
-
-				out->Write((int)Commands::UPDATE_GAME);
-				out->Write(client->GetClientID());
-
-				out->Write(currInputX);
-				out->Write(currInputY);
-
-				Status status;
-
 				if (oldX != posX || oldY != posY)
 					accumulatedMessages.push_back(std::pair<int, int>(currInputX, currInputY));
-					//client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-
-				delete out;
 			}
 
 			SDL_DestroyWindow(window);
@@ -188,7 +200,7 @@ void SceneManager::UpdateGame()
 			client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 			delete out;
 
-			exit(0);
+			*gameState = State::EXIT;
 			break;
 		}
 		}
@@ -236,7 +248,7 @@ void SceneManager::SavePacketToTable(Commands _packetId, OutputMemoryStream* out
 void SceneManager::Ping(float rttKey) 
 {
 	//int a = 0;
-	while(true)
+	while(*gameState != State::EXIT)
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(3));
 
@@ -266,20 +278,18 @@ void SceneManager::Ping(float rttKey)
 			if(time > 3)
 			{
 				std::cout << "Disconnected!!!!!" << std::endl;
-				exit(0);
+				*gameState = State::EXIT;
 			}
 		}
 
 		delete out;
-
-		//if (*match) break;
 	}
 }
 
 void SceneManager::CheckMessageTimeout()
 {
 	int a = 0;
-	while(*gameState != State::END)
+	while(*gameState != State::EXIT)
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		//std::cout << "MessageTimeout: " << a << std::endl;
@@ -295,9 +305,12 @@ void SceneManager::CheckMessageTimeout()
 			float time = currentTime - it->second.startTime;
 			if (time > 3)
 			{
-				std::cout << "Sending Important Message " << (int)it->first << std::endl;
-				client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
-				it->second.startTime = currentTime;
+				if ((int)it->first > 0 && it->first < Commands::COUNT)
+				{
+					std::cout << "Sending Important Message " << (int)it->first << std::endl;
+					client->GetSocket()->Send(it->second.message, status, Server_Ip, Server_Port);
+					it->second.startTime = currentTime;
+				}
 			}
 		}
 
@@ -351,7 +364,7 @@ void SceneManager::ReceiveMessages()
 	unsigned short _port;
 	int a = 0;
 
-	while(true) 
+	while(*gameState != State::EXIT) 
 	{
 		//std::cout << "RECEIVE: " << a << std::endl;
 		//a++;
@@ -392,7 +405,7 @@ void SceneManager::ReceiveMessages()
 					tPing.detach();
 				}
 
-				connected = new bool(true);
+				*connected = true;
 			}
 			break;
 		case Commands::SALT:
@@ -527,18 +540,29 @@ void SceneManager::ReceiveMessages()
 			break;
 		case Commands::PREDICTION:
 			{
-				std::cout << "PREDICTION" << std::endl;
+				//std::cout << "PREDICTION" << std::endl;
 
-				int posX;
-				int posY;
+				int _command;
+				in->Read(&_command);
+				if (_command == (int)Commands::CORRECT_POS)
+				{
 
-				in->Read(&posX);
-				in->Read(&posY);
+				}
+				else if (_command == (int)Commands::INCORRECT_POS)
+				{
+					int posX;
+					int posY;
 
-				auto _player = players->find(client->GetClientID());
-				mtx.lock();
-				_player->second.SetPlayerPos(posX, posY);
-				mtx.unlock();
+					in->Read(&posX);
+					in->Read(&posY);
+
+					auto _player = players->find(client->GetClientID());
+					mtx.lock();
+					_player->second.SetPlayerPos(posX, posY);
+					mtx.unlock();
+				}
+
+				
 			}
 			break;
 		}
@@ -555,7 +579,7 @@ SceneManager::~SceneManager()
 
 void SceneManager::Update()
 {
-	while (*gameState != State::END)
+	while (*gameState != State::EXIT)
 	{
 		switch (*gameState)
 		{
@@ -567,5 +591,4 @@ void SceneManager::Update()
 			break;
 		}
 	}
-	system("pause");
 }
