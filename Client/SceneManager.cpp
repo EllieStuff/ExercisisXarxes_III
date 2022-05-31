@@ -79,6 +79,11 @@ void SceneManager::UpdateGame()
 						out->Write(message.first);
 						out->Write(message.second);
 					}
+					
+					auto _player = players->find(client->GetClientID());
+
+					out->Write(_player->second.posX);
+					out->Write(_player->second.posY);
 
 					Status status;
 					client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
@@ -132,8 +137,8 @@ void SceneManager::UpdateGame()
 				{
 					if (it->first == client->GetClientID()) continue;
 
-					float lerpX = it->second.oldX + 0.001f * (it->second.posX - it->second.oldX);
-					float lerpY = it->second.oldY + 0.001f * (it->second.posY - it->second.oldY);
+					float lerpX = it->second.oldX + 0.01f * (it->second.posX - it->second.oldX);
+					float lerpY = it->second.oldY + 0.01f * (it->second.posY - it->second.oldY);
 
 					it->second.SetOldPlayerPos(lerpX, lerpY);
 
@@ -518,6 +523,22 @@ void SceneManager::ReceiveMessages()
 				std::cout << "_______________________________________" << std::endl;
 				mtx.unlock();
 
+			}
+			break;
+		case Commands::PREDICTION:
+			{
+				std::cout << "PREDICTION" << std::endl;
+
+				int posX;
+				int posY;
+
+				in->Read(&posX);
+				in->Read(&posY);
+
+				auto _player = players->find(client->GetClientID());
+				mtx.lock();
+				_player->second.SetPlayerPos(posX, posY);
+				mtx.unlock();
 			}
 			break;
 		}

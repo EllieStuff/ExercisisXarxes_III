@@ -634,6 +634,9 @@ void SceneManager::ReceiveMessages()
 				message->Read(&empty);
 
 
+				int serverXpos = game->GetConnectedClient(id)->GetXPos();
+				int serverYpos = game->GetConnectedClient(id)->GetYPos();
+
 				for (size_t i = 0; i < quantity; i++)
 				{
 					int posX = 0;
@@ -642,11 +645,29 @@ void SceneManager::ReceiveMessages()
 					message->Read(&posX);
 					message->Read(&posY);
 
+					serverXpos += posX;
+					serverYpos += posY;
+
 					mtx.lock();
 					game->GetConnectedClient(id)->AcumulatePosition(posX, posY);
 					mtx.unlock();
 				}
 
+				int clientPosX;
+				int clientPosY;
+
+				message->Read(&clientPosX);
+				message->Read(&clientPosY);
+
+				if(clientPosX != serverXpos || clientPosY != serverYpos) 
+				{
+					OutputMemoryStream* out = new OutputMemoryStream();
+					out->Write((int)Commands::PREDICTION);
+					out->Write(serverXpos);
+					out->Write(serverYpos);
+
+					game->SendClient(id, out);
+				}
 			}
 			break;
 		case Commands::ACK_MATCH_FOUND:
