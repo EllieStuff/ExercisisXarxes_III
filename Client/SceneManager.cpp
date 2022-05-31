@@ -384,9 +384,9 @@ void SceneManager::ReceiveMessages()
 				std::cout << "Welcome! " << client->GetName() << std::endl;
 
 				float rttKey;
-				int newId;
+				//int newId;
 
-				in->Read(&newId);
+				//in->Read(&newId);
 				in->Read(&rttKey);
 
 				//if (newId >= 0);

@@ -403,7 +403,7 @@ void SceneManager::ReceiveMessages()
 				{
 					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					out->Write((int)Commands::WELCOME);
-					out->Write(-1);
+					//out->Write(-1);
 					SavePacketToTable(Commands::WELCOME, out, currentTime, id);
 				}
 				else
