@@ -7,6 +7,9 @@ class SceneManager
 {
 	struct GamePlayerInfo
 	{
+		int currInputX = 0;
+		int currInputY = 0;
+
 		float posX;
 		float posY;
 
@@ -49,7 +52,7 @@ class SceneManager
 	bool startedThreadsAlready;
 
 	std::map<Commands, CriticalMessages>* criticalMessages;
-	std::vector<std::pair<int, int>> acumulatedMessages;
+	std::vector<std::pair<int, int>> accumulatedMessages;
 
 	GameManager* client;
 

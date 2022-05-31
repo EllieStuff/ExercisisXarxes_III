@@ -145,19 +145,19 @@ void SceneManager::CheckRooms()
 						mtx.lock();
 						roomIt->second[i].second->UpdatePosition();
 						mtx.unlock();
-						out = new OutputMemoryStream();
-						out->Write((int)Commands::UPDATE_GAME);
-						out->Write(roomIt->second[i].first);
-						out->Write(roomIt->second[i].second->GetXPos());
-						out->Write(roomIt->second[i].second->GetYPos());
-						//std::cout << "Player: " << roomIt->second[j].first << " X: " << roomIt->second[i].second->GetXPos() << " Y: " << roomIt->second[i].second->GetYPos() << std::endl;
-						game->SendClient(roomIt->second[j].first, out);
 					}
+					out = new OutputMemoryStream();
+					out->Write((int)Commands::UPDATE_GAME);
+					out->Write(roomIt->second[i].first);
+					out->Write(roomIt->second[i].second->GetXPos());
+					out->Write(roomIt->second[i].second->GetYPos());
+					//std::cout << "Player: " << roomIt->second[j].first << " X: " << roomIt->second[i].second->GetXPos() << " Y: " << roomIt->second[i].second->GetYPos() << std::endl;
+					game->SendClient(roomIt->second[j].first, out);
 				}
 			}
 			if (breakLoop) break;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
