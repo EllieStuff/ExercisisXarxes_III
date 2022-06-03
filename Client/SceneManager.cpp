@@ -268,18 +268,16 @@ void SceneManager::Ping(float rttKey)
 
 		Status status;
 
-		auto startTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		float margin = 30 * CLOCKS_PER_SEC;
+		clock_t startTime = std::clock();
 
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 
 		while(*pong != true) 
 		{
-			auto endTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-			int time = endTime - startTime;
+			clock_t currTime = std::clock();
 
-			//if (*match) break;
-
-			if(time > 3)
+			if(currTime - startTime > margin)
 			{
 				std::cout << "Disconnected!!!!!" << std::endl;
 				*gameState = State::EXIT;

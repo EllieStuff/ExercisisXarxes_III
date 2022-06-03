@@ -246,6 +246,9 @@ void SceneManager::ExitThread()
 void SceneManager::CheckMessageTimeout()
 {
 	int a = 0;
+	float margin = 30 * CLOCKS_PER_SEC;
+	clock_t startTime = std::clock();
+
 	while (*gameState != State::END)
 	{
 		//std::cout << "TIMEOUTMSG: " << a << std::endl;
@@ -266,11 +269,15 @@ void SceneManager::CheckMessageTimeout()
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
 				//std::cout << it2->second.tries << std::endl;
-				if(it2->first == Commands::PING_PONG && it2->second.tries > 10)
+				if(it2->first == Commands::PING_PONG)
 				{
-					DisconnectClient(it->first);
-					breakLoop = true;
-					break;
+					std::clock_t currTime = std::clock();
+					if (currTime - startTime > margin)
+					{
+						DisconnectClient(it->first);
+						breakLoop = true;
+						break;
+					}
 				}
 				else if(!game->GetClient(it->first)->disconnected)
 				{
