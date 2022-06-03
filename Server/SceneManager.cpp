@@ -161,13 +161,17 @@ void SceneManager::MatchMaking()
 					out->Write((int)Commands::MATCH_FOUND);
 					float rtt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 					out->Write(rtt);
-					//SavePacketToTable(Commands::MATCH_FOUND, out,
-						//std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(i).second->GetId());
-					//SavePacketToTable(Commands::MATCH_FOUND, out,
-						//std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), searchingPlayers->at(j).second->GetId());
+					out->Write(searchingPlayers->at(i).second->GetId());
+
+					game->SendClient(searchingPlayers->at(j).second->GetId(), out);
+					delete out;
+
+					out = new OutputMemoryStream();
+					out->Write((int)Commands::MATCH_FOUND);
+					out->Write(rtt);
+					out->Write(searchingPlayers->at(j).second->GetId());
 
 					game->SendClient(searchingPlayers->at(i).second->GetId(), out);
-					game->SendClient(searchingPlayers->at(j).second->GetId(), out);
 
 					delete out;
 
@@ -278,6 +282,7 @@ void SceneManager::CheckMessageTimeout()
 						breakLoop = true;
 						break;
 					}
+					startTime = std::clock();
 				}
 				else if(!game->GetClient(it->first)->disconnected)
 				{

@@ -158,5 +158,3 @@ ClientData* GameManager::GetConnectingClient(int _id)
 	else
 		return nullptr;
 }
-
-

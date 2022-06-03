@@ -60,14 +60,14 @@ void SceneManager::UpdateGame()
 			SDL_Renderer* renderer = NULL;
 			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-			float timeMargin = 0.01;
+			float timeMargin = 0.01 * CLOCKS_PER_SEC;
 			time_t startTime = std::clock();
 
 			while (*gameState != State::END)
 			{
 				//startTime += 0.2f;
 				time_t currTime = std::clock();
-				if (currTime - startTime > timeMargin * CLOCKS_PER_SEC && accumulatedMessages.size() > 0)
+				if (currTime - startTime > timeMargin && accumulatedMessages.size() > 0)
 				{
 					startTime = std::clock();
 
@@ -486,6 +486,16 @@ void SceneManager::ReceiveMessages()
 				float rtt;
 				in->Read(&rtt);
 
+				int id = 0;
+				in->Read(&id);
+
+				auto _player = players->find(id);
+				if (_player == players->end())
+				{
+					GamePlayerInfo game = GamePlayerInfo(0, 0);
+					players->insert(std::pair<int, GamePlayerInfo>(id, game));
+				}
+
 				OutputMemoryStream* out = new OutputMemoryStream();
 				out->Write((int)Commands::ACK_MATCH_FOUND);
 				out->Write((int)client->GetClientID());
@@ -523,12 +533,6 @@ void SceneManager::ReceiveMessages()
 				in->Read(&posY);
 
 				auto _player = players->find(playerID);
-				if(_player == players->end())
-				{
-					GamePlayerInfo game = GamePlayerInfo(0, 0);
-					players->insert(std::pair<int, GamePlayerInfo>(playerID, game));
-					_player = players->find(playerID);
-				}
 
 				_player->second.SetPlayerPos(posX, posY);
 
