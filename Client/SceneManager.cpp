@@ -299,7 +299,8 @@ void SceneManager::CheckMessageTimeout()
 		//std::cout << "MessageTimeout: " << a << std::endl;
 		//a++;
 		if (criticalMessages->size() == 0) continue;
-		auto currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		time_t currentTime;
+		time(&currentTime);
 
 		mtx.lock();
 
@@ -353,9 +354,10 @@ void SceneManager::UpdateInit()
 	out->WriteString(client->GetName());
 	out->Write(client->GetClientSalt());
 		
-	auto startTime = std::chrono::system_clock::now();
+	time_t startTime;
+	time(&startTime);
 	client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-	SavePacketToTable(Commands::HELLO, out, std::chrono::system_clock::to_time_t(startTime));
+	SavePacketToTable(Commands::HELLO, out, startTime);
 
 	while (!(*connected)) { std::this_thread::sleep_for(std::chrono::milliseconds(2)); }
 
@@ -370,9 +372,6 @@ void SceneManager::ReceiveMessages()
 
 	while(*gameState != State::EXIT) 
 	{
-		//std::cout << "RECEIVE: " << a << std::endl;
-		//a++;
-		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		InputMemoryStream* in = client->GetSocket()->Receive(status, Server_Ip, _port);
 
 		int command;
@@ -429,9 +428,10 @@ void SceneManager::ReceiveMessages()
 
 				out->Write(_result);
 
-				auto startTime = std::chrono::system_clock::now();
+				time_t startTime;
+				time(&startTime);
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-				SavePacketToTable(Commands::SALT, out, std::chrono::system_clock::to_time_t(startTime));
+				SavePacketToTable(Commands::SALT, out, startTime);
 			}
 			break;
 		case Commands::CHALLENGE:
@@ -460,9 +460,10 @@ void SceneManager::ReceiveMessages()
 				out->Write(rttKey);
 				out->Write(_result);
 
-				auto startTime2 = std::chrono::system_clock::now();
+				time_t startTime;
+				time(&startTime);
 				client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
-				SavePacketToTable(Commands::SALT, out, std::chrono::system_clock::to_time_t(startTime2));
+				SavePacketToTable(Commands::SALT, out, startTime);
 				MessageReceived(Commands::HELLO);
 			}
 			break;

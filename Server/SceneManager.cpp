@@ -46,7 +46,8 @@ void SceneManager::MessageReceived(Commands _message, int _id, float _rttKey)
 	auto clientPosition = criticalMessages->find(_id);
 	if (clientPosition == criticalMessages->end()) return;
 
-	float rttMaxTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	time_t rttMaxTime;
+	std::time(&rttMaxTime);
 	float realRtt = rttMaxTime - _rttKey;
 	game->SetClientRtt(_id, _rttKey, realRtt);
 
@@ -81,16 +82,17 @@ void SceneManager::CheckRooms()
 				{
 					OutputMemoryStream* out2 = new OutputMemoryStream();
 					out2->Write((int)Commands::MATCH_FINISHED);
+					time_t currTime;
 					if (i == 0)
 					{
-						SavePacketToTable(Commands::MATCH_FINISHED, out2,
-							std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), roomIt->second[1].first);
+						time(&currTime);
+						SavePacketToTable(Commands::MATCH_FINISHED, out2, currTime, roomIt->second[1].first);
 						game->SendClient(roomIt->second[1].first, out2);
 					}
 					else
 					{
-						SavePacketToTable(Commands::MATCH_FINISHED, out2,
-							std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()), roomIt->second[0].first);
+						time(&currTime);
+						SavePacketToTable(Commands::MATCH_FINISHED, out2, currTime, roomIt->second[0].first);
 						game->SendClient(roomIt->second[0].first, out2);
 					}
 					mtx.lock();
@@ -159,8 +161,9 @@ void SceneManager::MatchMaking()
 					rooms->insert(_room);
 					
 					out->Write((int)Commands::MATCH_FOUND);
-					float rtt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-					out->Write(rtt);
+					time_t rtt;
+					time(&rtt);
+					out->Write((int)rtt);
 					out->Write(searchingPlayers->at(i).second->GetId());
 
 					game->SendClient(searchingPlayers->at(j).second->GetId(), out);
@@ -168,7 +171,7 @@ void SceneManager::MatchMaking()
 
 					out = new OutputMemoryStream();
 					out->Write((int)Commands::MATCH_FOUND);
-					out->Write(rtt);
+					out->Write((int)rtt);
 					out->Write(searchingPlayers->at(j).second->GetId());
 
 					game->SendClient(searchingPlayers->at(i).second->GetId(), out);
@@ -218,7 +221,6 @@ void SceneManager::DisconnectClient(int _id)
 		criticalMessages->erase(_id);
 		std::cout << "Player Disconnected!!!!!" << std::endl;
 	}
-
 }
 
 void SceneManager::ExitThread()
@@ -250,18 +252,15 @@ void SceneManager::ExitThread()
 void SceneManager::CheckMessageTimeout()
 {
 	int a = 0;
-	float margin = 5, resendingTime = 1 ;
+	float disconnectTime = 5, resendingTime = 1 ;
 
 	while (*gameState != State::END)
 	{
-		//std::cout << "TIMEOUTMSG: " << a << std::endl;
-		//a++;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
 		if (criticalMessages->size() == 0) {
 			continue;
 		}
 	
-		//mtx.lock();
+		mtx.lock();
 		Status status;
 		
 		for (auto it = criticalMessages->begin(); it != criticalMessages->end(); it++)
@@ -274,9 +273,8 @@ void SceneManager::CheckMessageTimeout()
 				time_t curr;
 				std::time(&curr);
 				float diff = curr - it2->second.startTime;
-				//std::cout << it2->second.tries << std::endl;
-				std::cout << diff << std::endl;
-				if(it2->first == Commands::PING_PONG && diff > 30)
+
+				if(it2->first == Commands::PING_PONG && curr - game->GetClient(it->first)->GetTimeOut() > disconnectTime)
 				{
 					DisconnectClient(it->first);
 					breakLoop = true;
@@ -288,12 +286,13 @@ void SceneManager::CheckMessageTimeout()
 					if ((int)it2->first > 0 && (int)it2->first < (int)Commands::COUNT)
 					{
 						game->SendClient(it->first, it2->second.message);
-						//std::time(&it2->second.startTime);
+						time(&it2->second.startTime);
 					}
 				}
 			}
 			if (breakLoop) break;
 		}
+		mtx.unlock();
 	}
 }
 
@@ -348,7 +347,7 @@ void SceneManager::ReceiveMessages()
 		commandNum = (Commands) num;
 
 		int id;
-		float currentTime;
+		time_t currentTime;
 		//Check if Client is connected or connecting
 		if (commandNum != Commands::HELLO)
 		{
@@ -371,10 +370,10 @@ void SceneManager::ReceiveMessages()
 
 				id = game->CreateClient(_client.second, _client.first, name, salt);
 
-				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				std::time(&currentTime);
 
 				out->Write(Commands::CHALLENGE);
-				out->Write(currentTime);
+				out->Write((int)currentTime);
 				out->Write(id);
 				out->Write(game->GetConnectingClient(id)->GetServerSalt());
 
@@ -411,19 +410,19 @@ void SceneManager::ReceiveMessages()
 
 				if (salt == _result)
 				{
-					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+					std::time(&currentTime);
 					out->Write((int)Commands::WELCOME);
 					//out->Write(-1);
 					SavePacketToTable(Commands::WELCOME, out, currentTime, id);
 				}
 				else
 				{
-					currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+					std::time(&currentTime);
 					out->Write((int)Commands::SALT);
 					SavePacketToTable(Commands::SALT, out, currentTime, id);
 					game->GetClientsMap()->at(id)->AddTry();
 				}
-				out->Write(currentTime);
+				out->Write((int)currentTime);
 
 				game->SendClient(id, out);
 		}
@@ -455,6 +454,8 @@ void SceneManager::ReceiveMessages()
 					
 				out->Write((int)Commands::PING_PONG);
 				out->Write(curr);
+
+				game->GetClient(id)->UpdateTimeOut();
 
 				game->SendClient(id, out);
 				SavePacketToTable(Commands::PING_PONG, out, curr, id);

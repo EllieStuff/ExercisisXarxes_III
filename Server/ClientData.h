@@ -8,7 +8,7 @@ class ClientData
 	IpAddress address;
 	std::string name;
 	int clientSALT, serverSALT, clientID;
-	clock_t timeout;
+	time_t timeout;
 	std::map<float, float> rttLog;
 
 	int saltTries = 0;
@@ -46,13 +46,14 @@ public:
 	int GetId() { return clientID; }
 	std::string GetName() { return name; }
 
-	void ResetTimeOut() { timeout = clock(); }
+	void UpdateTimeOut() { time(&timeout); }
 
 	void CleanAccumulatedPositions() { positions.clear(); }
 	void AcumulatePosition(int _posX, int _posY) { positions.push_back(std::pair<int, int>(_posX, _posY)); }
 	void UpdatePosition() { if (!positions.empty()) { posX += positions[0].first; posY += positions[0].second; positions.erase(positions.begin()); } }
 	int GetXPos() { return posX; }
 	int GetYPos() { return posY; }
+	time_t GetTimeOut() { return timeout; }
 
 	int GetTries() { return saltTries; };
 	void AddTry() { saltTries++; }
