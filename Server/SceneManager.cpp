@@ -275,6 +275,7 @@ void SceneManager::CheckMessageTimeout()
 				std::time(&curr);
 				float diff = curr - it2->second.startTime;
 				//std::cout << it2->second.tries << std::endl;
+				std::cout << diff << std::endl;
 				if(it2->first == Commands::PING_PONG && diff > 30)
 				{
 					DisconnectClient(it->first);
@@ -287,7 +288,7 @@ void SceneManager::CheckMessageTimeout()
 					if ((int)it2->first > 0 && (int)it2->first < (int)Commands::COUNT)
 					{
 						game->SendClient(it->first, it2->second.message);
-						std::time(&it2->second.startTime);
+						//std::time(&it2->second.startTime);
 					}
 				}
 			}
