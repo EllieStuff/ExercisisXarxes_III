@@ -17,18 +17,15 @@ void SceneManager::UpdateGame()
 		std::cout << "1. Matchmaking" << std::endl;
 		std::cout << "2. Exit" << std::endl;
 		std::cout << "OPTION: ";
-		int option;
+		std::string option;
 		std::cin >> option;
 
 		std::cout << "" << std::endl;
 
-
 		GamePlayerInfo game = GamePlayerInfo(0, 0);
 		players->insert(std::pair<int, GamePlayerInfo>(client->GetClientID(), game));
 
-		switch (option)
-		{
-		case 1:
+		if(option == "1")
 		{
 
 			OutputMemoryStream* out = new OutputMemoryStream();
@@ -193,8 +190,7 @@ void SceneManager::UpdateGame()
 
 			break;
 		}
-
-		case 2:
+		else if(option == "2")
 		{
 			OutputMemoryStream* out = new OutputMemoryStream();
 			out->Write((int)Commands::EXIT);
@@ -207,7 +203,7 @@ void SceneManager::UpdateGame()
 			*gameState = State::EXIT;
 			break;
 		}
-		}
+		else continue;
 	}
 }
 
@@ -346,7 +342,6 @@ void SceneManager::UpdateInit()
 
 	Status status;
 
-
 	std::cout << " Connecting to the server" << std::endl;
 
 	OutputMemoryStream* out = new OutputMemoryStream();
@@ -477,7 +472,8 @@ void SceneManager::ReceiveMessages()
 			break;
 		case Commands::EXIT:
 			{
-			*gameState = State::END;
+			*gameState = State::EXIT;
+			exit(0);
 			}
 			break;
 		//--------------- Disconnection ---------------

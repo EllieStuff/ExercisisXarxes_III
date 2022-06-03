@@ -226,16 +226,12 @@ void SceneManager::DisconnectClient(int _id)
 void SceneManager::ExitThread()
 {
 	std::string _exit = "";
-	int a = 0;
+
 	while (*gameState != State::END)
 	{
-		//std::cout << "EXIT: " << a << std::endl;
-		//a++;
 		std::cin >> _exit;
-		if (_exit == "exit" || _exit == "EXIT")
+		if (_exit == "exit" || _exit == "EXIT" || _exit == "Exit")
 		{
-			mtx.lock();
-			*gameState = State::END;
 			OutputMemoryStream* out = new OutputMemoryStream();
 			out->Write((int)Commands::EXIT);
 
@@ -243,8 +239,10 @@ void SceneManager::ExitThread()
 			game->SendAll(out);
 			delete out;
 
-			mtx.unlock();
 			*gameState = State::END;
+
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+			exit(0);
 		}
 	}
 }
