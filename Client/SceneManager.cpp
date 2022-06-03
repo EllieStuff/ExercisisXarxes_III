@@ -268,14 +268,16 @@ void SceneManager::Ping(float rttKey)
 
 		Status status;
 
-		float margin = 30 * CLOCKS_PER_SEC;
-		clock_t startTime = std::clock();
+		float margin = 30;
+		time_t startTime;
+		std::time(&startTime);
 
 		client->GetSocket()->Send(out, status, Server_Ip, Server_Port);
 
 		while(*pong != true) 
 		{
-			clock_t currTime = std::clock();
+			time_t currTime;
+			std::time(&currTime);
 
 			if(currTime - startTime > margin)
 			{

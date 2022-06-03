@@ -250,8 +250,7 @@ void SceneManager::ExitThread()
 void SceneManager::CheckMessageTimeout()
 {
 	int a = 0;
-	float margin = 30 * CLOCKS_PER_SEC;
-	clock_t startTime = std::clock();
+	float margin = 5, resendingTime = 1 ;
 
 	while (*gameState != State::END)
 	{
@@ -272,25 +271,23 @@ void SceneManager::CheckMessageTimeout()
 				continue;
 			for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
 			{
+				time_t curr;
+				std::time(&curr);
+				float diff = curr - it2->second.startTime;
 				//std::cout << it2->second.tries << std::endl;
-				if(it2->first == Commands::PING_PONG)
+				if(it2->first == Commands::PING_PONG && diff > 30)
 				{
-					std::clock_t currTime = std::clock();
-					if (currTime - startTime > margin)
-					{
-						DisconnectClient(it->first);
-						breakLoop = true;
-						break;
-					}
-					startTime = std::clock();
+					DisconnectClient(it->first);
+					breakLoop = true;
+					break;
 				}
-				else if(!game->GetClient(it->first)->disconnected)
+				else if(!game->GetClient(it->first)->disconnected && diff > resendingTime)
 				{
 					std::cout << "Sending Important Message " <<  (int)it2->first << std::endl;
 					if ((int)it2->first > 0 && (int)it2->first < (int)Commands::COUNT)
 					{
 						game->SendClient(it->first, it2->second.message);
-						it2->second.tries++;
+						std::time(&it2->second.startTime);
 					}
 				}
 			}
@@ -452,13 +449,14 @@ void SceneManager::ReceiveMessages()
 				MessageReceived(Commands::PING_PONG, id, rttKey);
 
 				OutputMemoryStream* out = new OutputMemoryStream();
-				currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				time_t  curr;
+				std::time(&curr);
 					
 				out->Write((int)Commands::PING_PONG);
-				out->Write(currentTime);
+				out->Write(curr);
 
 				game->SendClient(id, out);
-				SavePacketToTable(Commands::PING_PONG, out, currentTime, id);
+				SavePacketToTable(Commands::PING_PONG, out, curr, id);
 			}
 			break;
 		case Commands::EXIT:
